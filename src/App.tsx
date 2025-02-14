@@ -1,7 +1,6 @@
 import React, { Suspense } from 'react';
 import '@aws-amplify/ui-react/styles.css';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import AI from './contexts/AIContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { PublicLayout } from './layouts/PublicLayout';
@@ -10,6 +9,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import WelcomeScreen from './components/WelcomeScreen';
 import { Authenticator } from '@aws-amplify/ui-react';
 import styles from './App.module.css';
+import { AIProvider } from './contexts/AIContext';
 
 // Lazy load other components
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -38,7 +38,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AI.Provider>
+        <AIProvider>
           <BrowserRouter>
             <Routes>
               {/* Public routes */}
@@ -73,7 +73,7 @@ export default function App() {
               <Route path="*" element={<Navigate to="/welcome" replace />} />
             </Routes>
           </BrowserRouter>
-        </AI.Provider>
+        </AIProvider>
       </AuthProvider>
     </ThemeProvider>
   );
