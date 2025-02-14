@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-amplify/api-rest": "^4.0.69",
     "@aws-amplify/ui-react": "^6.5.5",
     "@aws-sdk/client-secrets-manager": "^3.744.0",
     "@types/react-router-dom": "^5.3.3",
