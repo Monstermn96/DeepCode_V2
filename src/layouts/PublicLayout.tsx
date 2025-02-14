@@ -1,8 +1,8 @@
-import React from 'react';
+import type { FC } from 'react';
 import { Outlet } from 'react-router-dom';
 import styles from './PublicLayout.module.css';
 
-export function PublicLayout() {
+const PublicLayout: FC = () => {
   return (
     <div className={styles.layout}>
       <main className={styles.main}>
@@ -13,4 +13,6 @@ export function PublicLayout() {
       </footer>
     </div>
   );
-} 
+};
+
+export default PublicLayout; 

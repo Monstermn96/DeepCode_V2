@@ -3,11 +3,11 @@ import '@aws-amplify/ui-react/styles.css';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { PublicLayout } from './layouts/PublicLayout';
+import PublicLayout from './layouts/PublicLayout';
 import { AuthLayout } from './layouts/AuthLayout';
-import { DashboardLayout } from './layouts/DashboardLayout';
+import DashboardLayout from './layouts/DashboardLayout';
 import WelcomeScreen from './components/WelcomeScreen';
-import { Authenticator } from '@aws-amplify/ui-react';
+import { Authenticator, type AuthenticatorProps } from '@aws-amplify/ui-react';
 import styles from './App.module.css';
 import { AIProvider } from './contexts/AIContext';
 
@@ -19,17 +19,22 @@ const Profile = React.lazy(() => import('./pages/Profile'));
 function LoginPage() {
   const navigate = useNavigate();
 
+  const handleAuthSuccess: AuthenticatorProps['children'] = ({ user }) => {
+    if (user) {
+      setTimeout(() => navigate('/dashboard'), 0);
+      return (
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner} />
+          <p>Redirecting to dashboard...</p>
+        </div>
+      );
+    }
+    return <div>Please sign in</div>;
+  };
+
   return (
     <div className={styles.authContainer}>
-      <Authenticator>
-        {({ user }) => {
-          setTimeout(() => navigate('/dashboard'), 0);
-          return <div className={styles.loadingContainer}>
-            <div className={styles.loadingSpinner} />
-            <p>Redirecting to dashboard...</p>
-          </div>;
-        }}
-      </Authenticator>
+      <Authenticator>{handleAuthSuccess}</Authenticator>
     </div>
   );
 }

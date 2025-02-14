@@ -47,10 +47,9 @@
   max-width: 400px;
   margin: 2rem auto;
   padding: 2rem;
-  background: var(--background-light);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-md);
+  background: var(--amplify-colors-background-secondary);
+  border-radius: var(--amplify-radii-medium);
+  box-shadow: var(--amplify-shadows-medium);
 }
 
 .loadingContainer {
@@ -58,18 +57,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: var(--background-dark);
+  min-height: 200px;
+  padding: 2rem;
 }
 
 .loadingSpinner {
   width: 40px;
   height: 40px;
-  border: 4px solid var(--border-color);
-  border-top: 4px solid var(--primary-color);
+  border: 3px solid var(--amplify-colors-background-tertiary);
+  border-top: 3px solid var(--amplify-colors-brand-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {

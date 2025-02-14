@@ -2,8 +2,11 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--background-dark);
-  color: var(--text-light);
+  background: var(--background-dark);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .header {
@@ -35,12 +38,18 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  background: var(--background-dark);
 }
 
 .footer {
-  padding: 1rem;
   text-align: center;
+  padding: 1rem;
+  background: var(--background-dark);
+  color: var(--text-secondary);
   font-size: 0.875rem;
-  color: var(--text-muted);
+  width: 100%;
   border-top: 1px solid var(--border-color);
 } 

@@ -7,6 +7,8 @@
   align-items: center;
   gap: var(--spacing-xl);
   padding: var(--spacing-lg);
+  background-color: var(--background-dark);
+  min-height: 100vh;
 }
 
 .header {
@@ -32,7 +34,7 @@
 .controlPanel {
   width: 100%;
   max-width: 600px;
-  background: var(--background-light);
+  background: var(--background-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);

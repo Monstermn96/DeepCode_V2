@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { post } from '@aws-amplify/api-rest';
 
@@ -27,6 +27,8 @@ interface ApiResponse {
 interface AIContextType {
   loading: boolean;
   error: string | null;
+  lastResponse: ApiResponse | null;
+  clearError: () => void;
   generateChallenge: (topic: string, languages?: string[]) => Promise<void>;
   currentChallenge: ApiResponse['data'] | null;
 }
@@ -42,6 +44,11 @@ export function AIProvider({ children }: AIProviderProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentChallenge, setCurrentChallenge] = useState<ApiResponse['data'] | null>(null);
+  const [lastResponse, setLastResponse] = useState<ApiResponse | null>(null);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   const generateChallenge = useCallback(async (topic: string, languages: string[] = []) => {
     setLoading(true);
@@ -67,6 +74,7 @@ export function AIProvider({ children }: AIProviderProps) {
 
       const jsonResponse = await body.json();
       const response = jsonResponse as unknown as ApiResponse;
+      setLastResponse(response);
       setCurrentChallenge(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while generating the challenge');
@@ -79,8 +87,10 @@ export function AIProvider({ children }: AIProviderProps) {
   const value = {
     loading,
     error,
+    clearError,
     generateChallenge,
     currentChallenge,
+    lastResponse,
   };
 
   return <AIContext.Provider value={value}>{children}</AIContext.Provider>;
