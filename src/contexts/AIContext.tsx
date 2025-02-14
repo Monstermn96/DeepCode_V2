@@ -1,75 +1,71 @@
-import React, { createContext, useContext, useState } from 'react';
-import { post } from '@aws-amplify/api';
+import React, { createContext, useContext, useState, useMemo } from 'react';
+import { aiService } from '../services/ai/openai';
 
-interface AIResponse {
-  success: boolean;
-  error?: string;
-  data?: {
-    challenge: string;
-    difficulty: string;
-    hints: string[];
-  };
-}
-
-interface AIContextType {
+// Types
+interface AIContextValue {
   loading: boolean;
   error: string | null;
-  generateChallenge: (topic: string) => Promise<void>;
+  lastResponse: any | null;
+  generateChallenge: (topic: string, languages?: string[]) => Promise<void>;
+  clearError: () => void;
 }
 
-const AIContext = createContext<AIContextType | undefined>(undefined);
+// Create context with a default value
+const AIContext = createContext<AIContextValue | undefined>(undefined);
 
-export function AIProvider({ children }: { children: React.ReactNode }) {
+// Provider Component
+const AIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastResponse, setLastResponse] = useState<any | null>(null);
 
-  const generateChallenge = async (topic: string): Promise<void> => {
+  const clearError = () => setError(null);
+
+  const generateChallenge = async (topic: string, languages: string[] = []): Promise<void> => {
     setLoading(true);
     setError(null);
     
     try {
-      const rawResponse = await post({
-        apiName: 'ai',
-        path: '/ai',
-        options: {
-          body: {
-            topic,
-          },
-        },
-      });
-
-      // Type assertion after validating the shape
-      const response = rawResponse as unknown as AIResponse;
-      if (!('success' in response)) {
-        throw new Error('Invalid response format');
-      }
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to generate challenge');
-      }
-
-      if (!response.data) {
-        throw new Error('No challenge data received');
-      }
+      const response = await aiService.generateChallenge(topic, languages);
+      setLastResponse(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  // Memoize the context value to prevent unnecessary rerenders
+  const value = useMemo(() => ({
+    loading,
+    error,
+    lastResponse,
+    generateChallenge,
+    clearError
+  }), [loading, error, lastResponse]);
+
   return (
-    <AIContext.Provider value={{ loading, error, generateChallenge }}>
+    <AIContext.Provider value={value}>
       {children}
     </AIContext.Provider>
   );
-}
+};
 
-export function useAI() {
+// Hook
+const useAI = () => {
   const context = useContext(AIContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAI must be used within an AIProvider');
   }
   return context;
-} 
+};
+
+// Export both the provider and hook as properties of a single default export
+const AI = {
+  Provider: AIProvider,
+  useAI
+};
+
+export default AI; 

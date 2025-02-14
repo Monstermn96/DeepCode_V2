@@ -1,65 +1,103 @@
 import { post } from '@aws-amplify/api';
 
-export type AIRequestType = 'challenge' | 'feedback';
+export type AIRequestType = 'challenge' | 'feedback' | 'evaluation';
 
-interface AIRequest {
-  prompt: string;
-  type?: AIRequestType;
+interface AIUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
 }
 
-export interface AIResponse {
-  response: string;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
+interface ChallengeResponse {
+  title: string;
+  description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  starterCode: string;
+  solution: string;
+  testCases: Array<{
+    input: string;
+    expectedOutput: string;
+    description: string;
+  }>;
+  hints: string[];
+}
+
+interface FeedbackResponse {
+  overallAssessment: string;
+  codeQuality: number;
+  strengths: string[];
+  improvements: string[];
+  bestPractices: string[];
+  securityConcerns: string[];
+  performanceSuggestions: string[];
+}
+
+interface EvaluationResponse {
+  passed: boolean;
+  results: boolean[];
+  explanations: string[];
+  performance: {
+    timeComplexity: string;
+    spaceComplexity: string;
+    suggestions: string[];
   };
 }
 
+type AIResponseData = ChallengeResponse | FeedbackResponse | EvaluationResponse;
+
+interface AIResponse {
+  data: AIResponseData;
+  usage: AIUsage;
+}
+
 export const aiService = {
-  async generateResponse({ prompt, type = 'challenge' }: AIRequest): Promise<AIResponse> {
+  async generateResponse<T extends AIResponseData>(
+    type: AIRequestType,
+    inputData: Record<string, any>
+  ): Promise<AIResponse & { data: T }> {
     try {
       const response = await post({
         apiName: 'ai',
         path: '/ai',
         options: {
           body: {
-            prompt,
-            type
+            type,
+            ...inputData
           }
         }
-      });
+      }) as unknown as AIResponse & { data: T };
 
-      return response as unknown as AIResponse;
+      if (!response || !response.data) {
+        throw new Error('Invalid response format from AI service');
+      }
+
+      return response;
     } catch (error) {
       console.error('AI Service Error:', error);
       throw new Error('Failed to generate AI response');
     }
   },
 
-  async generateChallenge(topic: string): Promise<AIResponse> {
-    return this.generateResponse({
-      prompt: `Create a coding challenge about ${topic}. Include:
-        1. Problem description
-        2. Input/Output examples
-        3. Constraints
-        4. Starter code
-        5. Hints (optional)`,
-      type: 'challenge'
+  async generateChallenge(topic: string, languages: string[] = []): Promise<AIResponse & { data: ChallengeResponse }> {
+    return this.generateResponse<ChallengeResponse>('challenge', {
+      topic,
+      languages
     });
   },
 
-  async getCodeFeedback(code: string): Promise<AIResponse> {
-    return this.generateResponse({
-      prompt: `Review this code and provide detailed feedback:
-      ${code}
-      
-      Please include:
-      1. Code quality assessment
-      2. Potential improvements
-      3. Best practices suggestions
-      4. Performance considerations`,
-      type: 'feedback'
+  async getCodeFeedback(code: string): Promise<AIResponse & { data: FeedbackResponse }> {
+    return this.generateResponse<FeedbackResponse>('feedback', {
+      code
+    });
+  },
+
+  async evaluateCode(
+    submission: string,
+    testCases: Array<{ input: string; expectedOutput: string }>
+  ): Promise<AIResponse & { data: EvaluationResponse }> {
+    return this.generateResponse<EvaluationResponse>('evaluation', {
+      submission,
+      testCases
     });
   }
 }; 
