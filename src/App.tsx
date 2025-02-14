@@ -1,40 +1,80 @@
-import { useEffect, useState } from "react";
-import type { Schema } from "../amplify/data/resource";
-import { generateClient } from "aws-amplify/data";
+import React, { Suspense } from 'react';
+import '@aws-amplify/ui-react/styles.css';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { AIProvider } from './contexts/AIContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { PublicLayout } from './layouts/PublicLayout';
+import { AuthLayout } from './layouts/AuthLayout';
+import { DashboardLayout } from './layouts/DashboardLayout';
+import WelcomeScreen from './components/WelcomeScreen';
+import { Authenticator } from '@aws-amplify/ui-react';
+import styles from './App.module.css';
 
-const client = generateClient<Schema>();
+// Lazy load other components
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Challenges = React.lazy(() => import('./pages/Challenges'));
+const Profile = React.lazy(() => import('./pages/Profile'));
 
-function App() {
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
-
-  useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
-    });
-  }, []);
-
-  function createTodo() {
-    client.models.Todo.create({ content: window.prompt("Todo content") });
-  }
+function LoginPage() {
+  const navigate = useNavigate();
 
   return (
-    <main>
-      <h1>My todos</h1>
-      <button onClick={createTodo}>+ new</button>
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id}>{todo.content}</li>
-        ))}
-      </ul>
-      <div>
-        🥳 App successfully hosted. Try creating a new todo.
-        <br />
-        <a href="https://docs.amplify.aws/react/start/quickstart/#make-frontend-updates">
-          Review next step of this tutorial.
-        </a>
-      </div>
-    </main>
+    <div className={styles.authContainer}>
+      <Authenticator>
+        {({ user }) => {
+          setTimeout(() => navigate('/dashboard'), 0);
+          return <div className={styles.loadingContainer}>
+            <div className={styles.loadingSpinner} />
+            <p>Redirecting to dashboard...</p>
+          </div>;
+        }}
+      </Authenticator>
+    </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <AIProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route element={<PublicLayout />}>
+                <Route path="/welcome" element={<WelcomeScreen />} />
+                <Route path="/" element={<Navigate to="/welcome" replace />} />
+                <Route path="/login" element={<LoginPage />} />
+              </Route>
+
+              {/* Protected routes */}
+              <Route element={<AuthLayout />}>
+                <Route element={<DashboardLayout />}>
+                  <Route path="/dashboard" element={
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <Dashboard />
+                    </Suspense>
+                  } />
+                  <Route path="/challenges" element={
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <Challenges />
+                    </Suspense>
+                  } />
+                  <Route path="/profile" element={
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <Profile />
+                    </Suspense>
+                  } />
+                </Route>
+              </Route>
+
+              {/* Catch all route */}
+              <Route path="*" element={<Navigate to="/welcome" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </AIProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
