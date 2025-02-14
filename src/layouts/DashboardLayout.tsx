@@ -28,29 +28,31 @@ export function DashboardLayout() {
   return (
     <div className={styles.layout}>
       <nav className={styles.nav}>
-        <div className={styles.logo}>
-          <h1>DeepCode</h1>
-        </div>
-        <ul className={styles.menu}>
-          <li>
-            <Link to="/dashboard">Dashboard</Link>
-          </li>
-          <li>
-            <Link to="/challenges">Challenges</Link>
-          </li>
-          <li>
-            <Link to="/profile">Profile</Link>
-          </li>
-        </ul>
-        <div className={styles.user}>
-          <span>{user?.username}</span>
-          <button 
-            onClick={handleSignOut} 
-            className={styles.signOut}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Signing out...' : 'Sign Out'}
-          </button>
+        <div className={styles.navContent}>
+          <div className={styles.logo}>
+            <Link to="/dashboard">DeepCode</Link>
+          </div>
+          <ul className={styles.menu}>
+            <li>
+              <Link to="/dashboard">Dashboard</Link>
+            </li>
+            <li>
+              <Link to="/challenges">Challenges</Link>
+            </li>
+            <li>
+              <Link to="/profile">Profile</Link>
+            </li>
+          </ul>
+          <div className={styles.user}>
+            <span>{user?.username}</span>
+            <button 
+              onClick={handleSignOut} 
+              className={styles.signOut}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing out...' : 'Sign Out'}
+            </button>
+          </div>
         </div>
       </nav>
       <main className={styles.main}>

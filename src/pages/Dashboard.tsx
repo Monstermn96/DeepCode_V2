@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAI } from '../contexts/AIContext';
+import { useAuth } from '../contexts/AuthContext';
 import WelcomeControlPanel from '../components/WelcomeControlPanel';
 import styles from './Dashboard.module.css';
 
@@ -19,6 +20,7 @@ const initialStats: ChallengeStats = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { generateChallenge, loading, error } = useAI();
   const [stats] = useState<ChallengeStats>(initialStats);
 
@@ -35,8 +37,10 @@ export default function Dashboard() {
     <div className={styles.dashboard}>
       <div className={styles.dashboardContent}>
         <header className={styles.header}>
-          <h1 className={styles.title}>Dashboard</h1>
-          <p className={styles.subtitle}>Generate new challenges or continue your progress</p>
+          <h1 className={styles.title}>Welcome Back{user?.username ? `, ${user.username}` : ''}!</h1>
+          <p className={styles.subtitle}>
+            Track your progress and generate new coding challenges to enhance your skills
+          </p>
         </header>
 
         <div className={styles.stats}>
