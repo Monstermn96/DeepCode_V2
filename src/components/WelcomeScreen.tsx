@@ -41,6 +41,11 @@ export default function WelcomeScreen() {
   }, [isAuthenticated, navigate]);
 
   const handleGenerateNew = async (topic: string) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
     try {
       setIsLoading(true);
       await generateChallenge(topic);

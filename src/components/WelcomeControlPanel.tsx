@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAI } from '../contexts/AIContext';
+import { useAuth } from '../contexts/AuthContext';
+import styles from './WelcomeControlPanel.module.css';
 
 interface WelcomeControlPanelProps {
   onGenerateNew?: (topic: string, languages: string[]) => Promise<void>;
@@ -7,11 +10,14 @@ interface WelcomeControlPanelProps {
 }
 
 const WelcomeControlPanel: React.FC<WelcomeControlPanelProps> = ({ onGenerateNew, isLoading = false }) => {
+  const navigate = useNavigate();
   const [topic, setTopic] = useState('');
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['JavaScript']);
   const { loading = isLoading, error, generateChallenge } = useAI();
+  const { isAuthenticated } = useAuth();
 
   const handleLanguageToggle = (language: string) => {
+    if (!isAuthenticated) return;
     setSelectedLanguages(prev => 
       prev.includes(language) 
         ? prev.filter(l => l !== language)
@@ -20,6 +26,11 @@ const WelcomeControlPanel: React.FC<WelcomeControlPanelProps> = ({ onGenerateNew
   };
 
   const handleSubmit = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
     if (!topic.trim()) {
       return;
     }
@@ -36,32 +47,30 @@ const WelcomeControlPanel: React.FC<WelcomeControlPanelProps> = ({ onGenerateNew
   };
 
   return (
-    <div className="flex flex-col gap-8 p-8 bg-gray-800 rounded-lg">
-      <h2 className="text-2xl font-bold text-indigo-400">Generate New Challenge</h2>
+    <div className={styles.controlPanel}>
+      <h2 className={styles.title}>Generate New Challenge</h2>
       
-      <div className="flex flex-col gap-4">
-        <label className="text-gray-300">Challenge Topic</label>
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>Challenge Topic</label>
         <input
           type="text"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder="Enter a topic (e.g., Binary Search Trees)"
-          className="p-2 bg-gray-700 rounded border border-gray-600 text-white"
+          className={styles.input}
+          disabled={!isAuthenticated}
         />
       </div>
 
-      <div className="flex flex-col gap-4">
-        <label className="text-gray-300">Programming Languages</label>
-        <div className="flex flex-wrap gap-2">
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>Programming Languages</label>
+        <div className={styles.languagesGrid}>
           {['JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'Go', 'Rust'].map(language => (
             <button
               key={language}
               onClick={() => handleLanguageToggle(language)}
-              className={`px-4 py-2 rounded ${
-                selectedLanguages.includes(language)
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-700 text-gray-300'
-              }`}
+              className={`${styles.languageButton} ${selectedLanguages.includes(language) ? styles.selected : ''}`}
+              disabled={!isAuthenticated}
             >
               {language}
             </button>
@@ -70,27 +79,25 @@ const WelcomeControlPanel: React.FC<WelcomeControlPanelProps> = ({ onGenerateNew
       </div>
 
       {error && (
-        <div className="p-4 bg-red-900/50 border border-red-700 rounded text-red-300">
+        <div className={styles.error}>
           {error}
         </div>
       )}
 
       <button
         onClick={handleSubmit}
-        disabled={loading || !topic.trim()}
-        className={`flex items-center justify-center gap-2 px-6 py-3 rounded bg-indigo-600 text-white font-semibold ${
-          loading || !topic.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'
-        }`}
+        disabled={isAuthenticated ? (loading || !topic.trim()) : false}
+        className={styles.submitButton}
       >
         {loading ? (
           <>
-            <span className="animate-spin">⚪</span>
+            <span className={styles.spinner}>⚪</span>
             Generating...
           </>
+        ) : !isAuthenticated ? (
+          'Login to DeepCode'
         ) : (
-          <>
-            Generate Challenge →
-          </>
+          'Generate Challenge →'
         )}
       </button>
     </div>
