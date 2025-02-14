@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import '@aws-amplify/ui-react/styles.css';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { AIProvider } from './contexts/AIContext';
+import AI from './contexts/AIContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { PublicLayout } from './layouts/PublicLayout';
@@ -38,7 +38,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AIProvider>
+        <AI.Provider>
           <BrowserRouter>
             <Routes>
               {/* Public routes */}
@@ -73,7 +73,7 @@ export default function App() {
               <Route path="*" element={<Navigate to="/welcome" replace />} />
             </Routes>
           </BrowserRouter>
-        </AIProvider>
+        </AI.Provider>
       </AuthProvider>
     </ThemeProvider>
   );

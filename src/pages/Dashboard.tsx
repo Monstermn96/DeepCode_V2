@@ -26,7 +26,7 @@ export default function Dashboard() {
 
   const handleGenerateNew = async (topic: string, languages: string[]) => {
     try {
-      await generateChallenge(topic);
+      await generateChallenge(topic, languages);
       navigate('/challenges');
     } catch (err) {
       console.error('Failed to generate challenge:', err);
