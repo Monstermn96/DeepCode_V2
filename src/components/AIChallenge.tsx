@@ -49,7 +49,7 @@ export function AIChallenge() {
 
       {lastResponse && (
         <div className={styles.challengeResponse}>
-          <pre className={styles.pre}>{lastResponse.response}</pre>
+          <pre className={styles.pre}>{lastResponse.data.description}</pre>
           <div className={styles.usageStats}>
             Tokens used: {lastResponse.usage.total_tokens}
           </div>
