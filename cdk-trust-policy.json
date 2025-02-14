@@ -1,0 +1,18 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": [
+                    "cloudformation.amazonaws.com",
+                    "amplify.amazonaws.com"
+                ],
+                "AWS": [
+                    "arn:aws:iam::630658076165:root"
+                ]
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+} 
