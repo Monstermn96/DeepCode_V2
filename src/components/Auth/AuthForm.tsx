@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CSSTransition } from 'react-transition-group';
-import { signIn, signUp } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import './Auth.css';
 
@@ -17,6 +17,110 @@ interface PasswordValidation {
   hasNumber: boolean;
   hasSpecialChar: boolean;
 }
+
+interface VerificationFormProps {
+  email: string;
+  onVerified: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+  error: string | null;
+  setError: (error: string | null) => void;
+}
+
+const VerificationForm = ({ 
+  email, 
+  onVerified, 
+  onCancel, 
+  isLoading, 
+  error, 
+  setError 
+}: VerificationFormProps) => {
+  const [verificationCode, setVerificationCode] = useState('');
+
+  const handleVerificationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verificationCode.trim()) {
+      setError('Verification code is required');
+      return;
+    }
+
+    try {
+      await confirmSignUp({
+        username: email,
+        confirmationCode: verificationCode
+      });
+      onVerified();
+    } catch (err) {
+      console.error('Verification failed:', err);
+      setError(err instanceof Error ? err.message : 'Verification failed. Please try again.');
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      await resendSignUpCode({ username: email });
+      setError('A new verification code has been sent to your email.');
+    } catch (err) {
+      console.error('Failed to resend code:', err);
+      setError(err instanceof Error ? err.message : 'Failed to resend code. Please try again.');
+    }
+  };
+
+  return (
+    <div className="verification-form">
+      <h3>Verify Your Email</h3>
+      <p>We've sent a verification code to {email}</p>
+      
+      <form onSubmit={handleVerificationSubmit}>
+        <div className="form-group">
+          <input
+            type="text"
+            value={verificationCode}
+            onChange={(e) => setVerificationCode(e.target.value)}
+            placeholder="Enter verification code"
+            className="auth-input"
+            disabled={isLoading}
+          />
+        </div>
+
+        <button 
+          type="submit" 
+          className="auth-submit-button"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <div className="loading-spinner" />
+          ) : (
+            'Verify Email'
+          )}
+        </button>
+      </form>
+
+      <div className="verification-actions">
+        <button
+          onClick={handleResendCode}
+          className="resend-button"
+          disabled={isLoading}
+        >
+          Resend verification code
+        </button>
+        <button
+          onClick={onCancel}
+          className="cancel-button"
+          disabled={isLoading}
+        >
+          Cancel
+        </button>
+      </div>
+
+      {error && (
+        <div className="auth-error-message">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
   const nodeRef = React.useRef(null);
@@ -137,8 +241,13 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
         } catch (err: any) {
           if (err.name === 'UserNotConfirmedException') {
             setNeedsVerification(true);
-            await resendVerification(formData.email);
-            setError('Account not verified. A new verification code has been sent to your email.');
+            try {
+              await resendSignUpCode({ username: formData.email });
+              setError('Account not verified. A new verification code has been sent to your email.');
+            } catch (resendErr) {
+              console.error('Failed to resend verification code:', resendErr);
+              setError('Failed to resend verification code. Please try again.');
+            }
           } else {
             throw err;
           }
@@ -152,16 +261,18 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
     }
   };
 
-  const handleResendCode = async () => {
+  const handleVerificationSuccess = async () => {
+    setNeedsVerification(false);
+    setError(null);
     try {
-      setIsLoading(true);
-      await resendVerification(formData.email);
-      setError('A new verification code has been sent to your email.');
+      await signIn({
+        username: formData.email,
+        password: formData.password
+      });
+      if (onSuccess) onSuccess();
     } catch (err) {
-      console.error('Failed to resend code:', err);
-      setError(err instanceof Error ? err.message : 'Failed to resend code. Please try again.');
-    } finally {
-      setIsLoading(false);
+      console.error('Sign in after verification failed:', err);
+      setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
     }
   };
 
@@ -202,120 +313,126 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
                 <span className="logo-icon">⚡</span>
                 <span className="logo-text">DeepDevAi</span>
               </div>
-              <h2>{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
-              <p className="auth-subtitle">
-                {isSignUp 
-                  ? 'Start your coding journey'
-                  : 'Continue your coding journey'}
-              </p>
+              {!needsVerification && (
+                <>
+                  <h2>{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
+                  <p className="auth-subtitle">
+                    {isSignUp 
+                      ? 'Start your coding journey'
+                      : 'Continue your coding journey'}
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="auth-body">
-              <form onSubmit={handleSubmit} className="auth-form">
-                {isSignUp && (
+              {needsVerification ? (
+                <VerificationForm
+                  email={formData.email}
+                  onVerified={handleVerificationSuccess}
+                  onCancel={() => setNeedsVerification(false)}
+                  isLoading={isLoading}
+                  error={error}
+                  setError={setError}
+                />
+              ) : (
+                <form onSubmit={handleSubmit} className="auth-form">
+                  {isSignUp && (
+                    <div className="form-group">
+                      <input
+                        type="text"
+                        name="username"
+                        placeholder="Username"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        disabled={isLoading}
+                        required
+                        className="auth-input"
+                      />
+                    </div>
+                  )}
+
                   <div className="form-group">
                     <input
-                      type="text"
-                      name="username"
-                      placeholder="Username"
-                      value={formData.username}
+                      type="email"
+                      name="email"
+                      placeholder="Email"
+                      value={formData.email}
                       onChange={handleInputChange}
                       disabled={isLoading}
                       required
                       className="auth-input"
                     />
                   </div>
-                )}
 
-                <div className="form-group">
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    required
-                    className="auth-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <input
-                    type="password"
-                    name="password"
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    onFocus={() => setShowPasswordRequirements(true)}
-                    disabled={isLoading}
-                    required
-                    className="auth-input"
-                  />
-                  {isSignUp && showPasswordRequirements && (
-                    <div className="password-requirements">
-                      <p>Password must contain:</p>
-                      <ul>
-                        <li className={passwordValidation.hasMinLength ? 'valid' : ''}>
-                          At least 8 characters
-                        </li>
-                        <li className={passwordValidation.hasUpperCase ? 'valid' : ''}>
-                          One uppercase letter
-                        </li>
-                        <li className={passwordValidation.hasLowerCase ? 'valid' : ''}>
-                          One lowercase letter
-                        </li>
-                        <li className={passwordValidation.hasNumber ? 'valid' : ''}>
-                          One number
-                        </li>
-                        <li className={passwordValidation.hasSpecialChar ? 'valid' : ''}>
-                          One special character
-                        </li>
-                      </ul>
-                    </div>
-                  )}
-                </div>
-
-                {isSignUp && (
                   <div className="form-group">
                     <input
                       type="password"
-                      name="confirmPassword"
-                      placeholder="Confirm Password"
-                      value={formData.confirmPassword}
+                      name="password"
+                      placeholder="Password"
+                      value={formData.password}
                       onChange={handleInputChange}
+                      onFocus={() => setShowPasswordRequirements(true)}
                       disabled={isLoading}
                       required
                       className="auth-input"
                     />
+                    {isSignUp && showPasswordRequirements && (
+                      <div className="password-requirements">
+                        <p>Password must contain:</p>
+                        <ul>
+                          <li className={passwordValidation.hasMinLength ? 'valid' : ''}>
+                            At least 8 characters
+                          </li>
+                          <li className={passwordValidation.hasUpperCase ? 'valid' : ''}>
+                            One uppercase letter
+                          </li>
+                          <li className={passwordValidation.hasLowerCase ? 'valid' : ''}>
+                            One lowercase letter
+                          </li>
+                          <li className={passwordValidation.hasNumber ? 'valid' : ''}>
+                            One number
+                          </li>
+                          <li className={passwordValidation.hasSpecialChar ? 'valid' : ''}>
+                            One special character
+                          </li>
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                )}
 
-                <button 
-                  type="submit" 
-                  className="auth-submit-button"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="loading-spinner" />
-                  ) : (
-                    isSignUp ? 'Sign Up' : 'Sign In'
+                  {isSignUp && (
+                    <div className="form-group">
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        placeholder="Confirm Password"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        disabled={isLoading}
+                        required
+                        className="auth-input"
+                      />
+                    </div>
                   )}
-                </button>
-              </form>
+
+                  <button 
+                    type="submit" 
+                    className="auth-submit-button"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="loading-spinner" />
+                    ) : (
+                      isSignUp ? 'Sign Up' : 'Sign In'
+                    )}
+                  </button>
+                </form>
+              )}
 
               {error && (
                 <div className="auth-error-message">
                   {error}
-                  {needsVerification && (
-                    <button
-                      onClick={handleResendCode}
-                      className="resend-button"
-                      disabled={isLoading}
-                    >
-                      Resend verification code
-                    </button>
-                  )}
                 </div>
               )}
 
