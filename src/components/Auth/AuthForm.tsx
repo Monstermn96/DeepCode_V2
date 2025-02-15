@@ -143,6 +143,9 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
   });
 
   const [needsVerification, setNeedsVerification] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 1000; // 1 second
 
   const validatePassword = (password: string): PasswordValidation => {
     return {
@@ -262,15 +265,33 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
   const handleVerificationSuccess = async () => {
     setNeedsVerification(false);
     setError(null);
+    setIsLoading(true);
+    
     try {
-      await signIn({
-        username: formData.email,
-        password: formData.password
-      });
-      if (onSuccess) onSuccess();
+      while (retryCount < MAX_RETRIES) {
+        try {
+          await signIn({
+            username: formData.email,
+            password: formData.password
+          });
+          if (onSuccess) onSuccess();
+          return;
+        } catch (err) {
+          setRetryCount(prev => prev + 1);
+          if (retryCount === MAX_RETRIES - 1) throw err;
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        }
+      }
     } catch (err) {
       console.error('Sign in after verification failed:', err);
-      setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
+      setError(
+        err instanceof Error 
+          ? `${err.message} (after ${MAX_RETRIES} attempts)`
+          : `Sign in failed after ${MAX_RETRIES} attempts. Please try again.`
+      );
+    } finally {
+      setIsLoading(false);
+      setRetryCount(0);
     }
   };
 
