@@ -200,7 +200,7 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
             <div className="auth-header">
               <div className="auth-logo">
                 <span className="logo-icon">⚡</span>
-                <span className="logo-text">DeepCode</span>
+                <span className="logo-text">DeepDevAi</span>
               </div>
               <h2>{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
               <p className="auth-subtitle">

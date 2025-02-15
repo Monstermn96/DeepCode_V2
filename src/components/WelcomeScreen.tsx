@@ -60,7 +60,7 @@ export default function WelcomeScreen() {
   return (
     <div className={styles.welcomeScreen}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Welcome to DeepCode</h1>
+        <h1 className={styles.title}>Welcome to DeepDevAi</h1>
         <p className={styles.subtitle}>
           Enhance your coding skills with AI-generated challenges tailored to your interests.
           {!isAuthenticated && ' Sign in to get started!'}

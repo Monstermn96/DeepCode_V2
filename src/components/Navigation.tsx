@@ -36,7 +36,7 @@ export default function Navigation() {
 
       <Link to="/dashboard" className={styles.logo}>
         <span className={styles.logoIcon}>⚡</span>
-        <span className={styles.logoText}>DeepCode</span>
+        <span className={styles.logoText}>DeepDevAi</span>
       </Link>
       
       <div className={styles.navRight}>

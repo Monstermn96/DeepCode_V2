@@ -102,7 +102,7 @@ export default function WelcomeControlPanel({ onGenerateNew, isLoading }: Welcom
             Generating...
           </>
         ) : !isAuthenticated ? (
-          'Login to DeepCode'
+          'Login to DeepDevAi'
         ) : (
           'Generate Challenge →'
         )}

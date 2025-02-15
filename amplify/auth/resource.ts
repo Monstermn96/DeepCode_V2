@@ -7,7 +7,7 @@ import { defineAuth } from '@aws-amplify/backend';
 export const auth = defineAuth({
   loginWith: {
     email: {
-      verificationEmailSubject: 'Welcome to DeepCode - Verify your email',
+      verificationEmailSubject: 'Welcome to DeepDevAi - Verify your email',
       verificationEmailBody: (code: () => string) => `OOOOOWEEEEEE rick!Thanks for signing up! Your Flarble code is ${code()}`,
       verificationEmailStyle: 'CODE'
     }
