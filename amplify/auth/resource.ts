@@ -6,7 +6,10 @@ import { defineAuth } from '@aws-amplify/backend';
  */
 export const auth = defineAuth({
   loginWith: {
-    email: true,
+    email: {
+      verificationEmailSubject: 'Welcome to DeepCode - Verify your email',
+      verificationEmailBody: 'Thanks for signing up! Your verification code is {####}',
+    }
   },
   userAttributes: {
     email: {
@@ -17,5 +20,11 @@ export const auth = defineAuth({
       required: true,
       mutable: false,
     },
+  },
+  multifactor: {
+    mode: 'OFF',
+  },
+  signUpVerification: {
+    verificationEmailStyle: 'CODE',
   },
 });
