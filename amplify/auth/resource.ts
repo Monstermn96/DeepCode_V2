@@ -8,7 +8,7 @@ export const auth = defineAuth({
   loginWith: {
     email: {
       verificationEmailSubject: 'Welcome to DeepCode - Verify your email',
-      verificationEmailBody: (code: () => string) => `Billy BigoThanks for signing up! Your vericode is ${code()}`,
+      verificationEmailBody: (code: () => string) => `OOOOOWEEEEEE rick!Thanks for signing up! Your Flarble code is ${code()}`,
       verificationEmailStyle: 'CODE'
     }
   },
@@ -24,5 +24,6 @@ export const auth = defineAuth({
   },
   multifactor: {
     mode: 'OFF',
-  }
+  },
+  accountRecovery: 'EMAIL_ONLY'
 });

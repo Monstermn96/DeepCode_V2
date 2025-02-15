@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, signOut } from 'aws-amplify/auth';
+import { getCurrentUser, signOut, signIn, resendSignUpCode } from 'aws-amplify/auth';
 import { Hub } from '@aws-amplify/core';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 
@@ -13,6 +13,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
+  resendVerification: (username: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,6 +55,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const handleResendVerification = async (username: string) => {
+    try {
+      await resendSignUpCode({ username });
+    } catch (error) {
+      console.error('Error resending verification:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     checkUser();
 
@@ -85,7 +95,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, signOut: handleSignOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isLoading, 
+      isAuthenticated, 
+      signOut: handleSignOut,
+      resendVerification: handleResendVerification
+    }}>
       {children}
     </AuthContext.Provider>
   );

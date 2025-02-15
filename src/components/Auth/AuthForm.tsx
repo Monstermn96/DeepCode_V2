@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { signIn, signUp } from 'aws-amplify/auth';
+import { useAuth } from '../../contexts/AuthContext';
 import './Auth.css';
 
 interface AuthFormProps {
@@ -37,6 +38,9 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
     password: '',
     confirmPassword: ''
   });
+
+  const { resendVerification } = useAuth();
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const validatePassword = (password: string): PasswordValidation => {
     return {
@@ -122,19 +126,40 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
             }
           }
         });
-        // Registration successful
-        if (onClose) onClose();
+        setNeedsVerification(true);
       } else {
-        await signIn({
-          username: formData.email,
-          password: formData.password
-        });
-        // Login successful
-        if (onSuccess) onSuccess();
+        try {
+          await signIn({
+            username: formData.email,
+            password: formData.password
+          });
+          if (onSuccess) onSuccess();
+        } catch (err: any) {
+          if (err.name === 'UserNotConfirmedException') {
+            setNeedsVerification(true);
+            await resendVerification(formData.email);
+            setError('Account not verified. A new verification code has been sent to your email.');
+          } else {
+            throw err;
+          }
+        }
       }
     } catch (err) {
       console.error('Authentication failed:', err);
       setError(err instanceof Error ? err.message : 'Authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      setIsLoading(true);
+      await resendVerification(formData.email);
+      setError('A new verification code has been sent to your email.');
+    } catch (err) {
+      console.error('Failed to resend code:', err);
+      setError(err instanceof Error ? err.message : 'Failed to resend code. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -282,6 +307,15 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
               {error && (
                 <div className="auth-error-message">
                   {error}
+                  {needsVerification && (
+                    <button
+                      onClick={handleResendCode}
+                      className="resend-button"
+                      disabled={isLoading}
+                    >
+                      Resend verification code
+                    </button>
+                  )}
                 </div>
               )}
 
