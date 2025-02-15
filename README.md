@@ -94,6 +94,41 @@ amplify/
 - **main**: Production branch - https://main.d17nr8d8s58ya5.amplifyapp.com
 - **PreDeploy**: Pre-production testing - https://predeploy.d17nr8d8s58ya5.amplifyapp.com
 
+### Deployment Management
+1. **Stack Management**
+   - Root Stack ID: amplify-d17nr8d8s58ya5-main-branch-53b895246s
+   - App ID: d17nr8d8s58ya5
+   - Always delete failed stacks before redeploying
+   - Delete nested stacks before root stack
+
+2. **Redeployment Process**
+   ```bash
+   # Clean and prepare
+   npm run clean
+   npm install
+
+   # Deploy to PreDeploy first
+   git checkout PreDeploy
+   git pull
+   npx ampx pipeline-deploy --branch PreDeploy --app-id d17nr8d8s58ya5
+
+   # After testing, deploy to main
+   git checkout main
+   git pull
+   npx ampx pipeline-deploy --branch main --app-id d17nr8d8s58ya5
+   ```
+
+3. **Database Reset**
+   - DynamoDB tables are recreated on redeployment
+   - Backup data if needed before stack deletion
+   - Verify data migration after redeployment
+
+4. **Deployment Verification**
+   - Check AWS Console for stack status
+   - Verify Cognito user pools
+   - Test API endpoints
+   - Validate frontend connectivity
+
 ### Local Development
 1. Make changes in feature branches
 2. Test locally using `npm run dev` and `npx ampx sandbox`
