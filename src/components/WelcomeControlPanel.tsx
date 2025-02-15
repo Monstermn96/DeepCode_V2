@@ -5,21 +5,31 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './WelcomeControlPanel.module.css';
 
 interface WelcomeControlPanelProps {
-  onGenerateNew?: (topic: string, languages: string[]) => Promise<void>;
-  isLoading?: boolean;
+  onGenerateNew: (topic: string, languages: string[]) => void;
+  isLoading: boolean;
 }
 
-const WelcomeControlPanel: React.FC<WelcomeControlPanelProps> = ({ onGenerateNew, isLoading = false }) => {
+export default function WelcomeControlPanel({ onGenerateNew, isLoading }: WelcomeControlPanelProps) {
   const navigate = useNavigate();
   const [topic, setTopic] = useState('');
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['JavaScript']);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const { loading = isLoading, error, generateChallenge } = useAI();
   const { isAuthenticated } = useAuth();
 
+  const languages = [
+    'JavaScript',
+    'TypeScript',
+    'Python',
+    'Java',
+    'C++',
+    'Go',
+    'Rust'
+  ];
+
   const handleLanguageToggle = (language: string) => {
     if (!isAuthenticated) return;
-    setSelectedLanguages(prev => 
-      prev.includes(language) 
+    setSelectedLanguages(prev =>
+      prev.includes(language)
         ? prev.filter(l => l !== language)
         : [...prev, language]
     );
@@ -37,7 +47,7 @@ const WelcomeControlPanel: React.FC<WelcomeControlPanelProps> = ({ onGenerateNew
 
     try {
       if (onGenerateNew) {
-        await onGenerateNew(topic.trim(), selectedLanguages);
+        onGenerateNew(topic.trim(), selectedLanguages);
       } else {
         await generateChallenge(topic.trim(), selectedLanguages);
       }
@@ -48,28 +58,25 @@ const WelcomeControlPanel: React.FC<WelcomeControlPanelProps> = ({ onGenerateNew
 
   return (
     <div className={styles.controlPanel}>
-      <h2 className={styles.title}>Generate New Challenge</h2>
-      
-      <div className={styles.inputGroup}>
-        <label className={styles.label}>Challenge Topic</label>
-        <input
-          type="text"
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          placeholder="Enter a topic (e.g., Binary Search Trees)"
-          className={styles.input}
-          disabled={!isAuthenticated}
-        />
-      </div>
+      <input
+        type="text"
+        value={topic}
+        onChange={(e) => setTopic(e.target.value)}
+        placeholder="Enter a topic (e.g., Binary Search Trees)"
+        className={styles.topicInput}
+        disabled={!isAuthenticated}
+      />
 
-      <div className={styles.inputGroup}>
-        <label className={styles.label}>Programming Languages</label>
-        <div className={styles.languagesGrid}>
-          {['JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'Go', 'Rust'].map(language => (
+      <div className={styles.languageSection}>
+        <h3>Programming Languages</h3>
+        <div className={styles.languageGrid}>
+          {languages.map(language => (
             <button
               key={language}
               onClick={() => handleLanguageToggle(language)}
-              className={`${styles.languageButton} ${selectedLanguages.includes(language) ? styles.selected : ''}`}
+              className={`${styles.languageButton} ${
+                selectedLanguages.includes(language) ? styles.active : ''
+              }`}
               disabled={!isAuthenticated}
             >
               {language}
@@ -86,8 +93,8 @@ const WelcomeControlPanel: React.FC<WelcomeControlPanelProps> = ({ onGenerateNew
 
       <button
         onClick={handleSubmit}
-        disabled={isAuthenticated ? (loading || !topic.trim()) : false}
-        className={styles.submitButton}
+        disabled={isAuthenticated ? (loading || !topic.trim() || selectedLanguages.length === 0) : false}
+        className={styles.generateButton}
       >
         {loading ? (
           <>
@@ -102,6 +109,4 @@ const WelcomeControlPanel: React.FC<WelcomeControlPanelProps> = ({ onGenerateNew
       </button>
     </div>
   );
-};
-
-export default WelcomeControlPanel; 
+} 

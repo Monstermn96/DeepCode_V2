@@ -7,7 +7,7 @@ import PublicLayout from './layouts/PublicLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import WelcomeScreen from './components/WelcomeScreen';
-import { Authenticator, type AuthenticatorProps } from '@aws-amplify/ui-react';
+import { AuthForm } from './components/Auth/AuthForm';
 import styles from './App.module.css';
 import { AIProvider } from './contexts/AIContext';
 
@@ -19,22 +19,13 @@ const Profile = React.lazy(() => import('./pages/Profile'));
 function LoginPage() {
   const navigate = useNavigate();
 
-  const handleAuthSuccess: AuthenticatorProps['children'] = ({ user }) => {
-    if (user) {
-      setTimeout(() => navigate('/dashboard'), 0);
-      return (
-        <div className={styles.loadingContainer}>
-          <div className={styles.loadingSpinner} />
-          <p>Redirecting to dashboard...</p>
-        </div>
-      );
-    }
-    return <div>Please sign in</div>;
+  const handleAuthSuccess = () => {
+    navigate('/dashboard');
   };
 
   return (
     <div className={styles.authContainer}>
-      <Authenticator>{handleAuthSuccess}</Authenticator>
+      <AuthForm show={true} onSuccess={handleAuthSuccess} />
     </div>
   );
 }

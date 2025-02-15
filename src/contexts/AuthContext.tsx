@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getCurrentUser, signOut } from 'aws-amplify/auth';
 import { Hub } from '@aws-amplify/core';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 
 interface AuthPayload {
   event: string;
@@ -23,8 +24,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkUser = useCallback(async () => {
     try {
       const currentUser = await getCurrentUser();
-      setUser(currentUser);
+      const userAttributes = await fetchUserAttributes();
+      
+      // Create a user object that includes both the user and their attributes
+      const userWithAttributes = {
+        ...currentUser,
+        username: userAttributes.nickname || userAttributes.email,
+        attributes: userAttributes
+      };
+      
+      setUser(userWithAttributes);
     } catch (error) {
+      console.error('Error getting user:', error);
       setUser(null);
     } finally {
       setIsLoading(false);

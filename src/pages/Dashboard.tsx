@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAI } from '../contexts/AIContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,6 +23,11 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { generateChallenge, loading, error } = useAI();
   const [stats] = useState<ChallengeStats>(initialStats);
+
+  useEffect(() => {
+    console.log('Current user:', user);
+    console.log('User attributes:', user?.attributes);
+  }, [user]);
 
   const handleGenerateNew = async (topic: string, languages: string[]) => {
     try {
@@ -59,7 +64,6 @@ export default function Dashboard() {
         </div>
 
         <section className={styles.generateSection}>
-          <h2>Generate New Challenge</h2>
           <WelcomeControlPanel
             onGenerateNew={handleGenerateNew}
             isLoading={loading}

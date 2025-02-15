@@ -1,54 +1,54 @@
-import { type FC } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './Navigation.module.css';
-import { Button } from '@aws-amplify/ui-react';
 
-const Navigation: FC = () => {
+export default function Navigation() {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/welcome');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
 
   return (
     <nav className={styles.nav}>
-      <div className={styles.content}>
-        <div className={styles.logo}>
-          <Link to="/dashboard">DeepCode</Link>
-        </div>
-        
-        <ul className={styles.menu}>
-          <li>
-            <Link to="/dashboard">Dashboard</Link>
-          </li>
-          <li>
-            <Link to="/challenges">Challenges</Link>
-          </li>
-          <li>
-            <Link to="/profile">Profile</Link>
-          </li>
-        </ul>
+      <div className={styles.navLeft}>
+        <NavLink 
+          to="/dashboard" 
+          className={({ isActive }) => 
+            `${styles.navLink} ${isActive ? styles.active : ''}`
+          }
+        >
+          Dashboard
+        </NavLink>
+        <NavLink 
+          to="/challenges" 
+          className={({ isActive }) => 
+            `${styles.navLink} ${isActive ? styles.active : ''}`
+          }
+        >
+          Challenges
+        </NavLink>
+        <NavLink 
+          to="/profile" 
+          className={({ isActive }) => 
+            `${styles.navLink} ${isActive ? styles.active : ''}`
+          }
+        >
+          Profile
+        </NavLink>
+      </div>
 
-        <div className={styles.user}>
-          <span className={styles.username}>{user?.username}</span>
-          <Button
-            onClick={handleSignOut}
-            variation="primary"
-            size="small"
-          >
-            Sign Out
-          </Button>
-        </div>
+      <Link to="/dashboard" className={styles.logo}>
+        <span className={styles.logoIcon}>⚡</span>
+        <span className={styles.logoText}>DeepCode</span>
+      </Link>
+      
+      <div className={styles.navRight}>
+        {user && (
+          <>
+            <span className={styles.username}>{user.username}</span>
+            <button onClick={signOut} className={styles.signOutButton}>
+              Sign Out
+            </button>
+          </>
+        )}
       </div>
     </nav>
   );
-};
-
-export default Navigation; 
+} 
