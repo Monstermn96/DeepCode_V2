@@ -8,7 +8,8 @@ export const auth = defineAuth({
   loginWith: {
     email: {
       verificationEmailSubject: 'Welcome to DeepCode - Verify your email',
-      verificationEmailBody: 'Thanks for signing up! Your verification code is {####}',
+      verificationEmailBody: (code: () => string) => `Billy BigoThanks for signing up! Your vericode is ${code()}`,
+      verificationEmailStyle: 'CODE'
     }
   },
   userAttributes: {
@@ -23,8 +24,5 @@ export const auth = defineAuth({
   },
   multifactor: {
     mode: 'OFF',
-  },
-  signUpVerification: {
-    verificationEmailStyle: 'CODE',
-  },
+  }
 });
