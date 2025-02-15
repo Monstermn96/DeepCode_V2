@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { signIn, signUp, confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
-import { useAuth } from '../../contexts/AuthContext';
+// import { useAuth } from '../../contexts/AuthContext';
 import './Auth.css';
 
 interface AuthFormProps {
@@ -143,7 +143,6 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
     confirmPassword: ''
   });
 
-  const { resendVerification } = useAuth();
   const [needsVerification, setNeedsVerification] = useState(false);
 
   const validatePassword = (password: string): PasswordValidation => {
