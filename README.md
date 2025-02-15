@@ -1,6 +1,6 @@
-# DeepCode - AI-Powered Code Training Platform
+# DeepDevAi - AI-Powered Code Training Platform
 
-DeepCode is an immersive, dynamic platform designed to help developers improve their coding skills through personalized AI-driven challenges and feedback, built with AWS Amplify Gen2.
+DeepDevAi is an immersive, dynamic platform designed to help developers improve their coding skills through personalized AI-driven challenges and feedback, built with AWS Amplify Gen2.
 
 ## 🚀 Features
 
@@ -39,8 +39,8 @@ DeepCode is an immersive, dynamic platform designed to help developers improve t
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/deepcode.git
-   cd deepcode
+   git clone https://github.com/yourusername/deepdevai.git
+   cd deepdevai
    ```
 
 2. **Install dependencies**

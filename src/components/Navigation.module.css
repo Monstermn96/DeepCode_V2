@@ -1,57 +1,90 @@
 .nav {
-  background: var(--amplify-colors-background-secondary);
-  border-bottom: 1px solid var(--amplify-colors-border-primary);
-  padding: 0.5rem 1rem;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #2d3748;
 }
 
-.content {
-  max-width: 1200px;
-  margin: 0 auto;
+.navLeft {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 1.5rem;
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: bold;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  padding: 0 2rem;
 }
 
-.logo a {
-  color: var(--amplify-colors-font-primary);
-  text-decoration: none;
-  background: linear-gradient(135deg, var(--amplify-colors-brand-primary), var(--amplify-colors-brand-secondary));
+.logoIcon {
+  font-size: 2.5rem;
+  margin-right: 0.75rem;
+  background: linear-gradient(135deg, #4299e1, #667eea);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.menu {
-  display: flex;
-  gap: 2rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.logoText {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #4299e1, #667eea);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 1px;
 }
 
-.menu a {
-  color: var(--amplify-colors-font-secondary);
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s ease;
-}
-
-.menu a:hover {
-  color: var(--amplify-colors-font-primary);
-}
-
-.user {
+.navRight {
   display: flex;
   align-items: center;
   gap: 1rem;
+  justify-content: flex-end;
+}
+
+.navLink {
+  color: #a0aec0;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.navLink:hover {
+  color: #fff;
+  background-color: #2d3748;
+}
+
+.navLink.active {
+  color: #fff;
+  background-color: #4299e1;
+}
+
+.signOutButton {
+  padding: 0.5rem 1rem;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.signOutButton:hover {
+  background-color: #3182ce;
 }
 
 .username {
-  color: var(--amplify-colors-font-secondary);
+  color: #a0aec0;
+  margin-right: 1rem;
   font-weight: 500;
 } 
