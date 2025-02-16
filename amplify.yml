@@ -4,16 +4,20 @@ applications:
       phases:
         preBuild:
           commands:
+            - nvm install 20
+            - nvm use 20
+            - yum install -y jq
             - if [ "$FORCE_CLEANUP" = "true" ]; then bash ./scripts/cleanup-predeploy.sh; fi
         build:
           commands:
-            - npm ci
+            - npm install
             - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
     frontend:
       phases:
         preBuild:
           commands:
-            - npm ci
+            - nvm use 20
+            - npm install
         build:
           commands:
             - if [ "$AUTO_UPDATE_AUTH" = "true" ]; then node ./scripts/update-auth-config.js; fi
@@ -29,3 +33,4 @@ applications:
       variables:
         FORCE_CLEANUP: "false"
         AUTO_UPDATE_AUTH: "true"
+        NODE_VERSION: 20
