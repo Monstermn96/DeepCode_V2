@@ -123,12 +123,12 @@ const VerificationForm = ({
   );
 };
 
-export default function AuthForm() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) => {
   const nodeRef = React.useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [authState, setAuthState] = useState<'signIn' | 'signUp' | 'signedIn'>('signIn');
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const [passwordValidation, setPasswordValidation] = useState<PasswordValidation>({
     hasMinLength: false,
@@ -155,11 +155,10 @@ export default function AuthForm() {
     try {
       const user = await getCurrentUser();
       if (user) {
-        // User is signed in
         setAuthState('signedIn');
+        if (onSuccess) onSuccess();
       }
     } catch (error) {
-      // No user is signed in
       setAuthState('signIn');
     } finally {
       setIsLoading(false);
@@ -169,20 +168,21 @@ export default function AuthForm() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setAuthError(null);
+    setError(null);
     
     try {
       const signInResult = await signIn({
-        username: email,
-        password,
+        username: formData.email,
+        password: formData.password
       });
       
       if (signInResult.isSignedIn) {
         setAuthState('signedIn');
+        if (onSuccess) onSuccess();
       }
     } catch (error: any) {
       console.error('Sign in error:', error);
-      setAuthError(error.message || 'An error occurred during sign in');
+      setError(error.message || 'An error occurred during sign in');
     } finally {
       setIsLoading(false);
     }

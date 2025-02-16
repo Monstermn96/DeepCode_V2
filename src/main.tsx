@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Amplify } from 'aws-amplify';
-import { cognitoUserPoolsTokenProvider } from '@aws-amplify/auth/cognito';
+import { type ResourcesConfig } from 'aws-amplify';
 import App from './App';
 import './index.css';
 
@@ -25,7 +25,7 @@ try {
   }
 
   // Configure Amplify
-  Amplify.configure({
+  const config: ResourcesConfig = {
     Auth: {
       Cognito: {
         userPoolId: userPoolId,
@@ -35,16 +35,12 @@ try {
           email: true,
           phone: false,
           username: false
-        },
-        allowGuestAccess: false
+        }
       }
     }
-  }, {
-    Auth: {
-      tokenProvider: cognitoUserPoolsTokenProvider
-    },
-    ssr: false
-  });
+  };
+
+  Amplify.configure(config);
 
   console.log('Amplify configured successfully');
   console.log('----------------------------------------');
