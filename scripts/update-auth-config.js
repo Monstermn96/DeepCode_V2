@@ -24,6 +24,7 @@ async function updateAuthConfig() {
     const appId = process.env.AWS_APP_ID;
     const branch = process.env.AWS_BRANCH;
     const poolName = process.env.AMPLIFY_BACKEND_POOL_NAME;
+    const branchLower = branch.toLowerCase();
     
     if (!poolName) {
       console.error('Error: AMPLIFY_BACKEND_POOL_NAME is not set');
@@ -41,14 +42,25 @@ async function updateAuthConfig() {
     });
     console.log('----------------------------------------');
 
-    // Find pool by exact name match
-    const targetPool = userPools.UserPools.find(pool => 
-      pool.Name.includes(poolName)
-    );
+    // Find pool by matching branch name or pool name
+    const targetPool = userPools.UserPools.find(pool => {
+      const name = pool.Name.toLowerCase();
+      return (
+        name.includes(branchLower) || 
+        name.includes('predeploy') ||
+        name.includes('staging') ||
+        name.includes('deepdevai')
+      );
+    });
 
     if (!targetPool) {
       console.log('----------------------------------------');
-      console.log('No User Pool found with name:', poolName);
+      console.log('No matching User Pool found.');
+      console.log('Searched for pools containing:');
+      console.log(`- Branch name: ${branch}`);
+      console.log('- "predeploy"');
+      console.log('- "staging"');
+      console.log('- "deepdevai"');
       console.log('Please wait for the new User Pool to be created');
       console.log('Then update the following environment variables in Amplify Console:');
       console.log('1. VITE_AUTH_USER_POOL_ID');
