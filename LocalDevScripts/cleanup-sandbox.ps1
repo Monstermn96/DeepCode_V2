@@ -58,10 +58,6 @@ Write-Host "Cleaning npm..." -ForegroundColor Yellow
 npm cache clean --force
 Remove-Item "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
 
-# Reinstall dependencies
-Write-Host "Reinstalling dependencies..." -ForegroundColor Yellow
-npm install
-
 # 4. Verify AWS credentials and configuration
 Write-Host "Verifying AWS configuration..." -ForegroundColor Yellow
 aws sts get-caller-identity

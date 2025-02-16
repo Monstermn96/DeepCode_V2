@@ -128,7 +128,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [authState, setAuthState] = useState<'signIn' | 'signUp' | 'signedIn'>('signIn');
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const [passwordValidation, setPasswordValidation] = useState<PasswordValidation>({
     hasMinLength: false,
@@ -149,40 +148,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
 
   useEffect(() => {
     checkAuthState();
-  }, []);
+  }, [onSuccess]);
 
   const checkAuthState = async () => {
     try {
       const user = await getCurrentUser();
-      if (user) {
-        setAuthState('signedIn');
-        if (onSuccess) onSuccess();
+      if (user && onSuccess) {
+        onSuccess();
       }
     } catch (error) {
-      setAuthState('signIn');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const signInResult = await signIn({
-        username: formData.email,
-        password: formData.password
-      });
-      
-      if (signInResult.isSignedIn) {
-        setAuthState('signedIn');
-        if (onSuccess) onSuccess();
-      }
-    } catch (error: any) {
-      console.error('Sign in error:', error);
-      setError(error.message || 'An error occurred during sign in');
+      console.log('No user is currently signed in');
     } finally {
       setIsLoading(false);
     }
@@ -210,7 +185,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
       setShowPasswordRequirements(true);
     }
 
-    // Clear error when user starts typing
     if (error) setError(null);
   };
 
@@ -277,7 +251,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
         } catch (err: any) {
           if (err.name === 'UsernameExistsException') {
             setError('An account with this email already exists. Please sign in instead.');
-            setIsSignUp(false);  // Switch to sign in mode
+            setIsSignUp(false);
           } else {
             throw err;
           }
@@ -292,7 +266,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
         } catch (err: any) {
           if (err.name === 'UserNotFoundException') {
             setError('No account found with this email. Please sign up first.');
-            setIsSignUp(true);  // Switch to sign up mode
+            setIsSignUp(true);
           } else if (err.name === 'NotAuthorizedException') {
             setError('Incorrect password. Please try again.');
           } else if (err.name === 'UserNotConfirmedException') {
@@ -345,7 +319,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
           ? `Sign in failed: ${err.message}. Please try signing in manually.`
           : 'Sign in failed. Please try signing in manually.'
       );
-      // Reset form to sign in state
       setIsSignUp(false);
       setFormData(prev => ({
         ...prev,
