@@ -38,8 +38,8 @@ async function updateAuthConfig() {
       console.log('No User Pool found for branch:', branch);
       console.log('Please wait for the new User Pool to be created');
       console.log('Then update the following environment variables in Amplify Console:');
-      console.log('1. VITE_[BRANCH]_AUTH_USER_POOL_ID');
-      console.log('2. VITE_[BRANCH]_AUTH_USER_POOL_CLIENT_ID');
+      console.log('1. VITE_AUTH_USER_POOL_ID');
+      console.log('2. VITE_AUTH_USER_POOL_CLIENT_ID');
       console.log('----------------------------------------');
       process.exit(1);
     }
@@ -63,21 +63,20 @@ async function updateAuthConfig() {
       console.log('No Client found for User Pool:', targetPool.Id);
       console.log('Please wait for the User Pool Client to be created');
       console.log('Then update the following environment variables in Amplify Console:');
-      console.log('1. VITE_[BRANCH]_AUTH_USER_POOL_ID =', targetPool.Id);
-      console.log('2. VITE_[BRANCH]_AUTH_USER_POOL_CLIENT_ID = [new client id]');
+      console.log('1. VITE_AUTH_USER_POOL_ID =', targetPool.Id);
+      console.log('2. VITE_AUTH_USER_POOL_CLIENT_ID = [new client id]');
       console.log('----------------------------------------');
       process.exit(1);
     }
 
     // Update Amplify environment variables
-    const envVarPrefix = branch.toUpperCase().replace('-', '_');
     const updates = [
       {
-        key: `VITE_${envVarPrefix}_AUTH_USER_POOL_ID`,
+        key: 'VITE_AUTH_USER_POOL_ID',
         value: targetPool.Id
       },
       {
-        key: `VITE_${envVarPrefix}_AUTH_USER_POOL_CLIENT_ID`,
+        key: 'VITE_AUTH_USER_POOL_CLIENT_ID',
         value: client.ClientId
       }
     ];
