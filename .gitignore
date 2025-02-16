@@ -32,3 +32,8 @@ amplifyconfiguration*
 AWS_Info.md
 amplify-service-policy.json
 amplify-service-role.json
+
+# Environment Variables
+.env
+.env.*
+!.env.example

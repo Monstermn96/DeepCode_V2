@@ -24,10 +24,10 @@ console.log('Current Path:', window.location.pathname);
 
 console.log('\n⚙️ Environment Configuration:');
 console.log('---------------------------');
-console.log('VITE_AMPLIFY_ENV:', import.meta.env.VITE_AMPLIFY_ENV || 'Not Set');
+console.log('AMPLIFY_ENV:', import.meta.env.AMPLIFY_ENV || 'Not Set');
 console.log('Environment Stage:', 
-  import.meta.env.VITE_AMPLIFY_ENV === 'staging' ? 'PreDeploy' :
-  import.meta.env.VITE_AMPLIFY_ENV === 'prod' ? 'Production' :
+  import.meta.env.AMPLIFY_ENV === 'staging' ? 'PreDeploy' :
+  import.meta.env.AMPLIFY_ENV === 'prod' ? 'Production' :
   import.meta.env.DEV ? 'Development' : 'Unknown'
 );
 
@@ -35,10 +35,10 @@ console.log('\n🔐 Authentication Variables:');
 console.log('---------------------------');
 console.log('Development Pool ID:', import.meta.env.VITE_DEV_AUTH_USER_POOL_ID || 'Not Set');
 console.log('Development Client ID:', import.meta.env.VITE_DEV_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
-console.log('PreDeploy Pool ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_ID || 'Not Set');
-console.log('PreDeploy Client ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
-console.log('Main Pool ID:', import.meta.env.VITE_MAIN_AUTH_USER_POOL_ID || 'Not Set');
-console.log('Main Client ID:', import.meta.env.VITE_MAIN_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
+console.log('PreDeploy Pool ID:', import.meta.env.PD_AUTH_USER_POOL_ID || 'Not Set');
+console.log('PreDeploy Client ID:', import.meta.env.PD_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
+console.log('Main Pool ID:', import.meta.env.MAIN_AUTH_USER_POOL_ID || 'Not Set');
+console.log('Main Client ID:', import.meta.env.MAIN_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
 
 console.log('\n📝 All Environment Variables:');
 console.log('---------------------------');
@@ -62,7 +62,7 @@ const validateConfig = (poolId?: string, clientId?: string, env?: string) => {
 // Environment-specific configuration
 const getAuthConfig = () => {
   // Local Development
-  if (import.meta.env.DEV && !import.meta.env.VITE_AMPLIFY_ENV) {
+  if (import.meta.env.DEV && !import.meta.env.AMPLIFY_ENV) {
     const errors = validateConfig(
       import.meta.env.VITE_DEV_AUTH_USER_POOL_ID,
       import.meta.env.VITE_DEV_AUTH_USER_POOL_CLIENT_ID,
@@ -81,10 +81,10 @@ const getAuthConfig = () => {
   }
   
   // PreDeploy Environment
-  if (import.meta.env.VITE_AMPLIFY_ENV === 'staging' || window.location.hostname.includes('predeploy')) {
+  if (import.meta.env.AMPLIFY_ENV === 'staging' || window.location.hostname.includes('predeploy')) {
     const errors = validateConfig(
-      import.meta.env.VITE_PD_AUTH_USER_POOL_ID,
-      import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID,
+      import.meta.env.PD_AUTH_USER_POOL_ID,
+      import.meta.env.PD_AUTH_USER_POOL_CLIENT_ID,
       'staging'
     );
     
@@ -95,21 +95,21 @@ const getAuthConfig = () => {
 
     console.log('✅ PreDeploy Environment Detected');
     console.log('--------------------------------');
-    console.log('Pool ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_ID);
-    console.log('Client ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID);
+    console.log('Pool ID:', import.meta.env.PD_AUTH_USER_POOL_ID);
+    console.log('Client ID:', import.meta.env.PD_AUTH_USER_POOL_CLIENT_ID);
     console.log('--------------------------------');
 
     return {
-      userPoolId: import.meta.env.VITE_PD_AUTH_USER_POOL_ID,
-      userPoolClientId: import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID,
+      userPoolId: import.meta.env.PD_AUTH_USER_POOL_ID,
+      userPoolClientId: import.meta.env.PD_AUTH_USER_POOL_CLIENT_ID,
     };
   }
   
   // Production/Main Environment
-  if (import.meta.env.VITE_AMPLIFY_ENV === 'prod' || window.location.hostname.includes('main')) {
+  if (import.meta.env.AMPLIFY_ENV === 'prod' || window.location.hostname.includes('main')) {
     const errors = validateConfig(
-      import.meta.env.VITE_MAIN_AUTH_USER_POOL_ID,
-      import.meta.env.VITE_MAIN_AUTH_USER_POOL_CLIENT_ID,
+      import.meta.env.MAIN_AUTH_USER_POOL_ID,
+      import.meta.env.MAIN_AUTH_USER_POOL_CLIENT_ID,
       'production'
     );
     
@@ -119,8 +119,8 @@ const getAuthConfig = () => {
     }
 
     return {
-      userPoolId: import.meta.env.VITE_MAIN_AUTH_USER_POOL_ID,
-      userPoolClientId: import.meta.env.VITE_MAIN_AUTH_USER_POOL_CLIENT_ID,
+      userPoolId: import.meta.env.MAIN_AUTH_USER_POOL_ID,
+      userPoolClientId: import.meta.env.MAIN_AUTH_USER_POOL_CLIENT_ID,
     };
   }
 
