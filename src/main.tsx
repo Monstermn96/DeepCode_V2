@@ -16,28 +16,34 @@ try {
   console.log('VITE_AUTH_USER_POOL_CLIENT_ID:', import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
   console.log('----------------------------------------');
 
-  if (!import.meta.env.VITE_AUTH_USER_POOL_ID || !import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID) {
-    throw new Error('Auth configuration missing. Please set VITE_AUTH_USER_POOL_ID and VITE_AUTH_USER_POOL_CLIENT_ID');
+  // Validate required environment variables
+  const userPoolId = import.meta.env.VITE_AUTH_USER_POOL_ID;
+  const userPoolClientId = import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID;
+
+  if (!userPoolId || !userPoolClientId) {
+    throw new Error('Required environment variables are not set: VITE_AUTH_USER_POOL_ID and VITE_AUTH_USER_POOL_CLIENT_ID must be defined');
   }
 
   // Configure Amplify
   Amplify.configure({
     Auth: {
       Cognito: {
-        userPoolId: import.meta.env.VITE_AUTH_USER_POOL_ID,
-        userPoolClientId: import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID,
+        userPoolId: userPoolId,
+        userPoolClientId: userPoolClientId,
         signUpVerificationMethod: 'code',
         loginWith: {
           email: true,
-          username: false,
-          phone: false
-        }
+          phone: false,
+          username: false
+        },
+        allowGuestAccess: false
       }
     }
   }, {
     Auth: {
       tokenProvider: cognitoUserPoolsTokenProvider
-    }
+    },
+    ssr: false
   });
 
   console.log('Amplify configured successfully');

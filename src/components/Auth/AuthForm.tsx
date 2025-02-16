@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { signIn, signUp, confirmSignUp, resendSignUpCode } from '@aws-amplify/auth';
+import { getCurrentUser } from '@aws-amplify/auth';
 
 import './Auth.css';
 
@@ -122,11 +123,12 @@ const VerificationForm = ({
   );
 };
 
-export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
+export default function AuthForm() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const nodeRef = React.useRef(null);
   const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const [passwordValidation, setPasswordValidation] = useState<PasswordValidation>({
     hasMinLength: false,
@@ -144,6 +146,47 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
   });
 
   const [needsVerification, setNeedsVerification] = useState(false);
+
+  useEffect(() => {
+    checkAuthState();
+  }, []);
+
+  const checkAuthState = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        // User is signed in
+        setAuthState('signedIn');
+      }
+    } catch (error) {
+      // No user is signed in
+      setAuthState('signIn');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setAuthError(null);
+    
+    try {
+      const signInResult = await signIn({
+        username: email,
+        password,
+      });
+      
+      if (signInResult.isSignedIn) {
+        setAuthState('signedIn');
+      }
+    } catch (error: any) {
+      console.error('Sign in error:', error);
+      setAuthError(error.message || 'An error occurred during sign in');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const validatePassword = (password: string): PasswordValidation => {
     return {
@@ -326,6 +369,10 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
     });
   };
 
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <CSSTransition
       in={show}
@@ -494,4 +541,4 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
       </div>
     </CSSTransition>
   );
-}; 
+} 
