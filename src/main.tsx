@@ -164,12 +164,12 @@ try {
   console.log('Environment:', import.meta.env.VITE_AMPLIFY_ENV || 'development');
   console.log('Configuration:', {
     ...config,
-    Auth: {
+    Auth: config.Auth && {
       ...config.Auth,
-      Cognito: {
+      Cognito: config.Auth.Cognito && {
         ...config.Auth.Cognito,
-        userPoolId: config.Auth.Cognito.userPoolId || 'Not Set',
-        userPoolClientId: config.Auth.Cognito.userPoolClientId || 'Not Set'
+        userPoolId: config.Auth.Cognito?.userPoolId || 'Not Set',
+        userPoolClientId: config.Auth.Cognito?.userPoolClientId || 'Not Set'
       }
     }
   });
