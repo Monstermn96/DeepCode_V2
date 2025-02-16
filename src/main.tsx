@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Amplify } from 'aws-amplify';
 import { cognitoUserPoolsTokenProvider } from '@aws-amplify/auth/cognito';
-import { defaultStorage } from '@aws-amplify/utils';
 import App from './App';
 import './index.css';
 
@@ -29,8 +28,7 @@ try {
     }
   }, {
     Auth: {
-      tokenProvider: cognitoUserPoolsTokenProvider,
-      storage: defaultStorage
+      tokenProvider: cognitoUserPoolsTokenProvider
     }
   });
 
