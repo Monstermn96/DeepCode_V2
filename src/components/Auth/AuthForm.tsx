@@ -144,9 +144,6 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
   });
 
   const [needsVerification, setNeedsVerification] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY = 1000; // 1 second
 
   const validatePassword = (password: string): PasswordValidation => {
     return {
