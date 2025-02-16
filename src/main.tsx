@@ -35,10 +35,10 @@ console.log('\n🔐 Authentication Variables:');
 console.log('---------------------------');
 console.log('Development Pool ID:', import.meta.env.VITE_DEV_AUTH_USER_POOL_ID || 'Not Set');
 console.log('Development Client ID:', import.meta.env.VITE_DEV_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
-console.log('PreDeploy Pool ID:', import.meta.env.PD_AUTH_USER_POOL_ID || 'Not Set');
-console.log('PreDeploy Client ID:', import.meta.env.PD_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
-console.log('Main Pool ID:', import.meta.env.MAIN_AUTH_USER_POOL_ID || 'Not Set');
-console.log('Main Client ID:', import.meta.env.MAIN_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
+console.log('PreDeploy Pool ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_ID || 'Not Set');
+console.log('PreDeploy Client ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
+console.log('Main Pool ID:', import.meta.env.VITE_MAIN_AUTH_USER_POOL_ID || 'Not Set');
+console.log('Main Client ID:', import.meta.env.VITE_MAIN_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
 
 console.log('\n📝 All Environment Variables:');
 console.log('---------------------------');
@@ -50,10 +50,30 @@ Object.keys(import.meta.env).forEach(key => {
 });
 console.log('====================================');
 
+// Validate environment configuration
+const validateConfig = (poolId?: string, clientId?: string, env?: string) => {
+  const errors = [];
+  if (!poolId) errors.push('User Pool ID is not set');
+  if (!clientId) errors.push('Client ID is not set');
+  if (!env) errors.push('Environment is not set');
+  return errors;
+};
+
 // Environment-specific configuration
 const getAuthConfig = () => {
   // Local Development
-  if (import.meta.env.DEV && !import.meta.env.VITE_ENV) {
+  if (import.meta.env.DEV && !import.meta.env.VITE_AMPLIFY_ENV) {
+    const errors = validateConfig(
+      import.meta.env.VITE_DEV_AUTH_USER_POOL_ID,
+      import.meta.env.VITE_DEV_AUTH_USER_POOL_CLIENT_ID,
+      'development'
+    );
+    
+    if (errors.length > 0) {
+      console.error('❌ Development Environment Configuration Errors:', errors);
+      throw new Error(`Invalid development configuration: ${errors.join(', ')}`);
+    }
+
     return {
       userPoolId: import.meta.env.VITE_DEV_AUTH_USER_POOL_ID,
       userPoolClientId: import.meta.env.VITE_DEV_AUTH_USER_POOL_CLIENT_ID,
@@ -62,7 +82,23 @@ const getAuthConfig = () => {
   
   // PreDeploy Environment
   if (import.meta.env.VITE_AMPLIFY_ENV === 'staging' || window.location.hostname.includes('predeploy')) {
-    console.log(`✅Staging Environment Detected✅ \nPool ID: ${import.meta.env.VITE_PD_AUTH_USER_POOL_ID} \nClient ID: ${import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID}`);
+    const errors = validateConfig(
+      import.meta.env.VITE_PD_AUTH_USER_POOL_ID,
+      import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID,
+      'staging'
+    );
+    
+    if (errors.length > 0) {
+      console.error('❌ PreDeploy Environment Configuration Errors:', errors);
+      throw new Error(`Invalid PreDeploy configuration: ${errors.join(', ')}`);
+    }
+
+    console.log('✅ PreDeploy Environment Detected');
+    console.log('--------------------------------');
+    console.log('Pool ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_ID);
+    console.log('Client ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID);
+    console.log('--------------------------------');
+
     return {
       userPoolId: import.meta.env.VITE_PD_AUTH_USER_POOL_ID,
       userPoolClientId: import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID,
@@ -71,17 +107,34 @@ const getAuthConfig = () => {
   
   // Production/Main Environment
   if (import.meta.env.VITE_AMPLIFY_ENV === 'prod' || window.location.hostname.includes('main')) {
+    const errors = validateConfig(
+      import.meta.env.VITE_MAIN_AUTH_USER_POOL_ID,
+      import.meta.env.VITE_MAIN_AUTH_USER_POOL_CLIENT_ID,
+      'production'
+    );
+    
+    if (errors.length > 0) {
+      console.error('❌ Production Environment Configuration Errors:', errors);
+      throw new Error(`Invalid production configuration: ${errors.join(', ')}`);
+    }
+
     return {
-      userPoolId: import.meta.env.MAIN_AUTH_USER_POOL_ID,
-      userPoolClientId: import.meta.env.MAIN_AUTH_USER_POOL_CLIENT_ID,
+      userPoolId: import.meta.env.VITE_MAIN_AUTH_USER_POOL_ID,
+      userPoolClientId: import.meta.env.VITE_MAIN_AUTH_USER_POOL_CLIENT_ID,
     };
   }
 
-  throw new Error('Environment configuration not found');
+  throw new Error('Environment configuration not found. Please check your environment variables and deployment settings.');
 };
 
 // Get the environment-specific auth configuration
-const authConfig = getAuthConfig();
+let authConfig;
+try {
+  authConfig = getAuthConfig();
+} catch (error) {
+  console.error('❌ Failed to get auth configuration:', error);
+  throw error;
+}
 
 const config: ResourcesConfig = {
   Auth: {
@@ -107,8 +160,19 @@ const config: ResourcesConfig = {
 };
 
 try {
+  console.log('🔧 Configuring Amplify...');
   console.log('Environment:', import.meta.env.VITE_AMPLIFY_ENV || 'development');
-  console.log('Configuring Amplify with:', config);
+  console.log('Configuration:', {
+    ...config,
+    Auth: {
+      ...config.Auth,
+      Cognito: {
+        ...config.Auth.Cognito,
+        userPoolId: config.Auth.Cognito.userPoolId || 'Not Set',
+        userPoolClientId: config.Auth.Cognito.userPoolClientId || 'Not Set'
+      }
+    }
+  });
   
   Amplify.configure(config, {
     Auth: {
@@ -118,6 +182,7 @@ try {
   console.log("✅ Amplify configured successfully");
 } catch (error) {
   console.error("❌ Error configuring Amplify:", error);
+  throw error;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
