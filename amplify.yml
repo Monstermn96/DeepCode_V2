@@ -4,7 +4,8 @@ applications:
       phases:
         preBuild:
           commands:
-            - if [ "$FORCE_CLEANUP" = "true" ]; then ./PreDeployScripts/cleanup-predeploy.ps1; fi
+            - apt-get update && apt-get install -y jq
+            - if [ "$FORCE_CLEANUP" = "true" ]; then chmod +x ./scripts/cleanup-predeploy.sh && ./scripts/cleanup-predeploy.sh; fi
         build:
           commands:
             - npm ci
