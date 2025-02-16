@@ -16,18 +16,18 @@ const getAuthConfig = () => {
   }
   
   // PreDeploy Environment
-  if (import.meta.env.VITE_ENV === 'predeploy' || window.location.hostname.includes('predeploy')) {
+  if (import.meta.env.VITE_AMPLIFY_ENV === 'staging' || window.location.hostname.includes('predeploy')) {
     return {
-      userPoolId: import.meta.env.VITE_PD_AUTH_USER_POOL_ID,
-      userPoolClientId: import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID,
+      userPoolId: import.meta.env.PD_AUTH_USER_POOL_ID,
+      userPoolClientId: import.meta.env.PD_AUTH_USER_POOL_CLIENT_ID,
     };
   }
   
   // Production/Main Environment
-  if (import.meta.env.VITE_ENV === 'main' || window.location.hostname.includes('main')) {
+  if (import.meta.env.VITE_AMPLIFY_ENV === 'prod' || window.location.hostname.includes('main')) {
     return {
-      userPoolId: import.meta.env.VITE_MAIN_AUTH_USER_POOL_ID,
-      userPoolClientId: import.meta.env.VITE_MAIN_AUTH_USER_POOL_CLIENT_ID,
+      userPoolId: import.meta.env.MAIN_AUTH_USER_POOL_ID,
+      userPoolClientId: import.meta.env.MAIN_AUTH_USER_POOL_CLIENT_ID,
     };
   }
 
@@ -61,7 +61,7 @@ const config: ResourcesConfig = {
 };
 
 try {
-  console.log('Environment:', import.meta.env.VITE_ENV || 'development');
+  console.log('Environment:', import.meta.env.VITE_AMPLIFY_ENV || 'development');
   console.log('Configuring Amplify with:', config);
   
   Amplify.configure(config, {
