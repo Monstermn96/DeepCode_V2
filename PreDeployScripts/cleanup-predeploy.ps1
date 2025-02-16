@@ -1,11 +1,20 @@
 # Cleanup and Preparation Script for PreDeploy Environment
-Write-Host "Starting cleanup process for PreDeploy environment..." -ForegroundColor Cyan
 
-# Set variables
-$APP_ID = "d17nr8d8s58ya5"
-$BRANCH = "PreDeploy"
-$REGION = "us-east-1"
-$STACK_PREFIX = "amplify-${APP_ID}-predeploy"
+Write-Host "Starting cleanup process for PreDeploy environment..." -ForegroundColor Cyan
+Write-Host "----------------------------------------" -ForegroundColor Yellow
+Write-Host "Environment Variables:" -ForegroundColor Yellow
+Write-Host "AWS_APP_ID: $env:AWS_APP_ID" -ForegroundColor Yellow
+Write-Host "AWS_BRANCH: $env:AWS_BRANCH" -ForegroundColor Yellow
+Write-Host "AWS_REGION: $env:AWS_REGION" -ForegroundColor Yellow
+Write-Host "FORCE_CLEANUP: $env:FORCE_CLEANUP" -ForegroundColor Yellow
+Write-Host "NODE_VERSION: $env:NODE_VERSION" -ForegroundColor Yellow
+Write-Host "----------------------------------------" -ForegroundColor Yellow
+
+# Set variables from environment or defaults
+$APP_ID = if ($env:AWS_APP_ID) { $env:AWS_APP_ID } else { "d17nr8d8s58ya5" }
+$BRANCH = if ($env:AWS_BRANCH) { $env:AWS_BRANCH } else { "PreDeploy" }
+$REGION = if ($env:AWS_REGION) { $env:AWS_REGION } else { "us-east-1" }
+$ROOT_STACK_PREFIX = "amplify-${APP_ID}-${BRANCH}"
 
 # Function to check if AWS CLI command was successful
 function Test-AwsCommand {
@@ -15,33 +24,41 @@ function Test-AwsCommand {
     }
 }
 
-# 1. List and delete Cognito User Pools
-Write-Host "Listing Cognito User Pools..." -ForegroundColor Yellow
-$userPools = aws cognito-idp list-user-pools --max-results 60 | ConvertFrom-Json
-$predeployPools = $userPools.UserPools | Where-Object { $_.Name -like "*predeploy*" -or $_.Name -like "*PreDeploy*" }
+# Verify AWS credentials
+Write-Host "Verifying AWS credentials..." -ForegroundColor Yellow
+aws sts get-caller-identity
+Test-AwsCommand
 
-foreach ($pool in $predeployPools) {
-    Write-Host "Deleting User Pool: $($pool.Name) ($($pool.Id))" -ForegroundColor Yellow
-    aws cognito-idp delete-user-pool --user-pool-id $pool.Id
-    Test-AwsCommand
-}
+# List and find the root stack
+Write-Host "Finding root stack..." -ForegroundColor Yellow
+$stacks = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLETE ROLLBACK_COMPLETE | ConvertFrom-Json
+Test-AwsCommand
 
-# 2. List and delete CloudFormation stacks
-Write-Host "Listing CloudFormation stacks..." -ForegroundColor Yellow
-$stacks = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE | ConvertFrom-Json
-$predeployStacks = $stacks.StackSummaries | Where-Object { $_.StackName -like "${STACK_PREFIX}*" }
+$rootStack = $stacks.StackSummaries | Where-Object { 
+    $_.StackName -like "${ROOT_STACK_PREFIX}*" -and 
+    $_.StackName -notlike "*-authstack-*" -and 
+    $_.StackName -notlike "*-apistack-*" -and 
+    $_.StackName -notlike "*-storagestack-*"
+} | Select-Object -First 1
 
-foreach ($stack in $predeployStacks) {
-    Write-Host "Deleting stack: $($stack.StackName)" -ForegroundColor Yellow
-    aws cloudformation delete-stack --stack-name $stack.StackName
+if ($rootStack) {
+    Write-Host "Found root stack: $($rootStack.StackName)" -ForegroundColor Green
+    
+    # Delete the root stack (this will trigger deletion of all nested stacks)
+    Write-Host "Deleting root stack and all nested resources..." -ForegroundColor Yellow
+    aws cloudformation delete-stack --stack-name $rootStack.StackName
     Test-AwsCommand
     
-    Write-Host "Waiting for stack deletion to complete..." -ForegroundColor Yellow
-    aws cloudformation wait stack-delete-complete --stack-name $stack.StackName
+    Write-Host "Waiting for root stack deletion to complete (this may take several minutes)..." -ForegroundColor Yellow
+    aws cloudformation wait stack-delete-complete --stack-name $rootStack.StackName
     Test-AwsCommand
+    
+    Write-Host "Stack deletion completed successfully!" -ForegroundColor Green
+} else {
+    Write-Host "No existing root stack found for branch $BRANCH" -ForegroundColor Yellow
 }
 
-# 3. Clean local environment
+# Clean local environment
 Write-Host "Cleaning local environment..." -ForegroundColor Yellow
 
 # Remove build artifacts
@@ -63,11 +80,6 @@ Remove-Item "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
 # Reinstall dependencies
 Write-Host "Reinstalling dependencies..." -ForegroundColor Yellow
 npm install
-
-# 4. Verify AWS credentials and configuration
-Write-Host "Verifying AWS configuration..." -ForegroundColor Yellow
-aws sts get-caller-identity
-Test-AwsCommand
 
 Write-Host "Cleanup complete! Your environment is ready for redeployment." -ForegroundColor Green
 Write-Host "

@@ -1,5 +1,5 @@
-import pkg from 'aws-sdk';
-const { CognitoIdentityServiceProvider, Amplify } = pkg;
+import { CognitoIdentityProviderClient, ListUserPoolsCommand, ListUserPoolClientsCommand, DeleteUserPoolCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { AmplifyClient, UpdateEnvironmentVariableCommand } from '@aws-sdk/client-amplify';
 
 // Log environment variables
 console.log('----------------------------------------');
@@ -14,15 +14,16 @@ console.log('----------------------------------------');
 
 async function updateAuthConfig() {
   try {
-    const cognito = new CognitoIdentityServiceProvider();
-    const amplify = new Amplify();
+    const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
+    const amplifyClient = new AmplifyClient({ region: process.env.AWS_REGION });
 
     // Get the app and branch details
     const appId = process.env.AWS_APP_ID;
     const branch = process.env.AWS_BRANCH;
     
     // List user pools to find the one matching our naming convention
-    const userPools = await cognito.listUserPools({ MaxResults: 60 }).promise();
+    const listPoolsCommand = new ListUserPoolsCommand({ MaxResults: 60 });
+    const userPools = await cognito.send(listPoolsCommand);
     const branchLower = branch.toLowerCase();
     const targetPool = userPools.UserPools.find(pool => 
       pool.Name.toLowerCase().includes(branchLower)
@@ -33,10 +34,11 @@ async function updateAuthConfig() {
     }
 
     // Get the client ID for this user pool
-    const clients = await cognito.listUserPoolClients({
+    const listClientsCommand = new ListUserPoolClientsCommand({
       UserPoolId: targetPool.Id,
       MaxResults: 60
-    }).promise();
+    });
+    const clients = await cognito.send(listClientsCommand);
     
     const client = clients.UserPoolClients[0];
     
@@ -61,14 +63,15 @@ async function updateAuthConfig() {
 
     // Update each environment variable
     for (const update of updates) {
-      await amplify.updateEnvironmentVariable({
+      const command = new UpdateEnvironmentVariableCommand({
         appId,
         environmentName: branch,
         variable: {
           name: update.key,
           value: update.value
         }
-      }).promise();
+      });
+      await amplifyClient.send(command);
       console.log(`Updated ${update.key} = ${update.value}`);
     }
 
