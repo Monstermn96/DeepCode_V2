@@ -21,6 +21,7 @@ async function updateAuthConfig() {
     const appId = process.env.AWS_APP_ID;
     const branch = process.env.AWS_BRANCH;
     
+    console.log('Searching for User Pools...');
     // List user pools to find the one matching our naming convention
     const listPoolsCommand = new ListUserPoolsCommand({ MaxResults: 60 });
     const userPools = await cognito.send(listPoolsCommand);
@@ -30,8 +31,20 @@ async function updateAuthConfig() {
     );
 
     if (!targetPool) {
-      throw new Error(`No user pool found for branch ${branch}`);
+      console.log('----------------------------------------');
+      console.log('No User Pool found for branch:', branch);
+      console.log('Please wait for the new User Pool to be created');
+      console.log('Then update the following environment variables in Amplify Console:');
+      console.log('1. VITE_[BRANCH]_AUTH_USER_POOL_ID');
+      console.log('2. VITE_[BRANCH]_AUTH_USER_POOL_CLIENT_ID');
+      console.log('----------------------------------------');
+      process.exit(1);
     }
+
+    console.log('Found User Pool:', {
+      Name: targetPool.Name,
+      Id: targetPool.Id
+    });
 
     // Get the client ID for this user pool
     const listClientsCommand = new ListUserPoolClientsCommand({
@@ -43,7 +56,14 @@ async function updateAuthConfig() {
     const client = clients.UserPoolClients[0];
     
     if (!client) {
-      throw new Error(`No client found for user pool ${targetPool.Id}`);
+      console.log('----------------------------------------');
+      console.log('No Client found for User Pool:', targetPool.Id);
+      console.log('Please wait for the User Pool Client to be created');
+      console.log('Then update the following environment variables in Amplify Console:');
+      console.log('1. VITE_[BRANCH]_AUTH_USER_POOL_ID =', targetPool.Id);
+      console.log('2. VITE_[BRANCH]_AUTH_USER_POOL_CLIENT_ID = [new client id]');
+      console.log('----------------------------------------');
+      process.exit(1);
     }
 
     // Update Amplify environment variables
@@ -59,26 +79,42 @@ async function updateAuthConfig() {
       }
     ];
 
-    console.log('Updating environment variables:', updates);
+    console.log('----------------------------------------');
+    console.log('New Auth Configuration:');
+    console.log('User Pool Name:', targetPool.Name);
+    console.log('User Pool ID:', targetPool.Id);
+    console.log('Client ID:', client.ClientId);
+    console.log('----------------------------------------');
+    console.log('Updating Amplify environment variables...');
 
-    // Update each environment variable
-    for (const update of updates) {
-      const command = new UpdateEnvironmentVariableCommand({
-        appId,
-        environmentName: branch,
-        variable: {
-          name: update.key,
-          value: update.value
-        }
-      });
-      await amplifyClient.send(command);
-      console.log(`Updated ${update.key} = ${update.value}`);
+    try {
+      // Update each environment variable
+      for (const update of updates) {
+        const command = new UpdateEnvironmentVariableCommand({
+          appId,
+          environmentName: branch,
+          variable: {
+            name: update.key,
+            value: update.value
+          }
+        });
+        await amplifyClient.send(command);
+        console.log(`Updated ${update.key} = ${update.value}`);
+      }
+
+      console.log('----------------------------------------');
+      console.log('Successfully updated auth configuration!');
+      console.log('----------------------------------------');
+
+    } catch (error) {
+      console.log('----------------------------------------');
+      console.log('Failed to update environment variables automatically');
+      console.log('Please manually update the following in Amplify Console:');
+      console.log(`1. ${updates[0].key} = ${updates[0].value}`);
+      console.log(`2. ${updates[1].key} = ${updates[1].value}`);
+      console.log('----------------------------------------');
+      throw error;
     }
-
-    console.log('Successfully updated auth configuration:', {
-      userPoolId: targetPool.Id,
-      clientId: client.ClientId
-    });
 
   } catch (error) {
     console.error('Error updating auth configuration:', error);

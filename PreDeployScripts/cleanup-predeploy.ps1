@@ -1,20 +1,26 @@
-# Cleanup and Preparation Script for PreDeploy Environment
+# Cleanup Script for PreDeploy Environment
 
+Write-Host "----------------------------------------" -ForegroundColor Cyan
 Write-Host "Starting cleanup process for PreDeploy environment..." -ForegroundColor Cyan
-Write-Host "----------------------------------------" -ForegroundColor Yellow
+Write-Host "----------------------------------------" -ForegroundColor Cyan
+
+# Log environment variables
 Write-Host "Environment Variables:" -ForegroundColor Yellow
 Write-Host "AWS_APP_ID: $env:AWS_APP_ID" -ForegroundColor Yellow
 Write-Host "AWS_BRANCH: $env:AWS_BRANCH" -ForegroundColor Yellow
 Write-Host "AWS_REGION: $env:AWS_REGION" -ForegroundColor Yellow
 Write-Host "FORCE_CLEANUP: $env:FORCE_CLEANUP" -ForegroundColor Yellow
-Write-Host "NODE_VERSION: $env:NODE_VERSION" -ForegroundColor Yellow
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
-# Set variables from environment or defaults
-$APP_ID = if ($env:AWS_APP_ID) { $env:AWS_APP_ID } else { "d17nr8d8s58ya5" }
-$BRANCH = if ($env:AWS_BRANCH) { $env:AWS_BRANCH } else { "PreDeploy" }
-$REGION = if ($env:AWS_REGION) { $env:AWS_REGION } else { "us-east-1" }
-$ROOT_STACK_PREFIX = "amplify-${APP_ID}-${BRANCH}"
+# Set variables from environment
+$APP_ID = $env:AWS_APP_ID
+$BRANCH = $env:AWS_BRANCH
+$REGION = $env:AWS_REGION
+$STACK_PREFIX = "amplify-${APP_ID}-predeploy"
+
+Write-Host "Using configuration:" -ForegroundColor Yellow
+Write-Host "Stack Prefix: $STACK_PREFIX" -ForegroundColor Yellow
+Write-Host "----------------------------------------" -ForegroundColor Yellow
 
 # Function to check if AWS CLI command was successful
 function Test-AwsCommand {
@@ -24,67 +30,75 @@ function Test-AwsCommand {
     }
 }
 
-# Verify AWS credentials
-Write-Host "Verifying AWS credentials..." -ForegroundColor Yellow
-aws sts get-caller-identity
+# 1. List and delete Cognito User Pools
+Write-Host "Listing Cognito User Pools..." -ForegroundColor Yellow
+$userPools = aws cognito-idp list-user-pools --max-results 60 | ConvertFrom-Json
 Test-AwsCommand
 
-# List and find the root stack
-Write-Host "Finding root stack..." -ForegroundColor Yellow
-$stacks = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLETE ROLLBACK_COMPLETE | ConvertFrom-Json
-Test-AwsCommand
+$predeployPools = $userPools.UserPools | Where-Object { $_.Name -like "*predeploy*" -or $_.Name -like "*PreDeploy*" }
 
-$rootStack = $stacks.StackSummaries | Where-Object { 
-    $_.StackName -like "${ROOT_STACK_PREFIX}*" -and 
-    $_.StackName -notlike "*-authstack-*" -and 
-    $_.StackName -notlike "*-apistack-*" -and 
-    $_.StackName -notlike "*-storagestack-*"
-} | Select-Object -First 1
-
-if ($rootStack) {
-    Write-Host "Found root stack: $($rootStack.StackName)" -ForegroundColor Green
-    
-    # Delete the root stack (this will trigger deletion of all nested stacks)
-    Write-Host "Deleting root stack and all nested resources..." -ForegroundColor Yellow
-    aws cloudformation delete-stack --stack-name $rootStack.StackName
-    Test-AwsCommand
-    
-    Write-Host "Waiting for root stack deletion to complete (this may take several minutes)..." -ForegroundColor Yellow
-    aws cloudformation wait stack-delete-complete --stack-name $rootStack.StackName
-    Test-AwsCommand
-    
-    Write-Host "Stack deletion completed successfully!" -ForegroundColor Green
+if ($predeployPools) {
+    Write-Host "Found PreDeploy User Pools to delete:" -ForegroundColor Green
+    foreach ($pool in $predeployPools) {
+        Write-Host "- Pool Name: $($pool.Name)" -ForegroundColor Yellow
+        Write-Host "  Pool ID: $($pool.Id)" -ForegroundColor Yellow
+        Write-Host "Deleting User Pool..." -ForegroundColor Yellow
+        aws cognito-idp delete-user-pool --user-pool-id $pool.Id
+        Test-AwsCommand
+        Write-Host "Pool deleted successfully" -ForegroundColor Green
+    }
 } else {
-    Write-Host "No existing root stack found for branch $BRANCH" -ForegroundColor Yellow
+    Write-Host "No PreDeploy User Pools found" -ForegroundColor Yellow
 }
 
-# Clean local environment
+# 2. List and delete CloudFormation stacks
+Write-Host "----------------------------------------" -ForegroundColor Cyan
+Write-Host "Listing CloudFormation stacks..." -ForegroundColor Yellow
+$stacks = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE | ConvertFrom-Json
+Test-AwsCommand
+
+$predeployStacks = $stacks.StackSummaries | Where-Object { $_.StackName -like "${STACK_PREFIX}*" }
+
+if ($predeployStacks) {
+    Write-Host "Found PreDeploy stacks to delete:" -ForegroundColor Green
+    foreach ($stack in $predeployStacks) {
+        Write-Host "- Stack Name: $($stack.StackName)" -ForegroundColor Yellow
+        Write-Host "Deleting stack..." -ForegroundColor Yellow
+        aws cloudformation delete-stack --stack-name $stack.StackName
+        Test-AwsCommand
+        
+        Write-Host "Waiting for stack deletion to complete..." -ForegroundColor Yellow
+        aws cloudformation wait stack-delete-complete --stack-name $stack.StackName
+        Test-AwsCommand
+        Write-Host "Stack deleted successfully" -ForegroundColor Green
+    }
+} else {
+    Write-Host "No PreDeploy stacks found" -ForegroundColor Yellow
+}
+
+# 3. Clean local environment
+Write-Host "----------------------------------------" -ForegroundColor Cyan
 Write-Host "Cleaning local environment..." -ForegroundColor Yellow
 
 # Remove build artifacts
 if (Test-Path "amplify_outputs.json") {
     Remove-Item "amplify_outputs.json" -Force
+    Write-Host "Removed amplify_outputs.json" -ForegroundColor Yellow
 }
 if (Test-Path ".amplify") {
     Remove-Item ".amplify" -Recurse -Force
+    Write-Host "Removed .amplify directory" -ForegroundColor Yellow
 }
 if (Test-Path "dist") {
     Remove-Item "dist" -Recurse -Force
+    Write-Host "Removed dist directory" -ForegroundColor Yellow
 }
 
-# Clean npm
-Write-Host "Cleaning npm..." -ForegroundColor Yellow
-npm cache clean --force
-Remove-Item "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
-
-# Reinstall dependencies
-Write-Host "Reinstalling dependencies..." -ForegroundColor Yellow
-npm install
-
-Write-Host "Cleanup complete! Your environment is ready for redeployment." -ForegroundColor Green
-Write-Host "
-Next steps:
-1. Commit and push your changes to the PreDeploy branch
-2. The Amplify pipeline will automatically start the redeployment
-3. Monitor the deployment in the Amplify Console: https://console.aws.amazon.com/amplify/home?region=${REGION}#/${APP_ID}
-" -ForegroundColor Cyan 
+Write-Host "----------------------------------------" -ForegroundColor Cyan
+Write-Host "Cleanup complete!" -ForegroundColor Green
+Write-Host "Next steps:" -ForegroundColor Cyan
+Write-Host "1. New resources will be created during the next build" -ForegroundColor Cyan
+Write-Host "2. The build will fail with new resource IDs" -ForegroundColor Cyan
+Write-Host "3. Update the Amplify environment variables with the new IDs" -ForegroundColor Cyan
+Write-Host "4. Trigger a new build" -ForegroundColor Cyan
+Write-Host "----------------------------------------" -ForegroundColor Cyan 
