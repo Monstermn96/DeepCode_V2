@@ -30,14 +30,17 @@ check_aws_command
 
 # 1. List and delete Cognito User Pools
 echo "Listing Cognito User Pools..."
-USER_POOLS=$(aws cognito-idp list-user-pools --max-results 60)
+USER_POOLS=$(aws cognito-idp list-user-pools --max-results 60 --query 'UserPools[*].[Name,Id]' --output text)
 check_aws_command
 
 echo "Found User Pools:"
-echo "$USER_POOLS" | jq -r '.UserPools[] | "- \(.Name) (\(.Id))"'
+echo "$USER_POOLS" | while read -r name id; do
+    echo "- $name ($id)"
+done
 echo "----------------------------------------"
 
-POOL_IDS=$(echo "$USER_POOLS" | jq -r '.UserPools[] | select(.Name | ascii_downcase | contains("predeploy")) | .Id')
+# Find pools with predeploy in the name (case insensitive)
+POOL_IDS=$(echo "$USER_POOLS" | grep -i "predeploy" | awk '{print $2}')
 
 if [ -n "$POOL_IDS" ]; then
     echo "Found PreDeploy User Pools to delete:"
@@ -55,14 +58,17 @@ fi
 
 # 2. List and delete CloudFormation stacks
 echo "Listing CloudFormation stacks..."
-STACKS=$(aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE)
+STACKS=$(aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE --query 'StackSummaries[*].[StackName]' --output text)
 check_aws_command
 
 echo "Found Stacks:"
-echo "$STACKS" | jq -r '.StackSummaries[] | "- \(.StackName)"'
+echo "$STACKS" | while read -r stack; do
+    echo "- $stack"
+done
 echo "----------------------------------------"
 
-STACK_NAMES=$(echo "$STACKS" | jq -r ".StackSummaries[] | select(.StackName | startswith(\"$STACK_PREFIX\")) | .StackName")
+# Find stacks that start with our prefix
+STACK_NAMES=$(echo "$STACKS" | grep "^$STACK_PREFIX")
 
 if [ -n "$STACK_NAMES" ]; then
     echo "Found PreDeploy stacks to delete:"
