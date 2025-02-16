@@ -17,9 +17,10 @@ const getAuthConfig = () => {
   
   // PreDeploy Environment
   if (import.meta.env.VITE_AMPLIFY_ENV === 'staging' || window.location.hostname.includes('predeploy')) {
+    console.log('✅Staging Environment Detected✅');
     return {
-      userPoolId: import.meta.env.PD_AUTH_USER_POOL_ID,
-      userPoolClientId: import.meta.env.PD_AUTH_USER_POOL_CLIENT_ID,
+      userPoolId: import.meta.env.VITE_PD_AUTH_USER_POOL_ID,
+      userPoolClientId: import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID,
     };
   }
   
