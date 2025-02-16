@@ -1,7 +1,10 @@
 import { CognitoIdentityProviderClient, ListUserPoolsCommand, ListUserPoolClientsCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { AmplifyClient, UpdateEnvironmentVariableCommand } from '@aws-sdk/client-amplify';
+import pkg from '@aws-sdk/client-amplify';
+const { AmplifyClient, UpdateEnvironmentVariableCommand } = pkg;
 
 // Log environment variables
+console.log('----------------------------------------');
+console.log('Starting Auth Configuration Update');
 console.log('----------------------------------------');
 console.log('Environment Variables:');
 console.log('AWS_APP_ID:', process.env.AWS_APP_ID);
@@ -21,6 +24,11 @@ async function updateAuthConfig() {
     const appId = process.env.AWS_APP_ID;
     const branch = process.env.AWS_BRANCH;
     const poolName = process.env.AMPLIFY_BACKEND_POOL_NAME;
+    
+    if (!poolName) {
+      console.error('Error: AMPLIFY_BACKEND_POOL_NAME is not set');
+      process.exit(1);
+    }
     
     console.log('Searching for User Pools...');
     // List user pools to find the one matching our naming convention
@@ -80,6 +88,13 @@ async function updateAuthConfig() {
       process.exit(1);
     }
 
+    // Store the new values for final output
+    const newConfig = {
+      userPoolName: targetPool.Name,
+      userPoolId: targetPool.Id,
+      clientId: client.ClientId
+    };
+
     // Update Amplify environment variables
     const updates = [
       {
@@ -130,13 +145,17 @@ async function updateAuthConfig() {
       console.log('----------------------------------------');
       console.log('Successfully updated auth configuration!');
       console.log('----------------------------------------');
+      console.log('IMPORTANT: Copy these values to your Amplify Console:');
+      console.log('1. VITE_AUTH_USER_POOL_ID =', newConfig.userPoolId);
+      console.log('2. VITE_AUTH_USER_POOL_CLIENT_ID =', newConfig.clientId);
+      console.log('----------------------------------------');
 
     } catch (error) {
       console.log('----------------------------------------');
       console.log('Failed to update environment variables automatically');
       console.log('Please manually update the following in Amplify Console:');
-      console.log(`1. ${updates[0].key} = ${updates[0].value}`);
-      console.log(`2. ${updates[1].key} = ${updates[1].value}`);
+      console.log(`1. VITE_AUTH_USER_POOL_ID = ${newConfig.userPoolId}`);
+      console.log(`2. VITE_AUTH_USER_POOL_CLIENT_ID = ${newConfig.clientId}`);
       console.log('3. FIRST_DEPLOY = false');
       console.log('----------------------------------------');
       throw error;
