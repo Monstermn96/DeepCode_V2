@@ -24,8 +24,7 @@ const getPoolName = () => {
 export const auth = defineAuth({
   loginWith: {
     email: {
-      // Email verification settings
-      verificationEmailSubject: process.env.AMPLIFY_BACKEND_EMAIL_SUBJECT || 'Welcome to DeepDevAi - Verify your email',
+      verificationEmailSubject: 'Welcome to DeepDevAi - Verify your email',
       verificationEmailBody: (code: () => string) => `
         Welcome to DeepDevAi!\n\n
         Your verification code is: ${code()}\n\n
@@ -33,21 +32,11 @@ export const auth = defineAuth({
         If you didn't request this code, please ignore this email.\n\n
         
         Best regards,
-        ${process.env.AMPLIFY_BACKEND_EMAIL_SIGNATURE || 'Eric'}
+        Eric
 
-        ${process.env.AMPLIFY_BACKEND_EMAIL_PS || 'P.S. Account wipes will happen often the Site is a WIP.'}
+        P.S. Account wipes will happen often the Site is a WIP.
       `,
-      verificationEmailStyle: 'CODE',
-      // Password settings as part of email login
-      passwordSettings: {
-        minLength: 8,
-        complexity: {
-          requireNumbers: true,
-          requireSpecialCharacters: true,
-          requireLowercase: true,
-          requireUppercase: true
-        }
-      }
+      verificationEmailStyle: 'CODE'
     }
   },
   userAttributes: {
