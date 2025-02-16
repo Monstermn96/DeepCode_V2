@@ -24,10 +24,10 @@ console.log('Current Path:', window.location.pathname);
 
 console.log('\n⚙️ Environment Configuration:');
 console.log('---------------------------');
-console.log('AMPLIFY_ENV:', import.meta.env.AMPLIFY_ENV || 'Not Set');
+console.log('VITE_AMPLIFY_ENV:', import.meta.env.VITE_AMPLIFY_ENV || 'Not Set');
 console.log('Environment Stage:', 
-  process.env.AMPLIFY_ENV === 'staging' ? 'PreDeploy' :
-  process.env.AMPLIFY_ENV === 'prod' ? 'Production' :
+  import.meta.env.VITE_AMPLIFY_ENV === 'staging' ? 'PreDeploy' :
+  import.meta.env.VITE_AMPLIFY_ENV === 'prod' ? 'Production' :
   import.meta.env.DEV ? 'Development' : 'Unknown'
 );
 
@@ -35,8 +35,8 @@ console.log('\n🔐 Authentication Variables:');
 console.log('---------------------------');
 console.log('Development Pool ID:', import.meta.env.VITE_DEV_AUTH_USER_POOL_ID || 'Not Set');
 console.log('Development Client ID:', import.meta.env.VITE_DEV_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
-console.log('PreDeploy Pool ID:', process.env.VITE_PD_AUTH_USER_POOL_ID || 'Not Set');
-console.log('PreDeploy Client ID:', process.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
+console.log('PreDeploy Pool ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_ID || 'Not Set');
+console.log('PreDeploy Client ID:', import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
 console.log('Main Pool ID:', import.meta.env.VITE_MAIN_AUTH_USER_POOL_ID || 'Not Set');
 console.log('Main Client ID:', import.meta.env.VITE_MAIN_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
 
@@ -90,8 +90,6 @@ const getAuthConfig = () => {
     
     if (errors.length > 0) {
       console.error('❌ PreDeploy Environment Configuration Errors:', errors);
-      console.error('Note: In production builds, environment variables must be prefixed with VITE_');
-      console.error('Current environment variables:', Object.keys(import.meta.env).join(', '));
       throw new Error(`Invalid PreDeploy configuration: ${errors.join(', ')}`);
     }
 
