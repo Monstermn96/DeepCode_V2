@@ -1,7 +1,57 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 const schema = a.schema({
-  // Define your data models here when needed
+  CodingProblem: a
+    .model({
+      title: a.string(),
+      description: a.string(),
+      difficulty: a.enum(['easy', 'medium', 'hard']),
+      starterCode: a.string(),
+      solution: a.string(),
+      testCases: a.list(
+        a.model({
+          input: a.string(),
+          expectedOutput: a.string(),
+          description: a.string()
+        })
+      ),
+      hints: a.list(a.string()),
+      language: a.enum(['Python', 'JavaScript', 'Java', 'C#', 'TypeScript']),
+      category: a.enum(['algorithms', 'data-structures', 'system-design', 'debugging']),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime()
+    })
+    .authorization([a.allow.public('read'), a.allow.owner(['create', 'update', 'delete'])]),
+
+  UserProgress: a
+    .model({
+      userId: a.string(),
+      problemId: a.string(),
+      status: a.enum(['started', 'completed', 'failed']),
+      attempts: a.integer(),
+      lastAttemptAt: a.datetime(),
+      timeSpent: a.integer(), // in seconds
+      solution: a.string(),
+      feedback: a.string(),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime()
+    })
+    .authorization([a.allow.owner(['read', 'create', 'update', 'delete'])]),
+
+  UserStats: a
+    .model({
+      userId: a.string(),
+      problemsSolved: a.integer(),
+      totalAttempts: a.integer(),
+      averageAttempts: a.float(),
+      averageTimePerProblem: a.integer(), // in seconds
+      strongestCategory: a.string(),
+      weakestCategory: a.string(),
+      lastActive: a.datetime(),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime()
+    })
+    .authorization([a.allow.owner(['read', 'create', 'update', 'delete'])])
 });
 
 export type Schema = ClientSchema<typeof schema>;
