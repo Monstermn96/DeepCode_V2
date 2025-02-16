@@ -290,30 +290,29 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
     setIsLoading(true);
     
     try {
-      while (retryCount < MAX_RETRIES) {
-        try {
-          await signIn({
-            username: formData.email,
-            password: formData.password
-          });
-          if (onSuccess) onSuccess();
-          return;
-        } catch (err) {
-          setRetryCount(prev => prev + 1);
-          if (retryCount === MAX_RETRIES - 1) throw err;
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-        }
-      }
+      console.log('Attempting sign in after verification...');
+      await signIn({
+        username: formData.email,
+        password: formData.password
+      });
+      console.log('Sign in successful');
+      if (onSuccess) onSuccess();
     } catch (err) {
       console.error('Sign in after verification failed:', err);
       setError(
         err instanceof Error 
-          ? `${err.message} (after ${MAX_RETRIES} attempts)`
-          : `Sign in failed after ${MAX_RETRIES} attempts. Please try again.`
+          ? `Sign in failed: ${err.message}. Please try signing in manually.`
+          : 'Sign in failed. Please try signing in manually.'
       );
+      // Reset form to sign in state
+      setIsSignUp(false);
+      setFormData(prev => ({
+        ...prev,
+        password: '',
+        confirmPassword: ''
+      }));
     } finally {
       setIsLoading(false);
-      setRetryCount(0);
     }
   };
 
