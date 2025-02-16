@@ -32,10 +32,22 @@ function Test-AwsCommand {
 
 # 1. List and delete Cognito User Pools
 Write-Host "Listing Cognito User Pools..." -ForegroundColor Yellow
-$userPools = aws cognito-idp list-user-pools --max-results 60 | ConvertFrom-Json
+$userPoolsJson = aws cognito-idp list-user-pools --max-results 60
 Test-AwsCommand
+$userPools = $userPoolsJson | ConvertFrom-Json
 
-$predeployPools = $userPools.UserPools | Where-Object { $_.Name -like "*predeploy*" -or $_.Name -like "*PreDeploy*" }
+Write-Host "Found User Pools:" -ForegroundColor Green
+foreach ($pool in $userPools.UserPools) {
+    Write-Host "- $($pool.Name) ($($pool.Id))" -ForegroundColor Yellow
+}
+Write-Host "----------------------------------------" -ForegroundColor Yellow
+
+$predeployPools = $userPools.UserPools | Where-Object { 
+    $_.Name -like "*predeploy*" -or 
+    $_.Name -like "*PreDeploy*" -or 
+    $_.Name -like "*$APP_ID*" -or 
+    $_.Name -like "*DeepDevAi*"
+}
 
 if ($predeployPools) {
     Write-Host "Found PreDeploy User Pools to delete:" -ForegroundColor Green
@@ -54,8 +66,15 @@ if ($predeployPools) {
 # 2. List and delete CloudFormation stacks
 Write-Host "----------------------------------------" -ForegroundColor Cyan
 Write-Host "Listing CloudFormation stacks..." -ForegroundColor Yellow
-$stacks = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE | ConvertFrom-Json
+$stacksJson = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE
 Test-AwsCommand
+$stacks = $stacksJson | ConvertFrom-Json
+
+Write-Host "Found Stacks:" -ForegroundColor Green
+foreach ($stack in $stacks.StackSummaries) {
+    Write-Host "- $($stack.StackName)" -ForegroundColor Yellow
+}
+Write-Host "----------------------------------------" -ForegroundColor Yellow
 
 $predeployStacks = $stacks.StackSummaries | Where-Object { $_.StackName -like "${STACK_PREFIX}*" }
 

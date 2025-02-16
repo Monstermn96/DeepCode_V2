@@ -24,92 +24,62 @@ check_aws_command() {
     fi
 }
 
-# Function to parse JSON and filter resources
-parse_aws_resources() {
-    node -e "
-        try {
-            const input = process.argv[1];
-            if (!input) {
-                console.error('No input provided');
-                process.exit(1);
-            }
-            const data = JSON.parse(input);
-            const type = process.argv[2];
-            
-            if (type === 'userPools' && data.UserPools) {
-                const pools = data.UserPools
-                    .filter(p => p.Name && p.Name.toLowerCase().includes('predeploy'))
-                    .map(p => p.Id);
-                console.log(pools.join('\\n'));
-            } 
-            else if (type === 'stacks' && data.StackSummaries) {
-                const prefix = '${STACK_PREFIX}';
-                const stacks = data.StackSummaries
-                    .filter(s => s.StackName && s.StackName.startsWith(prefix))
-                    .map(s => s.StackName);
-                console.log(stacks.join('\\n'));
-            }
-        } catch (error) {
-            console.error('Error parsing:', error.message);
-            process.exit(1);
-        }
-    "
-}
-
 echo "Checking AWS credentials..."
 aws sts get-caller-identity > /dev/null
 check_aws_command
 
 # 1. List and delete Cognito User Pools
 echo "Listing Cognito User Pools..."
-USER_POOLS=$(aws cognito-idp list-user-pools --max-results 60 --output json)
+USER_POOLS=$(aws cognito-idp list-user-pools --max-results 60)
 check_aws_command
 
-if [ -n "$USER_POOLS" ]; then
-    POOL_IDS=$(echo "$USER_POOLS" | parse_aws_resources "$USER_POOLS" "userPools")
-    if [ -n "$POOL_IDS" ]; then
-        echo "Found User Pools to delete:"
-        echo "$POOL_IDS"
-        echo "$POOL_IDS" | while read -r pool_id; do
-            if [ -n "$pool_id" ]; then
-                echo "Deleting User Pool: $pool_id"
-                aws cognito-idp delete-user-pool --user-pool-id "$pool_id"
-                check_aws_command
-            fi
-        done
-    else
-        echo "No PreDeploy User Pools found"
-    fi
+echo "Found User Pools:"
+echo "$USER_POOLS" | jq -r '.UserPools[] | "- \(.Name) (\(.Id))"'
+echo "----------------------------------------"
+
+POOL_IDS=$(echo "$USER_POOLS" | jq -r '.UserPools[] | select(.Name | ascii_downcase | contains("predeploy")) | .Id')
+
+if [ -n "$POOL_IDS" ]; then
+    echo "Found PreDeploy User Pools to delete:"
+    echo "$POOL_IDS" | while read -r pool_id; do
+        if [ -n "$pool_id" ]; then
+            echo "Deleting User Pool: $pool_id"
+            aws cognito-idp delete-user-pool --user-pool-id "$pool_id"
+            check_aws_command
+            echo "Pool deleted successfully"
+        fi
+    done
 else
-    echo "No User Pools found"
+    echo "No PreDeploy User Pools found"
 fi
 
 # 2. List and delete CloudFormation stacks
 echo "Listing CloudFormation stacks..."
-STACKS=$(aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE --output json)
+STACKS=$(aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE)
 check_aws_command
 
-if [ -n "$STACKS" ]; then
-    STACK_NAMES=$(echo "$STACKS" | parse_aws_resources "$STACKS" "stacks")
-    if [ -n "$STACK_NAMES" ]; then
-        echo "Found stacks to delete:"
-        echo "$STACK_NAMES"
-        echo "$STACK_NAMES" | while read -r stack_name; do
-            if [ -n "$stack_name" ]; then
-                echo "Deleting stack: $stack_name"
-                aws cloudformation delete-stack --stack-name "$stack_name"
-                check_aws_command
-                
-                echo "Waiting for stack deletion to complete..."
-                aws cloudformation wait stack-delete-complete --stack-name "$stack_name"
-                check_aws_command
-            fi
-        done
-    else
-        echo "No PreDeploy stacks found"
-    fi
+echo "Found Stacks:"
+echo "$STACKS" | jq -r '.StackSummaries[] | "- \(.StackName)"'
+echo "----------------------------------------"
+
+STACK_NAMES=$(echo "$STACKS" | jq -r ".StackSummaries[] | select(.StackName | startswith(\"$STACK_PREFIX\")) | .StackName")
+
+if [ -n "$STACK_NAMES" ]; then
+    echo "Found PreDeploy stacks to delete:"
+    echo "$STACK_NAMES" | while read -r stack_name; do
+        if [ -n "$stack_name" ]; then
+            echo "Deleting stack: $stack_name"
+            aws cloudformation delete-stack --stack-name "$stack_name"
+            check_aws_command
+            
+            echo "Waiting for stack deletion to complete..."
+            aws cloudformation wait stack-delete-complete --stack-name "$stack_name"
+            check_aws_command
+            echo "Stack deleted successfully"
+        fi
+    done
 else
-    echo "No stacks found"
+    echo "No PreDeploy stacks found"
 fi
 
 # 3. Clean local Amplify state
