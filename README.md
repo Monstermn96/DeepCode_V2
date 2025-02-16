@@ -94,46 +94,60 @@ amplify/
 - **main**: Production branch - https://main.d17nr8d8s58ya5.amplifyapp.com
 - **PreDeploy**: Pre-production testing - https://predeploy.d17nr8d8s58ya5.amplifyapp.com
 
-### Deployment Management
-1. **Stack Management**
-   - Root Stack ID: amplify-d17nr8d8s58ya5-main-branch-53b895246s
-   - App ID: d17nr8d8s58ya5
-   - Always delete failed stacks before redeploying
-   - Delete nested stacks before root stack
-
-2. **Redeployment Process**
+### Local Development
+1. **Setup and Testing**
    ```bash
    # Clean and prepare
    npm run clean
+   Remove-Item -Path amplify_outputs.json -Force -ErrorAction SilentlyContinue
+   Remove-Item -Path node_modules -Recurse -Force -ErrorAction SilentlyContinue
    npm install
 
-   # Deploy to PreDeploy first
-   git checkout PreDeploy
-   git pull
-   npx ampx pipeline-deploy --branch PreDeploy --app-id d17nr8d8s58ya5
-
-   # After testing, deploy to main
-   git checkout main
-   git pull
-   npx ampx pipeline-deploy --branch main --app-id d17nr8d8s58ya5
+   # Start local development
+   npm run dev  # Frontend
+   npx ampx sandbox  # Backend
    ```
 
-3. **Database Reset**
-   - DynamoDB tables are recreated on redeployment
-   - Backup data if needed before stack deletion
-   - Verify data migration after redeployment
+2. **Testing Process**
+   - Develop and test locally using sandbox environment
+   - Verify changes in local environment first
+   - Commit changes to feature branch
+   - Push to remote and create PR to PreDeploy
 
-4. **Deployment Verification**
-   - Check AWS Console for stack status
-   - Verify Cognito user pools
-   - Test API endpoints
-   - Validate frontend connectivity
+3. **CI/CD Deployment**
+   - Automated deployment will run in CI/CD pipeline
+   - Do not use `pipeline-deploy` command locally
+   - Monitor deployment in Amplify Console
+   - Verify changes in PreDeploy environment
 
-### Local Development
-1. Make changes in feature branches
-2. Test locally using `npm run dev` and `npx ampx sandbox`
-3. Push to PreDeploy for testing
-4. Merge to main for production deployment
+4. **Production Deployment**
+   - After PreDeploy verification, merge to main
+   - Automated deployment will handle production release
+   - Monitor production deployment in Amplify Console
+
+### Configuration
+```typescript
+// main.tsx Amplify configuration
+import { Amplify } from "aws-amplify";
+import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
+import { defaultStorage } from "aws-amplify/utils";
+
+Amplify.configure({
+  ...outputs,
+  Auth: {
+    Cognito: {
+      userPoolId: outputs.auth?.userPoolId,
+      userPoolClientId: outputs.auth?.userPoolClientId,
+      signUpVerificationMethod: "code",
+    }
+  }
+}, {
+  Auth: {
+    tokenProvider: cognitoUserPoolsTokenProvider,
+    storage: defaultStorage
+  }
+});
+```
 
 ## 🔒 Security Features
 

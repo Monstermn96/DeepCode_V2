@@ -221,17 +221,26 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
     setIsLoading(true);
     try {
       if (isSignUp) {
-        await signUp({
-          username: formData.email,
-          password: formData.password,
-          options: {
-            userAttributes: {
-              email: formData.email,
-              nickname: formData.username
+        try {
+          await signUp({
+            username: formData.email,
+            password: formData.password,
+            options: {
+              userAttributes: {
+                email: formData.email,
+                nickname: formData.username
+              }
             }
+          });
+          setNeedsVerification(true);
+        } catch (err: any) {
+          if (err.name === 'UsernameExistsException') {
+            setError('An account with this email already exists. Please sign in instead.');
+            setIsSignUp(false);  // Switch to sign in mode
+          } else {
+            throw err;
           }
-        });
-        setNeedsVerification(true);
+        }
       } else {
         try {
           await signIn({
@@ -240,7 +249,12 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
           });
           if (onSuccess) onSuccess();
         } catch (err: any) {
-          if (err.name === 'UserNotConfirmedException') {
+          if (err.name === 'UserNotFoundException') {
+            setError('No account found with this email. Please sign up first.');
+            setIsSignUp(true);  // Switch to sign up mode
+          } else if (err.name === 'NotAuthorizedException') {
+            setError('Incorrect password. Please try again.');
+          } else if (err.name === 'UserNotConfirmedException') {
             setNeedsVerification(true);
             try {
               await resendSignUpCode({ username: formData.email });
@@ -256,7 +270,15 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
       }
     } catch (err) {
       console.error('Authentication failed:', err);
-      setError(err instanceof Error ? err.message : 'Authentication failed. Please try again.');
+      if (err instanceof Error) {
+        if (err.message.includes('Auth.Cognito')) {
+          setError('Authentication service is not configured. Please ensure you are running the sandbox.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Authentication failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
