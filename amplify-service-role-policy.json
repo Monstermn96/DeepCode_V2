@@ -1,0 +1,26 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cognito-idp:ListUserPools",
+                "cognito-idp:DeleteUserPool",
+                "cognito-idp:ListUserPoolClients",
+                "cognito-idp:DescribeUserPool",
+                "cloudformation:ListStacks",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:WaitForStackDelete"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "amplify:UpdateEnvironmentVariable"
+            ],
+            "Resource": "arn:aws:amplify:*:*:apps/*"
+        }
+    ]
+} 

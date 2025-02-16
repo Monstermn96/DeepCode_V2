@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CSSTransition } from 'react-transition-group';
-import { signIn, signUp, confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
-// import { useAuth } from '../../contexts/AuthContext';
+import { signIn, signUp, confirmSignUp, resendSignUpCode } from '@aws-amplify/auth';
+import { getCurrentUser } from '@aws-amplify/auth';
+
 import './Auth.css';
 
 interface AuthFormProps {
@@ -122,11 +123,11 @@ const VerificationForm = ({
   );
 };
 
-export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
+export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) => {
   const nodeRef = React.useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const [passwordValidation, setPasswordValidation] = useState<PasswordValidation>({
     hasMinLength: false,
@@ -144,6 +145,23 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
   });
 
   const [needsVerification, setNeedsVerification] = useState(false);
+
+  useEffect(() => {
+    checkAuthState();
+  }, [onSuccess]);
+
+  const checkAuthState = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user && onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.log('No user is currently signed in');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const validatePassword = (password: string): PasswordValidation => {
     return {
@@ -167,7 +185,6 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
       setShowPasswordRequirements(true);
     }
 
-    // Clear error when user starts typing
     if (error) setError(null);
   };
 
@@ -219,17 +236,26 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
     setIsLoading(true);
     try {
       if (isSignUp) {
-        await signUp({
-          username: formData.email,
-          password: formData.password,
-          options: {
-            userAttributes: {
-              email: formData.email,
-              nickname: formData.username
+        try {
+          await signUp({
+            username: formData.email,
+            password: formData.password,
+            options: {
+              userAttributes: {
+                email: formData.email,
+                nickname: formData.username
+              }
             }
+          });
+          setNeedsVerification(true);
+        } catch (err: any) {
+          if (err.name === 'UsernameExistsException') {
+            setError('An account with this email already exists. Please sign in instead.');
+            setIsSignUp(false);
+          } else {
+            throw err;
           }
-        });
-        setNeedsVerification(true);
+        }
       } else {
         try {
           await signIn({
@@ -238,7 +264,12 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
           });
           if (onSuccess) onSuccess();
         } catch (err: any) {
-          if (err.name === 'UserNotConfirmedException') {
+          if (err.name === 'UserNotFoundException') {
+            setError('No account found with this email. Please sign up first.');
+            setIsSignUp(true);
+          } else if (err.name === 'NotAuthorizedException') {
+            setError('Incorrect password. Please try again.');
+          } else if (err.name === 'UserNotConfirmedException') {
             setNeedsVerification(true);
             try {
               await resendSignUpCode({ username: formData.email });
@@ -254,7 +285,15 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
       }
     } catch (err) {
       console.error('Authentication failed:', err);
-      setError(err instanceof Error ? err.message : 'Authentication failed. Please try again.');
+      if (err instanceof Error) {
+        if (err.message.includes('Auth.Cognito')) {
+          setError('Authentication service is not configured. Please ensure you are running the sandbox.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Authentication failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -263,15 +302,31 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
   const handleVerificationSuccess = async () => {
     setNeedsVerification(false);
     setError(null);
+    setIsLoading(true);
+    
     try {
+      console.log('Attempting sign in after verification...');
       await signIn({
         username: formData.email,
         password: formData.password
       });
+      console.log('Sign in successful');
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error('Sign in after verification failed:', err);
-      setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
+      setError(
+        err instanceof Error 
+          ? `Sign in failed: ${err.message}. Please try signing in manually.`
+          : 'Sign in failed. Please try signing in manually.'
+      );
+      setIsSignUp(false);
+      setFormData(prev => ({
+        ...prev,
+        password: '',
+        confirmPassword: ''
+      }));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -286,6 +341,10 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
       confirmPassword: ''
     });
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <CSSTransition
@@ -455,4 +514,4 @@ export const AuthForm = ({ onClose, show, onSuccess }: AuthFormProps) => {
       </div>
     </CSSTransition>
   );
-}; 
+} 

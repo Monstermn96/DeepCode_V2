@@ -4,25 +4,22 @@ applications:
       phases:
         preBuild:
           commands:
+            - nvm install 20
             - nvm use 20
-            - node -v
-            - npm -v
+            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify
         build:
           commands:
-            - npm install --package-lock-only
-            - npm ci
+            - npm install
             - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
     frontend:
       phases:
         preBuild:
           commands:
             - nvm use 20
-            - node -v
-            - npm -v
+            - npm install
         build:
           commands:
-            - npm install --package-lock-only
-            - npm ci
+            - if [ "$FIRST_DEPLOY" = "true" ]; then node ./scripts/update-auth-config.js; fi
             - npm run build
       artifacts:
         baseDirectory: dist

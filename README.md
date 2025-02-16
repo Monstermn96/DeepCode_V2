@@ -95,10 +95,59 @@ amplify/
 - **PreDeploy**: Pre-production testing - https://predeploy.d17nr8d8s58ya5.amplifyapp.com
 
 ### Local Development
-1. Make changes in feature branches
-2. Test locally using `npm run dev` and `npx ampx sandbox`
-3. Push to PreDeploy for testing
-4. Merge to main for production deployment
+1. **Setup and Testing**
+   ```bash
+   # Clean and prepare
+   npm run clean
+   Remove-Item -Path amplify_outputs.json -Force -ErrorAction SilentlyContinue
+   Remove-Item -Path node_modules -Recurse -Force -ErrorAction SilentlyContinue
+   npm install
+
+   # Start local development
+   npm run dev  # Frontend
+   npx ampx sandbox  # Backend
+   ```
+
+2. **Testing Process**
+   - Develop and test locally using sandbox environment
+   - Verify changes in local environment first
+   - Commit changes to feature branch
+   - Push to remote and create PR to PreDeploy
+
+3. **CI/CD Deployment**
+   - Automated deployment will run in CI/CD pipeline
+   - Do not use `pipeline-deploy` command locally
+   - Monitor deployment in Amplify Console
+   - Verify changes in PreDeploy environment
+
+4. **Production Deployment**
+   - After PreDeploy verification, merge to main
+   - Automated deployment will handle production release
+   - Monitor production deployment in Amplify Console
+
+### Configuration
+```typescript
+// main.tsx Amplify configuration
+import { Amplify } from "aws-amplify";
+import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
+import { defaultStorage } from "aws-amplify/utils";
+
+Amplify.configure({
+  ...outputs,
+  Auth: {
+    Cognito: {
+      userPoolId: outputs.auth?.userPoolId,
+      userPoolClientId: outputs.auth?.userPoolClientId,
+      signUpVerificationMethod: "code",
+    }
+  }
+}, {
+  Auth: {
+    tokenProvider: cognitoUserPoolsTokenProvider,
+    storage: defaultStorage
+  }
+});
+```
 
 ## 🔒 Security Features
 
