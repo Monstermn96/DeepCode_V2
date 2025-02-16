@@ -35,17 +35,17 @@ if resource_type == "pools":
     pools = data.get("UserPools", [])
     print("Found User Pools:")
     for pool in pools:
-        print(f"- {pool.get(\"Name\")} ({pool.get(\"Id\")})")
+        print(f"- {pool.get("Name")} ({pool.get("Id")})")
         if any(x in pool.get("Name", "").lower() for x in ["predeploy", "staging", f"{sys.argv[2]}"]):
-            print(f"MATCH: {pool.get(\"Id\")}")
+            print(f"MATCH: {pool.get("Id")}")
     
 elif resource_type == "stacks":
     stacks = data.get("StackSummaries", [])
     print("Found Stacks:")
     for stack in stacks:
-        print(f"- {stack.get(\"StackName\")} ({stack.get(\"StackStatus\")})")
+        print(f"- {stack.get("StackName")} ({stack.get("StackStatus")})")
         if stack.get("StackName", "").startswith(sys.argv[2]):
-            print(f"MATCH: {stack.get(\"StackName\")}")
+            print(f"MATCH: {stack.get("StackName")}")
 '
 }
 
