@@ -1,4 +1,5 @@
-import { CognitoIdentityServiceProvider, Amplify } from 'aws-sdk';
+import pkg from 'aws-sdk';
+const { CognitoIdentityServiceProvider, Amplify } = pkg;
 
 async function updateAuthConfig() {
   try {

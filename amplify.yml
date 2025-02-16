@@ -28,8 +28,3 @@ applications:
       cache:
         paths:
           - node_modules/**/*
-    environment:
-      variables:
-        FORCE_CLEANUP: "false"
-        AUTO_UPDATE_AUTH: "true"
-        NODE_VERSION: 20
