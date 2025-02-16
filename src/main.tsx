@@ -5,6 +5,51 @@ import "./index.css";
 import { Amplify, type ResourcesConfig } from "aws-amplify";
 import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
 
+// Debug: Log all environment and runtime information
+console.log('🔍 Application Environment Debug Info');
+console.log('====================================');
+console.log('📊 Runtime Info:');
+console.log('----------------');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('Development Mode:', import.meta.env.DEV ? 'Yes' : 'No');
+console.log('Production Mode:', import.meta.env.PROD ? 'Yes' : 'No');
+console.log('Base URL:', import.meta.env.BASE_URL);
+console.log('Mode:', import.meta.env.MODE);
+
+console.log('\n🌐 Network Info:');
+console.log('----------------');
+console.log('Current Hostname:', window.location.hostname);
+console.log('Current Origin:', window.location.origin);
+console.log('Current Path:', window.location.pathname);
+
+console.log('\n⚙️ Environment Configuration:');
+console.log('---------------------------');
+console.log('VITE_AMPLIFY_ENV:', import.meta.env.VITE_AMPLIFY_ENV || 'Not Set');
+console.log('Environment Stage:', 
+  import.meta.env.VITE_AMPLIFY_ENV === 'staging' ? 'PreDeploy' :
+  import.meta.env.VITE_AMPLIFY_ENV === 'prod' ? 'Production' :
+  import.meta.env.DEV ? 'Development' : 'Unknown'
+);
+
+console.log('\n🔐 Authentication Variables:');
+console.log('---------------------------');
+console.log('Development Pool ID:', import.meta.env.VITE_DEV_AUTH_USER_POOL_ID || 'Not Set');
+console.log('Development Client ID:', import.meta.env.VITE_DEV_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
+console.log('PreDeploy Pool ID:', import.meta.env.PD_AUTH_USER_POOL_ID || 'Not Set');
+console.log('PreDeploy Client ID:', import.meta.env.PD_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
+console.log('Main Pool ID:', import.meta.env.MAIN_AUTH_USER_POOL_ID || 'Not Set');
+console.log('Main Client ID:', import.meta.env.MAIN_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
+
+console.log('\n📝 All Environment Variables:');
+console.log('---------------------------');
+Object.keys(import.meta.env).forEach(key => {
+  // Only log variables that don't contain sensitive information
+  if (!key.includes('KEY') && !key.includes('SECRET') && !key.includes('PASSWORD')) {
+    console.log(`${key}:`, import.meta.env[key] || 'Not Set');
+  }
+});
+console.log('====================================');
+
 // Environment-specific configuration
 const getAuthConfig = () => {
   // Local Development
