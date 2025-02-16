@@ -7,7 +7,6 @@ applications:
             - nvm install 20
             - nvm use 20
             - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify
-            - if [ "$FORCE_CLEANUP" = "true" ]; then bash ./scripts/cleanup-predeploy.sh && sleep 10; fi
         build:
           commands:
             - npm install
@@ -20,7 +19,7 @@ applications:
             - npm install
         build:
           commands:
-            - if [ "$AUTO_UPDATE_AUTH" = "true" ]; then node ./scripts/update-auth-config.js; fi
+            - if [ "$FIRST_DEPLOY" = "true" ]; then node ./scripts/update-auth-config.js; fi
             - npm run build
       artifacts:
         baseDirectory: dist

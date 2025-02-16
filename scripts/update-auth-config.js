@@ -7,9 +7,9 @@ console.log('Environment Variables:');
 console.log('AWS_APP_ID:', process.env.AWS_APP_ID);
 console.log('AWS_BRANCH:', process.env.AWS_BRANCH);
 console.log('AWS_REGION:', process.env.AWS_REGION);
-console.log('AUTO_UPDATE_AUTH:', process.env.AUTO_UPDATE_AUTH);
-console.log('NODE_VERSION:', process.env.NODE_VERSION);
+console.log('FIRST_DEPLOY:', process.env.FIRST_DEPLOY);
 console.log('AMPLIFY_ENV:', process.env.AMPLIFY_ENV);
+console.log('AMPLIFY_BACKEND_POOL_NAME:', process.env.AMPLIFY_BACKEND_POOL_NAME);
 console.log('----------------------------------------');
 
 async function updateAuthConfig() {
@@ -20,36 +20,27 @@ async function updateAuthConfig() {
     // Get the app and branch details
     const appId = process.env.AWS_APP_ID;
     const branch = process.env.AWS_BRANCH;
+    const poolName = process.env.AMPLIFY_BACKEND_POOL_NAME;
     
     console.log('Searching for User Pools...');
     // List user pools to find the one matching our naming convention
     const listPoolsCommand = new ListUserPoolsCommand({ MaxResults: 60 });
     const userPools = await cognito.send(listPoolsCommand);
     
-    // Log all pools for debugging
     console.log('Found User Pools:');
     userPools.UserPools.forEach(pool => {
       console.log(`- ${pool.Name} (${pool.Id})`);
     });
     console.log('----------------------------------------');
 
-    const branchLower = branch.toLowerCase();
-    const appIdLower = appId.toLowerCase();
-    
-    // Find pool by checking multiple naming patterns
-    const targetPool = userPools.UserPools.find(pool => {
-      const poolName = pool.Name.toLowerCase();
-      return (
-        poolName.includes(branchLower) || // Check branch name
-        poolName.includes(appIdLower) || // Check app ID
-        poolName.includes('predeploy') || // Check for PreDeploy
-        poolName.includes('deepdevai') // Check project name
-      );
-    });
+    // Find pool by exact name match
+    const targetPool = userPools.UserPools.find(pool => 
+      pool.Name.includes(poolName)
+    );
 
     if (!targetPool) {
       console.log('----------------------------------------');
-      console.log('No User Pool found for branch:', branch);
+      console.log('No User Pool found with name:', poolName);
       console.log('Please wait for the new User Pool to be created');
       console.log('Then update the following environment variables in Amplify Console:');
       console.log('1. VITE_AUTH_USER_POOL_ID');
@@ -70,7 +61,6 @@ async function updateAuthConfig() {
     });
     const clients = await cognito.send(listClientsCommand);
     
-    // Log all clients for debugging
     console.log('Found Clients:');
     clients.UserPoolClients?.forEach(client => {
       console.log(`- ${client.ClientName} (${client.ClientId})`);
@@ -125,6 +115,18 @@ async function updateAuthConfig() {
         console.log(`Updated ${update.key} = ${update.value}`);
       }
 
+      // After successful update, set FIRST_DEPLOY to false
+      const firstDeployCommand = new UpdateEnvironmentVariableCommand({
+        appId,
+        environmentName: branch,
+        variable: {
+          name: 'FIRST_DEPLOY',
+          value: 'false'
+        }
+      });
+      await amplifyClient.send(firstDeployCommand);
+      console.log('Set FIRST_DEPLOY = false');
+
       console.log('----------------------------------------');
       console.log('Successfully updated auth configuration!');
       console.log('----------------------------------------');
@@ -135,6 +137,7 @@ async function updateAuthConfig() {
       console.log('Please manually update the following in Amplify Console:');
       console.log(`1. ${updates[0].key} = ${updates[0].value}`);
       console.log(`2. ${updates[1].key} = ${updates[1].value}`);
+      console.log('3. FIRST_DEPLOY = false');
       console.log('----------------------------------------');
       throw error;
     }
