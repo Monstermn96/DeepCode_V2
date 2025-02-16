@@ -1,6 +1,17 @@
 import pkg from 'aws-sdk';
 const { CognitoIdentityServiceProvider, Amplify } = pkg;
 
+// Log environment variables
+console.log('----------------------------------------');
+console.log('Environment Variables:');
+console.log('AWS_APP_ID:', process.env.AWS_APP_ID);
+console.log('AWS_BRANCH:', process.env.AWS_BRANCH);
+console.log('AWS_REGION:', process.env.AWS_REGION);
+console.log('AUTO_UPDATE_AUTH:', process.env.AUTO_UPDATE_AUTH);
+console.log('NODE_VERSION:', process.env.NODE_VERSION);
+console.log('AMPLIFY_ENV:', process.env.AMPLIFY_ENV);
+console.log('----------------------------------------');
+
 async function updateAuthConfig() {
   try {
     const cognito = new CognitoIdentityServiceProvider();
@@ -46,6 +57,8 @@ async function updateAuthConfig() {
       }
     ];
 
+    console.log('Updating environment variables:', updates);
+
     // Update each environment variable
     for (const update of updates) {
       await amplify.updateEnvironmentVariable({
@@ -56,6 +69,7 @@ async function updateAuthConfig() {
           value: update.value
         }
       }).promise();
+      console.log(`Updated ${update.key} = ${update.value}`);
     }
 
     console.log('Successfully updated auth configuration:', {

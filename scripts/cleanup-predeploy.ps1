@@ -1,6 +1,14 @@
 # Cleanup Script for PreDeploy Environment
 
 Write-Host "Starting cleanup process for PreDeploy environment..." -ForegroundColor Cyan
+Write-Host "----------------------------------------" -ForegroundColor Yellow
+Write-Host "Environment Variables:" -ForegroundColor Yellow
+Write-Host "AWS_APP_ID: $env:AWS_APP_ID" -ForegroundColor Yellow
+Write-Host "AWS_BRANCH: $env:AWS_BRANCH" -ForegroundColor Yellow
+Write-Host "AWS_REGION: $env:AWS_REGION" -ForegroundColor Yellow
+Write-Host "FORCE_CLEANUP: $env:FORCE_CLEANUP" -ForegroundColor Yellow
+Write-Host "NODE_VERSION: $env:NODE_VERSION" -ForegroundColor Yellow
+Write-Host "----------------------------------------" -ForegroundColor Yellow
 
 # Set variables
 $APP_ID = $env:AWS_APP_ID

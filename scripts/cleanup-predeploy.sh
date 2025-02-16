@@ -1,6 +1,14 @@
 #!/bin/bash
 
 echo "Starting cleanup process for PreDeploy environment..."
+echo "----------------------------------------"
+echo "Environment Variables:"
+echo "AWS_APP_ID: $AWS_APP_ID"
+echo "AWS_BRANCH: $AWS_BRANCH"
+echo "AWS_REGION: $AWS_REGION"
+echo "FORCE_CLEANUP: $FORCE_CLEANUP"
+echo "NODE_VERSION: $NODE_VERSION"
+echo "----------------------------------------"
 
 # Set variables
 APP_ID=$AWS_APP_ID
