@@ -9,16 +9,13 @@ export const auth = defineAuth({
     email: {
       verificationEmailSubject: 'Welcome to DeepDevAi - Verify your email',
       verificationEmailBody: (code: () => string) => `
-        Welcome to DeepDevAi!
-        
-        Your verification code is: ${code()}
-        
-        Please enter this code in the verification window to complete your registration.
-        
-        If you didn't request this code, please ignore this email.
+        Welcome to DeepDevAi!\n\n
+        Your verification code is: ${code()}\n\n
+        Please enter this code in the verification window to complete your registration.\n\n
+        If you didn't request this code, please ignore this email.\n\n
         
         Best regards,
-        The DeepDevAi Team
+        Eric
 
         P.S. Account wipes will happen often the Site is a WIP.
       `,

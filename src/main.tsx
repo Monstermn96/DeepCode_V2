@@ -5,12 +5,43 @@ import "./index.css";
 import { Amplify, type ResourcesConfig } from "aws-amplify";
 import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
 
-// Configuration using environment variables
+// Environment-specific configuration
+const getAuthConfig = () => {
+  // Local Development
+  if (import.meta.env.DEV && !import.meta.env.VITE_ENV) {
+    return {
+      userPoolId: import.meta.env.VITE_DEV_AUTH_USER_POOL_ID,
+      userPoolClientId: import.meta.env.VITE_DEV_AUTH_USER_POOL_CLIENT_ID,
+    };
+  }
+  
+  // PreDeploy Environment
+  if (import.meta.env.VITE_ENV === 'predeploy' || window.location.hostname.includes('predeploy')) {
+    return {
+      userPoolId: import.meta.env.VITE_PD_AUTH_USER_POOL_ID,
+      userPoolClientId: import.meta.env.VITE_PD_AUTH_USER_POOL_CLIENT_ID,
+    };
+  }
+  
+  // Production/Main Environment
+  if (import.meta.env.VITE_ENV === 'main' || window.location.hostname.includes('main')) {
+    return {
+      userPoolId: import.meta.env.VITE_MAIN_AUTH_USER_POOL_ID,
+      userPoolClientId: import.meta.env.VITE_MAIN_AUTH_USER_POOL_CLIENT_ID,
+    };
+  }
+
+  throw new Error('Environment configuration not found');
+};
+
+// Get the environment-specific auth configuration
+const authConfig = getAuthConfig();
+
 const config: ResourcesConfig = {
   Auth: {
     Cognito: {
-      userPoolId: import.meta.env.VITE_AUTH_USER_POOL_ID || process.env.AMPLIFY_AUTH_USER_POOL_ID,
-      userPoolClientId: import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID || process.env.AMPLIFY_AUTH_USER_POOL_CLIENT_ID,
+      userPoolId: authConfig.userPoolId,
+      userPoolClientId: authConfig.userPoolClientId,
       signUpVerificationMethod: "code",
       loginWith: {
         email: true,
@@ -30,6 +61,7 @@ const config: ResourcesConfig = {
 };
 
 try {
+  console.log('Environment:', import.meta.env.VITE_ENV || 'development');
   console.log('Configuring Amplify with:', config);
   
   Amplify.configure(config, {
