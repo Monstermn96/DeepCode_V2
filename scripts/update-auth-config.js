@@ -1,8 +1,5 @@
-import cognitoPackage from '@aws-sdk/client-cognito-identity-provider';
-import amplifyPackage from '@aws-sdk/client-amplify';
-
-const { CognitoIdentityProviderClient, ListUserPoolsCommand, ListUserPoolClientsCommand, DeleteUserPoolCommand } = cognitoPackage;
-const { AmplifyClient, UpdateEnvironmentVariableCommand } = amplifyPackage;
+import { CognitoIdentityProviderClient, ListUserPoolsCommand, ListUserPoolClientsCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { AmplifyClient, UpdateEnvironmentVariableCommand } from '@aws-sdk/client-amplify';
 
 // Log environment variables
 console.log('----------------------------------------');
