@@ -16,6 +16,10 @@ try {
   console.log('VITE_AUTH_USER_POOL_CLIENT_ID:', import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID || 'Not Set');
   console.log('----------------------------------------');
 
+  if (!import.meta.env.VITE_AUTH_USER_POOL_ID || !import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID) {
+    throw new Error('Auth configuration missing. Please set VITE_AUTH_USER_POOL_ID and VITE_AUTH_USER_POOL_CLIENT_ID');
+  }
+
   // Configure Amplify
   Amplify.configure({
     Auth: {
@@ -23,6 +27,11 @@ try {
         userPoolId: import.meta.env.VITE_AUTH_USER_POOL_ID,
         userPoolClientId: import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID,
         signUpVerificationMethod: 'code',
+        loginWith: {
+          email: true,
+          username: false,
+          phone: false
+        }
       }
     }
   }, {

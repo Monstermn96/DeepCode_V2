@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CSSTransition } from 'react-transition-group';
-import { signIn, signUp, confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, resendSignUpCode, type SignInInput } from '@aws-amplify/auth';
+
 import './Auth.css';
 
 interface AuthFormProps {
