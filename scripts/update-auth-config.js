@@ -1,11 +1,9 @@
-const fs = require('fs');
-const path = require('path');
-const AWS = require('aws-sdk');
+import { CognitoIdentityServiceProvider, Amplify } from 'aws-sdk';
 
 async function updateAuthConfig() {
   try {
-    const cognito = new AWS.CognitoIdentityServiceProvider();
-    const amplify = new AWS.Amplify();
+    const cognito = new CognitoIdentityServiceProvider();
+    const amplify = new Amplify();
 
     // Get the app and branch details
     const appId = process.env.AWS_APP_ID;

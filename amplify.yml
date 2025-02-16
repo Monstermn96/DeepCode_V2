@@ -6,8 +6,7 @@ applications:
           commands:
             - nvm install 20
             - nvm use 20
-            - npm install -g jq
-            - if [ "$FORCE_CLEANUP" = "true" ]; then bash ./scripts/cleanup-predeploy.sh; fi
+            - if [ "$FORCE_CLEANUP" = "true" ]; then bash ./scripts/cleanup-predeploy.sh && sleep 10; fi
         build:
           commands:
             - npm install
