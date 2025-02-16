@@ -25,10 +25,27 @@ async function updateAuthConfig() {
     // List user pools to find the one matching our naming convention
     const listPoolsCommand = new ListUserPoolsCommand({ MaxResults: 60 });
     const userPools = await cognito.send(listPoolsCommand);
+    
+    // Log all pools for debugging
+    console.log('Found User Pools:');
+    userPools.UserPools.forEach(pool => {
+      console.log(`- ${pool.Name} (${pool.Id})`);
+    });
+    console.log('----------------------------------------');
+
     const branchLower = branch.toLowerCase();
-    const targetPool = userPools.UserPools.find(pool => 
-      pool.Name.toLowerCase().includes(branchLower)
-    );
+    const appIdLower = appId.toLowerCase();
+    
+    // Find pool by checking multiple naming patterns
+    const targetPool = userPools.UserPools.find(pool => {
+      const poolName = pool.Name.toLowerCase();
+      return (
+        poolName.includes(branchLower) || // Check branch name
+        poolName.includes(appIdLower) || // Check app ID
+        poolName.includes('predeploy') || // Check for PreDeploy
+        poolName.includes('deepdevai') // Check project name
+      );
+    });
 
     if (!targetPool) {
       console.log('----------------------------------------');
@@ -52,6 +69,13 @@ async function updateAuthConfig() {
       MaxResults: 60
     });
     const clients = await cognito.send(listClientsCommand);
+    
+    // Log all clients for debugging
+    console.log('Found Clients:');
+    clients.UserPoolClients?.forEach(client => {
+      console.log(`- ${client.ClientName} (${client.ClientId})`);
+    });
+    console.log('----------------------------------------');
     
     const client = clients.UserPoolClients[0];
     
