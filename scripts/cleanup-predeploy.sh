@@ -24,23 +24,42 @@ check_aws_command() {
     fi
 }
 
+# Function to parse JSON and find resources
+parse_resources() {
+    python3 -c '
+import sys, json
+data = json.load(sys.stdin)
+resource_type = sys.argv[1]
+
+if resource_type == "pools":
+    pools = data.get("UserPools", [])
+    print("Found User Pools:")
+    for pool in pools:
+        print(f"- {pool.get(\"Name\")} ({pool.get(\"Id\")})")
+        if any(x in pool.get("Name", "").lower() for x in ["predeploy", "staging", f"{sys.argv[2]}"]):
+            print(f"MATCH: {pool.get(\"Id\")}")
+    
+elif resource_type == "stacks":
+    stacks = data.get("StackSummaries", [])
+    print("Found Stacks:")
+    for stack in stacks:
+        print(f"- {stack.get(\"StackName\")} ({stack.get(\"StackStatus\")})")
+        if stack.get("StackName", "").startswith(sys.argv[2]):
+            print(f"MATCH: {stack.get(\"StackName\")}")
+'
+}
+
 echo "Checking AWS credentials..."
 aws sts get-caller-identity > /dev/null
 check_aws_command
 
 # 1. List and delete Cognito User Pools
 echo "Listing Cognito User Pools..."
-USER_POOLS=$(aws cognito-idp list-user-pools --max-results 60 --query 'UserPools[*].[Name,Id]' --output text)
+USER_POOLS=$(aws cognito-idp list-user-pools --max-results 60 --output json)
 check_aws_command
 
-echo "Found User Pools:"
-echo "$USER_POOLS" | while read -r name id; do
-    echo "- $name ($id)"
-done
 echo "----------------------------------------"
-
-# Find pools with predeploy in the name (case insensitive)
-POOL_IDS=$(echo "$USER_POOLS" | grep -i "predeploy" | awk '{print $2}')
+POOL_IDS=$(echo "$USER_POOLS" | parse_resources "pools" "$APP_ID" | grep "^MATCH:" | cut -d' ' -f2)
 
 if [ -n "$POOL_IDS" ]; then
     echo "Found PreDeploy User Pools to delete:"
@@ -57,18 +76,16 @@ else
 fi
 
 # 2. List and delete CloudFormation stacks
+echo "----------------------------------------"
 echo "Listing CloudFormation stacks..."
-STACKS=$(aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE --query 'StackSummaries[*].[StackName]' --output text)
+STACKS=$(aws cloudformation list-stacks \
+    --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE \
+    UPDATE_IN_PROGRESS CREATE_IN_PROGRESS ROLLBACK_IN_PROGRESS \
+    --output json)
 check_aws_command
 
-echo "Found Stacks:"
-echo "$STACKS" | while read -r stack; do
-    echo "- $stack"
-done
 echo "----------------------------------------"
-
-# Find stacks that start with our prefix
-STACK_NAMES=$(echo "$STACKS" | grep "^$STACK_PREFIX")
+STACK_NAMES=$(echo "$STACKS" | parse_resources "stacks" "$STACK_PREFIX" | grep "^MATCH:" | cut -d' ' -f2)
 
 if [ -n "$STACK_NAMES" ]; then
     echo "Found PreDeploy stacks to delete:"
@@ -89,6 +106,7 @@ else
 fi
 
 # 3. Clean local Amplify state
+echo "----------------------------------------"
 echo "Cleaning local Amplify state..."
 rm -rf amplify_outputs.json .amplify dist || true
 
