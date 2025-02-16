@@ -4,12 +4,11 @@ applications:
       phases:
         preBuild:
           commands:
-            - apt-get update && apt-get install -y jq
-            - if [ "$FORCE_CLEANUP" = "true" ]; then chmod +x ./scripts/cleanup-predeploy.sh && ./scripts/cleanup-predeploy.sh; fi
+            - if ($env:FORCE_CLEANUP -eq "true") { ./scripts/cleanup-predeploy.ps1 }
         build:
           commands:
             - npm ci
-            - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+            - npx ampx pipeline-deploy --branch $env:AWS_BRANCH --app-id $env:AWS_APP_ID
     frontend:
       phases:
         preBuild:
@@ -17,7 +16,7 @@ applications:
             - npm ci
         build:
           commands:
-            - if [ "$AUTO_UPDATE_AUTH" = "true" ]; then node ./scripts/update-auth-config.js; fi
+            - if ($env:AUTO_UPDATE_AUTH -eq "true") { node ./scripts/update-auth-config.js }
             - npm run build
       artifacts:
         baseDirectory: dist
