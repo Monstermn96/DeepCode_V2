@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Amplify } from 'aws-amplify';
 import { type ResourcesConfig } from 'aws-amplify';
+import { cognitoUserPoolsTokenProvider } from '@aws-amplify/auth/cognito';
 import App from './App';
 import './index.css';
 
@@ -23,6 +24,7 @@ try {
   const userPoolClientId = import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID;
   const apiId = import.meta.env.VITE_API_ID;
   const apiStage = import.meta.env.VITE_API_STAGE;
+  const region = import.meta.env.VITE_AWS_REGION || 'us-east-1';
 
   if (!userPoolId || !userPoolClientId) {
     throw new Error('Required environment variables are not set: VITE_AUTH_USER_POOL_ID and VITE_AUTH_USER_POOL_CLIENT_ID must be defined');
@@ -49,8 +51,19 @@ try {
     API: {
       REST: {
         ai: {
-          endpoint: `https://${apiId}.execute-api.${import.meta.env.VITE_AWS_REGION || 'us-east-1'}.amazonaws.com/${apiStage}`,
-          region: import.meta.env.VITE_AWS_REGION || 'us-east-1'
+          endpoint: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}`,
+          region: region,
+          custom_header: async () => {
+            try {
+              const session = await cognitoUserPoolsTokenProvider.getUserPoolTokens();
+              return {
+                Authorization: `Bearer ${session.idToken.toString()}`
+              };
+            } catch (error) {
+              console.error('Error getting auth token:', error);
+              return {};
+            }
+          }
         }
       }
     }
@@ -63,6 +76,11 @@ try {
     endpoint: config.API?.REST?.ai.endpoint,
     region: config.API?.REST?.ai.region,
     stage: apiStage
+  });
+  console.log('Auth Configuration:', {
+    userPoolId: config.Auth?.Cognito?.userPoolId,
+    userPoolClientId: config.Auth?.Cognito?.userPoolClientId,
+    region: region
   });
   console.log('----------------------------------------');
 
