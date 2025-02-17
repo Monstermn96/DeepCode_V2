@@ -51,7 +51,8 @@ try {
       REST: {
         ai: {
           endpoint: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}`,
-          region: region
+          region: region,
+          authorization: 'userPool'
         }
       }
     }
