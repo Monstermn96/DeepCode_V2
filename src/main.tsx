@@ -2,8 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Amplify } from 'aws-amplify';
 import { type ResourcesConfig } from 'aws-amplify';
-import { cognitoUserPoolsTokenProvider } from '@aws-amplify/auth/cognito';
-import { type ResourcesHeaderProvider } from '@aws-amplify/api-rest';
+import { fetchAuthSession } from '@aws-amplify/auth';
 import App from './App';
 import './index.css';
 
@@ -35,19 +34,6 @@ try {
     throw new Error('Required environment variables are not set: VITE_API_ID and VITE_API_STAGE must be defined');
   }
 
-  // Custom header provider for API authorization
-  const authHeaderProvider: ResourcesHeaderProvider = async () => {
-    try {
-      const session = await cognitoUserPoolsTokenProvider.getUserPoolTokens();
-      return {
-        Authorization: `Bearer ${session.idToken.toString()}`
-      };
-    } catch (error) {
-      console.error('Error getting auth token:', error);
-      return {};
-    }
-  };
-
   // Configure Amplify
   const config: ResourcesConfig = {
     Auth: {
@@ -67,7 +53,20 @@ try {
         ai: {
           endpoint: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}`,
           region: region,
-          headers: authHeaderProvider
+          interceptors: {
+            async request(request) {
+              try {
+                const session = await fetchAuthSession();
+                const token = session.tokens?.idToken?.toString();
+                if (token) {
+                  request.headers.Authorization = `Bearer ${token}`;
+                }
+              } catch (error) {
+                console.error('Error getting auth token:', error);
+              }
+              return request;
+            }
+          }
         }
       }
     }
