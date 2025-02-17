@@ -63,9 +63,13 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
         apiName: 'ai',
         path: '/ai',
         options: {
-          body: JSON.stringify(params)
+          body: params,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          }
         }
-      }) as unknown as APIResponse;
+      }) as APIResponse;
 
       console.log('Raw API response:', response);
 
@@ -74,8 +78,6 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
         throw new Error('No response received from AI service');
       }
 
-      console.log('Response data:', response.data);
-      
       if (!response.data) {
         console.error('Invalid response format:', response);
         throw new Error('Invalid response format from AI service');

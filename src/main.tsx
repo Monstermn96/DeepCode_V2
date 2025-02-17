@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Amplify } from 'aws-amplify';
 import { type ResourcesConfig } from 'aws-amplify';
+import { fetchAuthSession } from 'aws-amplify/auth';
 import App from './App';
 import './index.css';
 
@@ -51,7 +52,14 @@ try {
       REST: {
         ai: {
           endpoint: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}`,
-          region: region
+          region: region,
+          defaults: {
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json'
+            },
+            authMode: 'userPool'
+          }
         }
       }
     }
