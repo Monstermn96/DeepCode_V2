@@ -1,7 +1,7 @@
-# Cleanup Script for PreDeploy Environment
+# Cleanup Script for Main Environment
 
 Write-Host "----------------------------------------" -ForegroundColor Cyan
-Write-Host "Starting cleanup process for PreDeploy environment..." -ForegroundColor Cyan
+Write-Host "Starting cleanup process for Main environment..." -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Cyan
 
 # Log environment variables
@@ -16,7 +16,7 @@ Write-Host "----------------------------------------" -ForegroundColor Yellow
 $APP_ID = $env:AWS_APP_ID
 $BRANCH = $env:AWS_BRANCH
 $REGION = $env:AWS_REGION
-$STACK_PREFIX = "amplify-${APP_ID}-predeploy"
+$STACK_PREFIX = "amplify-${APP_ID}-main-branch"
 
 Write-Host "Using configuration:" -ForegroundColor Yellow
 Write-Host "Stack Prefix: $STACK_PREFIX" -ForegroundColor Yellow
@@ -28,6 +28,17 @@ function Test-AwsCommand {
         Write-Host "AWS command failed. Stopping script." -ForegroundColor Red
         exit 1
     }
+}
+
+# Function to confirm dangerous operations
+function Confirm-Action {
+    param (
+        [string]$Message
+    )
+    Write-Host "WARNING: $Message" -ForegroundColor Red
+    Write-Host "This action cannot be undone!" -ForegroundColor Red
+    $confirmation = Read-Host "Are you sure you want to proceed? (yes/no)"
+    return $confirmation -eq "yes"
 }
 
 # 1. List and delete Cognito User Pools
@@ -42,25 +53,33 @@ foreach ($pool in $userPools.UserPools) {
 }
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
-# Only match pools that explicitly contain "predeploy" or "PreDeploy" in the name
-$predeployPools = $userPools.UserPools | Where-Object { 
-    $_.Name -match "predeploy|PreDeploy" -and 
-    $_.Name -notlike "*Production*" -and 
-    $_.Name -notlike "*Main*"
+# Only match pools that explicitly contain "main", "Main", or "Production" in the name
+$mainPools = $userPools.UserPools | Where-Object { 
+    ($_.Name -match "main|Main|Production") -and 
+    $_.Name -notlike "*predeploy*" -and 
+    $_.Name -notlike "*PreDeploy*" -and
+    $_.Name -notlike "*sandbox*"
 }
 
-if ($predeployPools) {
-    Write-Host "Found PreDeploy User Pools to delete:" -ForegroundColor Green
-    foreach ($pool in $predeployPools) {
+if ($mainPools) {
+    Write-Host "Found Main/Production User Pools that would be deleted:" -ForegroundColor Red
+    foreach ($pool in $mainPools) {
         Write-Host "- Pool Name: $($pool.Name)" -ForegroundColor Yellow
         Write-Host "  Pool ID: $($pool.Id)" -ForegroundColor Yellow
-        Write-Host "Deleting User Pool..." -ForegroundColor Yellow
-        aws cognito-idp delete-user-pool --user-pool-id $pool.Id
-        Test-AwsCommand
-        Write-Host "Pool deleted successfully" -ForegroundColor Green
+    }
+    
+    if (Confirm-Action "You are about to delete Main/Production User Pools") {
+        foreach ($pool in $mainPools) {
+            Write-Host "Deleting User Pool: $($pool.Name)..." -ForegroundColor Yellow
+            aws cognito-idp delete-user-pool --user-pool-id $pool.Id
+            Test-AwsCommand
+            Write-Host "Pool deleted successfully" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "User Pool deletion cancelled" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "No PreDeploy User Pools found" -ForegroundColor Yellow
+    Write-Host "No Main/Production User Pools found" -ForegroundColor Yellow
 }
 
 # 2. List and delete CloudFormation stacks
@@ -76,27 +95,47 @@ foreach ($stack in $stacks.StackSummaries) {
 }
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
-# Only match stacks that explicitly contain "predeploy" in the name
-$predeployStacks = $stacks.StackSummaries | Where-Object { 
+# Match stacks that belong to main branch
+$mainStacks = $stacks.StackSummaries | Where-Object { 
     $_.StackName -like "${STACK_PREFIX}*" -or 
-    ($_.StackName -like "*predeploy*" -and $_.StackName -like "*${APP_ID}*")
-}
+    ($_.StackName -like "*main-branch*" -and $_.StackName -like "*${APP_ID}*")
+} | Sort-Object StackName
 
-if ($predeployStacks) {
-    Write-Host "Found PreDeploy stacks to delete:" -ForegroundColor Green
-    foreach ($stack in $predeployStacks) {
+if ($mainStacks) {
+    Write-Host "Found Main branch stacks that would be deleted:" -ForegroundColor Red
+    foreach ($stack in $mainStacks) {
         Write-Host "- Stack Name: $($stack.StackName)" -ForegroundColor Yellow
-        Write-Host "Deleting stack..." -ForegroundColor Yellow
-        aws cloudformation delete-stack --stack-name $stack.StackName
-        Test-AwsCommand
-        
-        Write-Host "Waiting for stack deletion to complete..." -ForegroundColor Yellow
-        aws cloudformation wait stack-delete-complete --stack-name $stack.StackName
-        Test-AwsCommand
-        Write-Host "Stack deleted successfully" -ForegroundColor Green
+    }
+    
+    if (Confirm-Action "You are about to delete Main branch stacks") {
+        # Delete nested stacks first
+        $nestedStacks = $mainStacks | Where-Object { $_.StackName -like "*NestedStack*" }
+        foreach ($stack in $nestedStacks) {
+            Write-Host "Deleting nested stack: $($stack.StackName)" -ForegroundColor Yellow
+            aws cloudformation delete-stack --stack-name $stack.StackName
+            Test-AwsCommand
+            Write-Host "Waiting for stack deletion to complete..." -ForegroundColor Yellow
+            aws cloudformation wait stack-delete-complete --stack-name $stack.StackName
+            Test-AwsCommand
+            Write-Host "Stack deleted successfully" -ForegroundColor Green
+        }
+
+        # Delete remaining stacks
+        $remainingStacks = $mainStacks | Where-Object { $_.StackName -notlike "*NestedStack*" }
+        foreach ($stack in $remainingStacks) {
+            Write-Host "Deleting stack: $($stack.StackName)" -ForegroundColor Yellow
+            aws cloudformation delete-stack --stack-name $stack.StackName
+            Test-AwsCommand
+            Write-Host "Waiting for stack deletion to complete..." -ForegroundColor Yellow
+            aws cloudformation wait stack-delete-complete --stack-name $stack.StackName
+            Test-AwsCommand
+            Write-Host "Stack deleted successfully" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "Stack deletion cancelled" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "No PreDeploy stacks found" -ForegroundColor Yellow
+    Write-Host "No Main branch stacks found" -ForegroundColor Yellow
 }
 
 # 3. Clean local environment
