@@ -1,13 +1,18 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAI } from '../contexts/AIContext';
-import { aiService } from '../services/ai/openai';
+import { aiService, type SupportedLanguage } from '../services/ai/openai';
 import styles from './ChallengeView.module.css';
 
 interface TestResult {
   passed: boolean;
   actual?: string;
   explanation?: string;
+}
+
+interface Example {
+  input: Record<string, any>;
+  output: any;
 }
 
 export function ChallengeView() {
@@ -45,11 +50,11 @@ export function ChallengeView() {
       
       const response = await aiService.evaluateCode(
         code,
-        currentChallenge.problem.examples.map(ex => ({
+        currentChallenge.problem.examples.map((ex: Example) => ({
           input: JSON.stringify(ex.input),
           expectedOutput: ex.output.toString()
         })),
-        currentChallenge.problem.language || 'C#'
+        (currentChallenge.problem.language || 'C#') as SupportedLanguage
       );
 
       console.log('Test results:', response);
@@ -82,7 +87,7 @@ export function ChallengeView() {
         
         <div className={styles.testCases}>
           <h2>Test Cases</h2>
-          {currentChallenge.problem.examples.map((example, index) => (
+          {currentChallenge.problem.examples.map((example: Example, index: number) => (
             <div key={index} className={styles.testCase}>
               <div className={styles.testHeader}>
                 <span>Test {index + 1}</span>
@@ -109,7 +114,7 @@ export function ChallengeView() {
           <div className={styles.hints}>
             <h2>Hints</h2>
             <ul>
-              {currentChallenge.problem.hints.map((hint, index) => (
+              {currentChallenge.problem.hints.map((hint: string, index: number) => (
                 <li key={index}>{hint}</li>
               ))}
             </ul>

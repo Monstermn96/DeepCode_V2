@@ -61,8 +61,6 @@ interface AIResponse {
   };
 }
 
-const CACHE_DURATION = 3600; // 1 hour cache for successful responses
-
 function calculateCost(usage: OpenAI.CompletionUsage | undefined): number {
   if (!usage) return 0;
   // GPT-4 pricing: $0.03 per 1K prompt tokens, $0.06 per 1K completion tokens

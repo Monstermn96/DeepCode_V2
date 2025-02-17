@@ -1,25 +1,27 @@
 import { createContext, useContext, useState } from 'react';
-import { aiService } from '../services/ai/openai';
+import { aiService, type SupportedLanguage } from '../services/ai/openai';
 
-interface Challenge {
+interface Example {
+  input: Record<string, any>;
+  output: any;
+}
+
+interface Problem {
   title: string;
   description: string;
-  difficulty: string;
-  language: string;
-  starterCode: string;
-  solution: string;
-  testCases: Array<{
-    input: string;
-    expectedOutput: string;
-    description: string;
-  }>;
-  hints: string[];
+  language?: string;
+  examples: Example[];
+  hints?: string[];
+}
+
+interface Challenge {
+  problem: Problem;
 }
 
 interface GenerateChallengeParams {
   type: 'challenge';
   topic: string;
-  languages: string[];
+  languages: SupportedLanguage[];
 }
 
 interface AIContextType {
@@ -58,7 +60,7 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log('Setting challenge with data:', response.data);
-      setCurrentChallenge(response.data);
+      setCurrentChallenge({ problem: response.data });
     } catch (err) {
       console.error('Detailed error:', {
         error: err,
