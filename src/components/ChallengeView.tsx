@@ -1,5 +1,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import SimpleBar from "simplebar-react";
+import "simplebar-react/dist/simplebar.min.css";
 import { useAI } from "../contexts/AIContext";
 import { aiService } from "../services/ai/openai";
 import {
@@ -129,7 +131,7 @@ export function ChallengeView() {
 
 	return (
 		<div className={styles.challengeView}>
-			<div className={styles.problemPanel}>
+			<SimpleBar className={styles.problemPanel}>
 				<h1 className={styles.title}>{currentChallenge.problem.title}</h1>
 				<div className={styles.description}>
 					{currentChallenge.problem.description}
@@ -202,7 +204,7 @@ export function ChallengeView() {
 						</ul>
 					</div>
 				)}
-			</div>
+			</SimpleBar>
 
 			<div className={styles.editorPanel}>
 				<div className={styles.editorHeader}>
@@ -231,12 +233,14 @@ export function ChallengeView() {
 			<div className={styles.footerPanel}>
 				<div className={styles.footerContent}>
 					<div className={styles.inputGroup}>
-						<textarea
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							placeholder="Describe the challenge you want to generate..."
-							className={styles.descriptionInput}
-						/>
+						<SimpleBar className={styles.descriptionWrapper}>
+							<textarea
+								value={description}
+								onChange={(e) => setDescription(e.target.value)}
+								placeholder="Describe the challenge you want to generate..."
+								className={styles.descriptionInput}
+							/>
+						</SimpleBar>
 					</div>
 
 					<div className={styles.languageSelection}>
@@ -258,7 +262,7 @@ export function ChallengeView() {
 
 					<div className={styles.footerButtons}>
 						<button
-							className={styles.runButton}
+							className={styles.generateButton}
 							onClick={handleRunTests}
 							disabled={isRunning}
 						>
