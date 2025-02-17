@@ -1,20 +1,22 @@
 import { type APIGatewayProxyEventV2, type APIGatewayProxyResultV2 } from 'aws-lambda';
 import OpenAI from 'openai';
-import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 
-const secretsManager = new SecretsManager({ region: process.env.AWS_REGION });
 const CACHE_DURATION = 3600; // 1 hour cache for successful responses
+const SUPPORTED_LANGUAGES = ['C#', 'Java', 'Python'];
 
 const PROMPT_CONFIGS = {
   challenge: {
-    systemPrompt: `You are a coding problem generator that creates well-structured programming challenges. 
+    systemPrompt: `You are a coding problem generator that creates well-structured programming challenges.
     Create diverse and unique problems each time. Always respond with valid JSON only.
     Focus on real-world scenarios and practical coding challenges.
-    Include clear test cases and helpful hints.`,
+    Include clear test cases and helpful hints.
+    IMPORTANT: Only generate problems for these languages: ${SUPPORTED_LANGUAGES.join(', ')}.
+    Ensure the code examples and solutions are idiomatic for the chosen language.`,
     responseFormat: {
       title: "Problem title",
       description: "Detailed problem description",
       difficulty: "easy|medium|hard",
+      language: SUPPORTED_LANGUAGES.join('|'),
       starterCode: "Code template",
       solution: "Complete solution",
       testCases: [{
@@ -28,7 +30,9 @@ const PROMPT_CONFIGS = {
   evaluation: {
     systemPrompt: `You are a code evaluator that tests submitted solutions against provided test cases.
     Provide detailed feedback on code quality, performance, and potential improvements.
-    Always respond with valid JSON only.`,
+    Always respond with valid JSON only.
+    IMPORTANT: Only evaluate code for these languages: ${SUPPORTED_LANGUAGES.join(', ')}.
+    Ensure feedback is specific to the language's best practices.`,
     responseFormat: {
       passed: "boolean",
       results: ["Array of test results"],
@@ -37,19 +41,6 @@ const PROMPT_CONFIGS = {
     }
   }
 };
-
-async function getOpenAIKey(): Promise<string> {
-  try {
-    const secret = await secretsManager.getSecretValue({ SecretId: 'openai-api-key' });
-    if (!secret.SecretString) {
-      throw new Error('Secret value is empty');
-    }
-    return secret.SecretString;
-  } catch (error) {
-    console.error('Error retrieving OpenAI API key:', error);
-    throw new Error('Failed to retrieve OpenAI API key');
-  }
-}
 
 function calculateCost(usage: OpenAI.CompletionUsage | undefined): number {
   if (!usage) return 0;
@@ -69,16 +60,29 @@ export async function handler(
   });
 
   try {
-    const openaiKey = await getOpenAIKey();
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key not configured');
+    }
+
     const openai = new OpenAI({
-      apiKey: openaiKey
+      apiKey: process.env.OPENAI_API_KEY
     });
 
     if (!event.body) {
       throw new Error('Request body is required');
     }
 
-    const { type = 'challenge', ...inputData } = JSON.parse(event.body);
+    const { type = 'challenge', languages = [], ...inputData } = JSON.parse(event.body);
+    
+    // Validate languages
+    const validLanguages = languages.filter((lang: string) => 
+      SUPPORTED_LANGUAGES.includes(lang)
+    );
+    
+    if (validLanguages.length === 0) {
+      validLanguages.push(SUPPORTED_LANGUAGES[0]); // Default to first supported language
+    }
+    
     const config = PROMPT_CONFIGS[type as keyof typeof PROMPT_CONFIGS];
 
     if (!config) {
@@ -90,7 +94,13 @@ export async function handler(
       model: "gpt-4-turbo-preview",
       messages: [
         { role: "system", content: config.systemPrompt },
-        { role: "user", content: JSON.stringify(inputData) }
+        { 
+          role: "user", 
+          content: JSON.stringify({
+            ...inputData,
+            languages: validLanguages
+          })
+        }
       ],
       temperature: 0.7,
       max_tokens: 2000,
@@ -106,7 +116,8 @@ export async function handler(
       duration_ms: duration,
       tokens: completion.usage,
       estimated_cost: cost,
-      model: "gpt-4-turbo-preview"
+      model: "gpt-4-turbo-preview",
+      languages: validLanguages
     });
 
     return {
@@ -124,6 +135,7 @@ export async function handler(
           type,
           model: "gpt-4-turbo-preview",
           duration_ms: duration,
+          languages: validLanguages,
           usage: {
             prompt_tokens: completion.usage?.prompt_tokens || 0,
             completion_tokens: completion.usage?.completion_tokens || 0,
