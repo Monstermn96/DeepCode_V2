@@ -33,6 +33,22 @@ interface AIContextType {
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
+function transformChallengeResponse(response: any): Problem {
+  // Transform testCases to examples format
+  const examples = response.testCases.map((testCase: any) => ({
+    input: JSON.parse(testCase.input),
+    output: testCase.expectedOutput
+  }));
+
+  return {
+    title: response.title,
+    description: response.description,
+    language: response.language,
+    examples,
+    hints: response.hints
+  };
+}
+
 export function AIProvider({ children }: { children: React.ReactNode }) {
   const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,7 +76,10 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log('Setting challenge with data:', response.data);
-      setCurrentChallenge({ problem: response.data });
+      
+      // Transform the response data into our Problem format
+      const problem = transformChallengeResponse(response.data);
+      setCurrentChallenge({ problem });
     } catch (err) {
       console.error('Detailed error:', {
         error: err,
