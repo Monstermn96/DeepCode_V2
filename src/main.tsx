@@ -2,7 +2,6 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Amplify } from 'aws-amplify';
 import { type ResourcesConfig } from 'aws-amplify';
-import { fetchAuthSession } from '@aws-amplify/auth';
 import App from './App';
 import './index.css';
 
@@ -52,21 +51,7 @@ try {
       REST: {
         ai: {
           endpoint: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}`,
-          region: region,
-          interceptors: {
-            async request(request) {
-              try {
-                const session = await fetchAuthSession();
-                const token = session.tokens?.idToken?.toString();
-                if (token) {
-                  request.headers.Authorization = `Bearer ${token}`;
-                }
-              } catch (error) {
-                console.error('Error getting auth token:', error);
-              }
-              return request;
-            }
-          }
+          region: region
         }
       }
     }
