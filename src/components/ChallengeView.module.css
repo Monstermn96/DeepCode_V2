@@ -1,229 +1,398 @@
 .challengeView {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+	display: flex;
+	width: 100%;
+	height: 100vh;
+	overflow: hidden;
+	position: relative;
 }
 
 .problemPanel {
-  flex: 1;
-  padding: 2rem;
-  overflow-y: auto;
-  background: var(--background-light);
-  border-right: 1px solid var(--border-color);
+	flex: 1;
+	height: calc(100vh - 80px); /* Account for footer height */
+	padding: 2rem;
+	overflow-y: auto;
+	background: var(--background-light);
+	border-right: 1px solid var(--border-color);
 }
 
 .editorPanel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--background-dark);
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	background: var(--background-dark);
+	height: calc(100vh - 80px); /* Account for footer height */
 }
 
 .title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
+	font-size: 1.5rem;
+	font-weight: 600;
+	margin-bottom: 1rem;
+	color: var(--text-primary);
 }
 
 .description {
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
-  white-space: pre-wrap;
+	font-size: 1rem;
+	line-height: 1.6;
+	color: var(--text-secondary);
+	margin-bottom: 2rem;
+	white-space: pre-wrap;
 }
 
 .testCases {
-  margin-bottom: 2rem;
+	margin-bottom: 2rem;
 }
 
 .testCases h2 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
+	font-size: 1.2rem;
+	font-weight: 600;
+	margin-bottom: 1rem;
+	color: var(--text-primary);
 }
 
 .testCase {
-  background: var(--background-dark);
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+	background: var(--background-dark);
+	border-radius: 8px;
+	padding: 1rem;
+	margin-bottom: 1rem;
 }
 
 .testHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 0.5rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	cursor: pointer;
+	padding: 0.5rem;
+	border-radius: 4px;
+	transition: background-color 0.2s ease;
+}
+
+.testHeader:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+}
+
+.testHeaderLeft {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.collapseIcon {
+	font-size: 0.8rem;
+	transition: transform 0.2s ease;
+	width: 16px;
+	height: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	user-select: none;
 }
 
 .testResult {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
+	padding: 0.25rem 0.5rem;
+	border-radius: 4px;
+	font-size: 0.875rem;
 }
 
 .passed {
-  background: var(--success-bg);
-  color: var(--success);
+	background: var(--success-bg);
+	color: var(--success);
 }
 
 .failed {
-  background: var(--error-bg);
-  color: var(--error);
+	background: var(--error-bg);
+	color: var(--error);
 }
 
 .testDetails {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+	max-height: 500px;
+	overflow: hidden;
+	transition: max-height 0.3s ease-in-out, opacity 0.2s ease-in-out,
+		transform 0.2s ease-in-out;
+	transform-origin: top;
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.testDetails.collapsed {
+	max-height: 0;
+	opacity: 0;
+	transform: translateY(-10px);
+	margin: 0;
+	padding: 0;
 }
 
 .testDetails code {
-  display: block;
-  background: var(--background-light);
-  padding: 0.5rem;
-  border-radius: 4px;
-  margin: 0.5rem 0;
-  font-family: monospace;
-  white-space: pre-wrap;
+	display: block;
+	background: var(--background-light);
+	padding: 0.5rem;
+	border-radius: 4px;
+	margin: 0.5rem 0;
+	font-family: monospace;
+	white-space: pre-wrap;
 }
 
 .explanation {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: var(--error-bg);
-  color: var(--error);
-  border-radius: 4px;
+	margin-top: 0.5rem;
+	padding: 0.5rem;
+	background: var(--error-bg);
+	color: var(--error);
+	border-radius: 4px;
 }
 
 .hints {
-  margin-top: 2rem;
-  padding: 1rem;
-  background: var(--background-dark);
-  border-radius: 8px;
+	margin-top: 2rem;
+	padding: 1rem;
+	background: var(--background-dark);
+	border-radius: 8px;
 }
 
 .hints h2 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
+	font-size: 1.2rem;
+	font-weight: 600;
+	margin-bottom: 1rem;
+	color: var(--text-primary);
 }
 
 .hints ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
 }
 
 .hints li {
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-  padding-left: 1.5rem;
-  position: relative;
+	color: var(--text-secondary);
+	margin-bottom: 0.5rem;
+	padding-left: 1.5rem;
+	position: relative;
 }
 
 .hints li:before {
-  content: "💡";
-  position: absolute;
-  left: 0;
+	content: "💡";
+	position: absolute;
+	left: 0;
 }
 
 .editorHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: var(--background-light);
-  border-bottom: 1px solid var(--border-color);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1rem;
+	background: var(--background-light);
+	border-bottom: 1px solid var(--border-color);
 }
 
 .editorHeader span {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-primary);
 }
 
 .runButton {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: background 0.2s;
+	padding: 0.75rem 1.5rem;
+	background: var(--success-bg);
+	color: var(--success);
+	border: 1px solid var(--success);
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.875rem;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	transition: all 0.2s ease;
+	white-space: nowrap;
 }
 
 .runButton:hover:not(:disabled) {
-  background: var(--primary-color-dark);
+	background: var(--success);
+	color: white;
+	transform: translateY(-1px);
 }
 
 .runButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+	opacity: 0.7;
+	cursor: not-allowed;
 }
 
 .loadingSpinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+	width: 16px;
+	height: 16px;
+	border: 2px solid rgba(255, 255, 255, 0.3);
+	border-top: 2px solid white;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
 }
 
 .editor {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
+	flex: 1;
+	position: relative;
+	overflow: hidden;
 }
 
 .textarea {
-  width: 100%;
-  height: 100%;
-  padding: 1rem;
-  border: none;
-  resize: none;
-  background: var(--background-dark);
-  color: var(--text-primary);
-  font-family: monospace;
-  font-size: 0.875rem;
-  line-height: 1.6;
+	width: 100%;
+	height: 100%;
+	padding: 1rem;
+	border: none;
+	resize: none;
+	background: var(--background-dark);
+	color: var(--text-primary);
+	font-family: monospace;
+	font-size: 0.875rem;
+	line-height: 1.6;
+	overflow-y: auto;
 }
 
 .textarea:focus {
-  outline: none;
+	outline: none;
 }
 
 @media (max-width: 768px) {
-  .challengeView {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    height: 100vh;
-  }
+	.challengeView {
+		flex-direction: column;
+	}
 
-  .problemPanel {
-    max-height: 40vh;
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
-  }
+	.problemPanel {
+		height: 40vh;
+		border-right: none;
+		border-bottom: 1px solid var(--border-color);
+	}
 
-  .editorPanel {
-    height: 60vh;
-  }
-} 
+	.editorPanel {
+		height: calc(60vh - 80px);
+	}
+
+	.footerContent {
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 0.75rem;
+	}
+
+	.footerPanel {
+		height: auto;
+		max-height: 200px;
+		overflow-y: auto;
+	}
+
+	.footerButtons {
+		width: 100%;
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.runButton,
+	.generateButton {
+		flex: 1;
+		padding: 0.75rem;
+		justify-content: center;
+	}
+
+	.inputGroup,
+	.languageSelection {
+		width: 100%;
+	}
+
+	.languageButtons {
+		justify-content: flex-start;
+	}
+}
+
+.footerPanel {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: var(--background-dark);
+	border-top: 1px solid var(--border-color);
+	padding: 1rem;
+	z-index: 100;
+	box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+	height: 80px; /* Fixed height for footer */
+}
+
+.footerContent {
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.footerButtons {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.inputGroup {
+	flex: 2;
+}
+
+.languageSelection {
+	flex: 1;
+}
+
+.languageButtons {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.languageButton {
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	background: transparent;
+	color: var(--text-primary);
+	cursor: pointer;
+	font-size: 0.875rem;
+	transition: all 0.2s ease;
+}
+
+.languageButton:hover {
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.languageButton.selected {
+	background: var(--primary-color);
+	color: white;
+	border-color: var(--primary-color);
+}
+
+.generateButton {
+	padding: 0.75rem 1.5rem;
+	background: var(--primary-color);
+	color: white;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.875rem;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+}
+
+.generateButton:hover:not(:disabled) {
+	background: var(--primary-color-dark);
+	transform: translateY(-1px);
+}
+
+.generateButton:disabled {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
