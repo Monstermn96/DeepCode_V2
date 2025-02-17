@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAI } from '../contexts/AIContext';
 import { useAuth } from '../contexts/AuthContext';
 import WelcomeControlPanel from '../components/WelcomeControlPanel';
+import { type SupportedLanguage } from '../services/ai/openai';
 import styles from './Dashboard.module.css';
 
 interface ChallengeStats {
@@ -25,13 +26,19 @@ export default function Dashboard() {
   const [stats] = useState<ChallengeStats>(initialStats);
 
   useEffect(() => {
-    console.log('Current user:', user);
-    console.log('User attributes:', user?.attributes);
+    if (user) {
+      // TODO: Fetch user's challenge stats from backend
+      console.log('Current user:', user);
+    }
   }, [user]);
 
-  const handleGenerateNew = async (topic: string, languages: string[]) => {
+  const handleGenerateNew = async (description: string, languages: SupportedLanguage[]) => {
     try {
-      await generateChallenge(topic, languages);
+      await generateChallenge({
+        type: 'challenge',
+        topic: description,
+        languages
+      });
       navigate('/challenges');
     } catch (err) {
       console.error('Failed to generate challenge:', err);
@@ -44,7 +51,7 @@ export default function Dashboard() {
         <header className={styles.header}>
           <h1 className={styles.title}>Welcome Back{user?.username ? `, ${user.username}` : ''}!</h1>
           <p className={styles.subtitle}>
-            Track your progress and generate new coding challenges to enhance your skills
+            Describe the coding challenge you want to tackle and select your preferred programming languages
           </p>
         </header>
 

@@ -1,0 +1,29 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /ai",
+  "rawPath": "/ai",
+  "rawQueryString": "",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "api-id",
+    "domainName": "id.execute-api.us-east-1.amazonaws.com",
+    "domainPrefix": "id",
+    "http": {
+      "method": "POST",
+      "path": "/ai",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "IP",
+      "userAgent": "agent"
+    },
+    "requestId": "id",
+    "routeKey": "POST /ai",
+    "stage": "$default",
+    "time": "12/Mar/2024:19:03:58 +0000",
+    "timeEpoch": 1710871438000
+  },
+  "body": "{\"type\":\"evaluation\",\"code\":\"def max_product(arr):\\n    arr.sort()\\n    return max(arr[0] * arr[1], arr[-1] * arr[-2])\",\"language\":\"Python\",\"testCases\":[{\"input\":\"[1, 2, 3, 4]\",\"expectedOutput\":\"12\"},{\"input\":\"[-1, -3, -10, 0, 60]\",\"expectedOutput\":\"600\"}]}",
+  "isBase64Encoded": false
+} 

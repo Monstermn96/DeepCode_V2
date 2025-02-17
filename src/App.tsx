@@ -6,7 +6,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import PublicLayout from './layouts/PublicLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
-import WelcomeScreen from './components/WelcomeScreen';
+import { WelcomeScreen } from './components/WelcomeScreen';
 import { AuthForm } from './components/Auth/AuthForm';
 import styles from './App.module.css';
 import { AIProvider } from './contexts/AIContext';

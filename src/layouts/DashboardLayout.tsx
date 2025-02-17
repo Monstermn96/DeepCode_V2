@@ -1,12 +1,13 @@
 import type { FC } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navigation from '../components/Navigation';
+import styles from './DashboardLayout.module.css';
 
 const DashboardLayout: FC = () => {
   return (
-    <div className="dashboard-layout">
+    <div className={styles.dashboardLayout}>
       <Navigation />
-      <main>
+      <main className={styles.main}>
         <Outlet />
       </main>
     </div>

@@ -33,6 +33,5 @@ amplify_outputs*
 amplifyconfiguration*
 
 # AWS Configuration and Credentials
-AWS_Info.md
 amplify-service-policy.json
 amplify-service-role.json

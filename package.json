@@ -13,14 +13,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-amplify/api": "^6.3.0",
     "@aws-amplify/api-rest": "^4.0.69",
     "@aws-amplify/ui-react": "^6.5.5",
     "@aws-sdk/client-amplify": "^3.525.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.525.0",
     "@aws-sdk/client-secrets-manager": "^3.744.0",
+    "@monaco-editor/react": "^4.7.0",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-transition-group": "^4.4.12",
     "aws-amplify": "^6.6.6",
+    "monaco-editor": "^0.52.2",
     "openai": "^4.85.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -31,6 +34,8 @@
   "devDependencies": {
     "@aws-amplify/backend": "^1.14.1",
     "@aws-amplify/backend-cli": "^1.4.10",
+    "@types/aws-lambda": "^8.10.147",
+    "@types/node": "^22.13.4",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@typescript-eslint/eslint-plugin": "^7.2.0",

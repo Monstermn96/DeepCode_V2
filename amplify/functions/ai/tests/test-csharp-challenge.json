@@ -1,0 +1,13 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /ai",
+  "rawPath": "/ai",
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/ai"
+    }
+  },
+  "body": "{\"type\":\"challenge\",\"description\":\"A medium difficulty C# problem focusing on LINQ and collections\",\"languages\":[\"C#\"]}",
+  "isBase64Encoded": false
+} 
