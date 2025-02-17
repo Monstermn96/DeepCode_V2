@@ -61,7 +61,7 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 
       const response = await post({
         apiName: 'ai',
-        path: '/ai',
+        path: '/',
         options: {
           body: JSON.stringify(params),
           headers: {
