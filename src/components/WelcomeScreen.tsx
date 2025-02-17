@@ -59,20 +59,14 @@ export function WelcomeScreen() {
         languages: ['Python']
       });
 
-      const challenge = await generateChallenge({
+      await generateChallenge({
         type: 'challenge',
         description: 'A beginner-friendly coding challenge',
         languages: ['Python']
       });
 
-      console.log('Challenge generated successfully:', {
-        challengeId: challenge?.id,
-        language: challenge?.language,
-        difficulty: challenge?.difficulty
-      });
-
-      // Navigate to the new challenge view with the challenge ID
-      navigate(`/challenge/${challenge?.id}`);
+      // Navigate to the challenges page
+      navigate('/challenges');
     } catch (error) {
       console.error('Challenge generation failed:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate challenge');

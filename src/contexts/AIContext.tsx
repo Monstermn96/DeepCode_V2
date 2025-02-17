@@ -29,6 +29,22 @@ interface AIContextType {
   generateChallenge: (params: GenerateChallengeParams) => Promise<void>;
 }
 
+interface APIResponse {
+  data: Challenge;
+  metadata: {
+    type: string;
+    model: string;
+    duration_ms: number;
+    languages: string[];
+    usage: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+      estimated_cost: number;
+    };
+  };
+}
+
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
 export function AIProvider({ children }: { children: React.ReactNode }) {
@@ -47,9 +63,9 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
         apiName: 'ai',
         path: '/ai',
         options: {
-          body: params
+          body: JSON.stringify(params)
         }
-      });
+      }) as unknown as APIResponse;
 
       console.log('Raw API response:', response);
 
