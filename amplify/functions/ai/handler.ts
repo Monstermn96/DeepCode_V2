@@ -1,5 +1,5 @@
 import { type APIGatewayProxyEventV2, type APIGatewayProxyResultV2 } from 'aws-lambda';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 
 const CACHE_DURATION = 3600; // 1 hour cache for successful responses
 const SUPPORTED_LANGUAGES = ['C#', 'Java', 'Python'];
@@ -42,19 +42,13 @@ const PROMPT_CONFIGS = {
   }
 };
 
-function calculateCost(usage: OpenAIApi.Usage | undefined): number {
+function calculateCost(usage: OpenAI.CompletionUsage | undefined): number {
   if (!usage) return 0;
   // GPT-4 pricing: $0.03 per 1K prompt tokens, $0.06 per 1K completion tokens
   const promptCost = (usage.prompt_tokens / 1000) * 0.03;
   const completionCost = (usage.completion_tokens / 1000) * 0.06;
   return Number((promptCost + completionCost).toFixed(4));
 }
-
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const openai = new OpenAIApi(configuration);
 
 export async function handler(
   event: APIGatewayProxyEventV2
@@ -72,6 +66,10 @@ export async function handler(
       console.error('OpenAI API key is not configured');
       throw new Error('OpenAI API key not configured');
     }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
 
     if (!event.body) {
       console.error('Request body is missing');
@@ -103,7 +101,7 @@ export async function handler(
     }
 
     const startTime = Date.now();
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
       messages: [
         { role: "system", content: config.systemPrompt },
@@ -122,13 +120,13 @@ export async function handler(
     });
     const duration = Date.now() - startTime;
 
-    const cost = calculateCost(completion.data.usage);
+    const cost = calculateCost(completion.usage);
     
     // Log detailed usage metrics
     console.log('Request metrics:', {
       type,
       duration_ms: duration,
-      tokens: completion.data.usage,
+      tokens: completion.usage,
       estimated_cost: cost,
       model: "gpt-4-turbo-preview",
       languages: validLanguages
@@ -143,19 +141,19 @@ export async function handler(
         "Access-Control-Allow-Methods": "OPTIONS,POST",
         "Cache-Control": `public, max-age=${CACHE_DURATION}`,
         "X-Response-Time": `${duration}ms`,
-        "X-Token-Usage": JSON.stringify(completion.data.usage)
+        "X-Token-Usage": JSON.stringify(completion.usage)
       },
       body: JSON.stringify({
-        data: JSON.parse(completion.data.choices[0]?.message?.content || '{}'),
+        data: JSON.parse(completion.choices[0]?.message?.content || '{}'),
         metadata: {
           type,
           model: "gpt-4-turbo-preview",
           duration_ms: duration,
           languages: validLanguages,
           usage: {
-            prompt_tokens: completion.data.usage?.prompt_tokens || 0,
-            completion_tokens: completion.data.usage?.completion_tokens || 0,
-            total_tokens: completion.data.usage?.total_tokens || 0,
+            prompt_tokens: completion.usage?.prompt_tokens || 0,
+            completion_tokens: completion.usage?.completion_tokens || 0,
+            total_tokens: completion.usage?.total_tokens || 0,
             estimated_cost: cost
           }
         }
