@@ -63,13 +63,13 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
         apiName: 'ai',
         path: '/ai',
         options: {
-          body: params,
+          body: JSON.stringify(params),
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json'
           }
         }
-      }) as APIResponse;
+      });
 
       console.log('Raw API response:', response);
 
@@ -78,13 +78,15 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
         throw new Error('No response received from AI service');
       }
 
-      if (!response.data) {
+      const apiResponse = response as unknown as APIResponse;
+      
+      if (!apiResponse.data) {
         console.error('Invalid response format:', response);
         throw new Error('Invalid response format from AI service');
       }
       
-      console.log('Setting challenge with data:', response.data);
-      setCurrentChallenge(response.data);
+      console.log('Setting challenge with data:', apiResponse.data);
+      setCurrentChallenge(apiResponse.data);
     } catch (err) {
       console.error('Detailed error:', {
         error: err,
