@@ -53,26 +53,39 @@ function calculateCost(usage: OpenAI.CompletionUsage | undefined): number {
 export async function handler(
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> {
-  console.log('Processing request:', {
+  console.log('Request details:', {
     method: event.requestContext.http.method,
     path: event.requestContext.http.path,
+    body: event.body,
     timestamp: new Date().toISOString()
   });
 
   try {
+    // Verify OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
+      console.error('OpenAI API key is not configured');
       throw new Error('OpenAI API key not configured');
     }
+    console.log('OpenAI API key is configured (first 4 chars):', process.env.OPENAI_API_KEY.substring(0, 4));
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
 
     if (!event.body) {
+      console.error('Request body is missing');
       throw new Error('Request body is required');
     }
 
-    const { type = 'challenge', languages = [], ...inputData } = JSON.parse(event.body);
+    // Log the parsed request body
+    const parsedBody = JSON.parse(event.body);
+    console.log('Parsed request body:', {
+      type: parsedBody.type,
+      languages: parsedBody.languages,
+      // Don't log other input data as it might be sensitive
+    });
+
+    const { type = 'challenge', languages = [], ...inputData } = parsedBody;
     
     // Validate languages
     const validLanguages = languages.filter((lang: string) => 

@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /ai",
+  "rawPath": "/ai",
+  "rawQueryString": "",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/ai"
+    }
+  },
+  "body": "{\"type\":\"challenge\",\"topic\":\"data processing\",\"difficulty\":\"easy\",\"languages\":[\"Python\"],\"subtopics\":[\"string manipulation\",\"arrays\"],\"focus\":\"Create a function that processes a list of strings and returns the most common word\"}"
+} 

@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /ai",
+  "rawPath": "/ai",
+  "rawQueryString": "",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/ai"
+    }
+  },
+  "body": "{\"type\":\"evaluation\",\"language\":\"Java\",\"code\":\"public class Solution {\\n    public int fibonacci(int n) {\\n        if (n <= 1) return n;\\n        return fibonacci(n-1) + fibonacci(n-2);\\n    }\\n}\",\"testCases\":[{\"input\":\"5\",\"expectedOutput\":\"5\"}]}"
+} 

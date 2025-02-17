@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /ai",
+  "rawPath": "/ai",
+  "rawQueryString": "",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/ai"
+    }
+  },
+  "body": "{\"type\":\"challenge\",\"topic\":\"algorithms\",\"difficulty\":\"hard\",\"languages\":[\"C#\"],\"subtopics\":[\"sorting\",\"optimization\"],\"focus\":\"Implement a custom sorting algorithm that handles both numeric and string data efficiently\"}"
+} 

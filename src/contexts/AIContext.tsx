@@ -1,114 +1,85 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import { fetchAuthSession } from 'aws-amplify/auth';
-import { post } from '@aws-amplify/api-rest';
+import { createContext, useContext, useState } from 'react';
 
-interface ApiResponse {
-  data: {
-    title: string;
+interface Challenge {
+  title: string;
+  description: string;
+  difficulty: string;
+  language: string;
+  starterCode: string;
+  solution: string;
+  testCases: Array<{
+    input: string;
+    expectedOutput: string;
     description: string;
-    difficulty: 'easy' | 'medium' | 'hard';
-    starterCode: string;
-    solution: string;
-    testCases: Array<{
-      input: string;
-      expectedOutput: string;
-      description: string;
-    }>;
-    hints: string[];
-  };
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
+  }>;
+  hints: string[];
 }
 
-// Types
+interface GenerateChallengeParams {
+  type: 'challenge';
+  description: string;
+  languages: string[];
+}
+
 interface AIContextType {
+  currentChallenge: Challenge | null;
   loading: boolean;
   error: string | null;
-  lastResponse: ApiResponse | null;
-  clearError: () => void;
-  generateChallenge: (topic: string, languages?: string[]) => Promise<void>;
-  currentChallenge: ApiResponse['data'] | null;
+  generateChallenge: (params: GenerateChallengeParams) => Promise<void>;
 }
 
-// Create context with a default value
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
-interface AIProviderProps {
-  children: ReactNode;
-}
-
-export function AIProvider({ children }: AIProviderProps) {
+export function AIProvider({ children }: { children: React.ReactNode }) {
+  const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentChallenge, setCurrentChallenge] = useState<ApiResponse['data'] | null>(null);
-  const [lastResponse, setLastResponse] = useState<ApiResponse | null>(null);
 
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  const generateChallenge = useCallback(async (topic: string, languages: string[] = []) => {
+  const generateChallenge = async (params: GenerateChallengeParams) => {
     setLoading(true);
     setError(null);
+    
     try {
-      const { accessToken } = (await fetchAuthSession()).tokens ?? {};
-      
-      const { body } = await post({
-        apiName: 'ai',
-        path: '/',
-        options: {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: {
-            type: 'challenge',
-            topic,
-            languages,
-          }
-        }
-      }).response;
+      const response = await fetch('/api/ai/challenge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+      });
 
-      const jsonResponse = await body.json();
-      const response = jsonResponse as unknown as ApiResponse;
-      setLastResponse(response);
-      setCurrentChallenge(response.data);
+      if (!response.ok) {
+        throw new Error('Failed to generate challenge');
+      }
+
+      const data = await response.json();
+      setCurrentChallenge(data.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while generating the challenge');
-      console.error('Error generating challenge:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const value = {
-    loading,
-    error,
-    clearError,
-    generateChallenge,
-    currentChallenge,
-    lastResponse,
   };
 
-  return <AIContext.Provider value={value}>{children}</AIContext.Provider>;
+  return (
+    <AIContext.Provider
+      value={{
+        currentChallenge,
+        loading,
+        error,
+        generateChallenge,
+      }}
+    >
+      {children}
+    </AIContext.Provider>
+  );
 }
 
-// Hook
 export function useAI() {
   const context = useContext(AIContext);
   if (context === undefined) {
     throw new Error('useAI must be used within an AIProvider');
   }
   return context;
-}
-
-// Export both the provider and hook as properties of a single default export
-const AI = {
-  Provider: AIProvider,
-  useAI
-};
-
-export default AI; 
+} 

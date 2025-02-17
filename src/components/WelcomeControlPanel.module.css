@@ -1,3 +1,112 @@
+.panel {
+  background: var(--surface-color, #ffffff);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputGroup label {
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+.textarea {
+  min-height: 120px;
+  padding: 1rem;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  font-size: 1rem;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.textarea:focus {
+  border-color: var(--primary-color, #007bff);
+  outline: none;
+}
+
+.languageSelection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.languageButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.languageButton {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.languageButton:hover {
+  background: var(--hover-color, #f5f5f5);
+}
+
+.languageButton.selected {
+  background: var(--primary-color, #007bff);
+  color: white;
+  border-color: var(--primary-color, #007bff);
+}
+
+.generateButton {
+  padding: 1rem 2rem;
+  background: var(--primary-color, #007bff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.generateButton:hover:not(:disabled) {
+  background: var(--primary-dark, #0056b3);
+}
+
+.generateButton:disabled {
+  background: var(--disabled-color, #cccccc);
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 1rem;
+  }
+  
+  .languageButtons {
+    gap: 0.25rem;
+  }
+  
+  .languageButton {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
 .controlPanel {
   width: 100%;
   background-color: #37383a;
@@ -18,17 +127,6 @@
   font-size: var(--font-size-lg);
   color: var(--text-primary);
   margin-bottom: var(--spacing-md);
-}
-
-.inputGroup {
-  margin-bottom: var(--spacing-md);
-}
-
-.label {
-  display: block;
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-xs);
-  font-size: var(--font-size-md);
 }
 
 .input {
@@ -56,31 +154,6 @@
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
-}
-
-.languageButton {
-  padding: var(--spacing-sm);
-  background: var(--background-light);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  color: var(--text-secondary);
-  transition: all var(--transition-normal);
-}
-
-.languageButton:hover:not(:disabled) {
-  border-color: var(--primary-color);
-  color: var(--text-primary);
-}
-
-.languageButton.selected {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-}
-
-.languageButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .submitButton {
@@ -143,29 +216,6 @@
 
 .preferenceContent {
   padding: var(--spacing-lg);
-}
-
-.textarea {
-  width: 100%;
-  min-height: 120px;
-  padding: var(--spacing-md);
-  background: var(--background-dark);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  color: var(--text-primary);
-  font-size: var(--font-size-md);
-  resize: vertical;
-  transition: all var(--transition-normal);
-}
-
-.textarea:hover {
-  border-color: var(--primary-color);
-}
-
-.textarea:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
 }
 
 .checkboxGroup {
