@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react';
+import { post } from '@aws-amplify/api-rest';
 
 interface Challenge {
   title: string;
@@ -40,22 +41,42 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     
     try {
-      const response = await fetch('/api/ai/challenge', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(params),
+      console.log('Generating challenge with params:', params);
+
+      const response = await post({
+        apiName: 'ai',
+        path: '/ai',
+        options: {
+          body: params
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate challenge');
+      console.log('Raw API response:', response);
+
+      if (!response) {
+        console.error('No response received from API');
+        throw new Error('No response received from AI service');
       }
 
-      const data = await response.json();
-      setCurrentChallenge(data.data);
+      console.log('Response data:', response.data);
+      
+      if (!response.data) {
+        console.error('Invalid response format:', response);
+        throw new Error('Invalid response format from AI service');
+      }
+      
+      console.log('Setting challenge with data:', response.data);
+      setCurrentChallenge(response.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Detailed error:', {
+        error: err,
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined,
+        params: params
+      });
+      
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while generating the challenge';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);

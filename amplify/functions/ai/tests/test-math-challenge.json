@@ -2,15 +2,12 @@
   "version": "2.0",
   "routeKey": "POST /ai",
   "rawPath": "/ai",
-  "rawQueryString": "",
-  "headers": {
-    "content-type": "application/json"
-  },
   "requestContext": {
     "http": {
       "method": "POST",
       "path": "/ai"
     }
   },
-  "body": "{\"type\":\"challenge\",\"topic\":\"math\",\"difficulty\":\"medium\",\"languages\":[\"Java\"],\"subtopics\":[\"algorithms\",\"data structures\"],\"focus\":\"Write a function to find the nth Fibonacci number using dynamic programming\"}"
+  "body": "{\"type\":\"challenge\",\"description\":\"A challenging mathematical problem involving algorithms and optimization\",\"languages\":[\"Python\", \"Java\", \"C#\"]}",
+  "isBase64Encoded": false
 } 

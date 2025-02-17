@@ -37,12 +37,21 @@ try {
           username: false
         }
       }
+    },
+    API: {
+      REST: {
+        ai: {
+          endpoint: import.meta.env.VITE_API_ENDPOINT || 'https://api.deepdevai.com',
+          region: import.meta.env.VITE_AWS_REGION || 'us-east-1'
+        }
+      }
     }
   };
 
   Amplify.configure(config);
 
   console.log('Amplify configured successfully');
+  console.log('API Configuration:', config.API?.REST?.ai);
   console.log('----------------------------------------');
 
 } catch (error) {

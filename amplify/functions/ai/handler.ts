@@ -54,8 +54,8 @@ export async function handler(
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> {
   console.log('Request details:', {
-    method: event.requestContext.http.method,
-    path: event.requestContext.http.path,
+    method: event.requestContext?.http?.method,
+    path: event.requestContext?.http?.path,
     body: event.body,
     timestamp: new Date().toISOString()
   });
@@ -66,7 +66,6 @@ export async function handler(
       console.error('OpenAI API key is not configured');
       throw new Error('OpenAI API key not configured');
     }
-    console.log('OpenAI API key is configured (first 4 chars):', process.env.OPENAI_API_KEY.substring(0, 4));
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
@@ -77,15 +76,14 @@ export async function handler(
       throw new Error('Request body is required');
     }
 
-    // Log the parsed request body
+    // Parse the request body
     const parsedBody = JSON.parse(event.body);
     console.log('Parsed request body:', {
       type: parsedBody.type,
       languages: parsedBody.languages,
-      // Don't log other input data as it might be sensitive
     });
 
-    const { type = 'challenge', languages = [], ...inputData } = parsedBody;
+    const { type = 'challenge', languages = [], description = '', ...inputData } = parsedBody;
     
     // Validate languages
     const validLanguages = languages.filter((lang: string) => 
@@ -111,6 +109,7 @@ export async function handler(
           role: "user", 
           content: JSON.stringify({
             ...inputData,
+            description,
             languages: validLanguages
           })
         }
@@ -180,7 +179,7 @@ export async function handler(
         error: error.message || 'Internal server error',
         type: error.type || 'UnknownError',
         timestamp: new Date().toISOString(),
-        request_id: event.requestContext.requestId
+        request_id: event.requestContext?.requestId
       })
     };
   }
