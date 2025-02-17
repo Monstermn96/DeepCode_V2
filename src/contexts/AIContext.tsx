@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from 'react';
-import { post, type RestApiResponse } from '@aws-amplify/api-rest';
+import { post } from '@aws-amplify/api-rest';
 
 interface Challenge {
   title: string;
@@ -59,17 +59,16 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Generating challenge with params:', params);
 
-      const response = await post<RestApiResponse>({
+      const response = await post({
         apiName: 'ai',
         path: '/ai',
         options: {
-          body: params,
+          body: JSON.stringify(params),
           headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
+            'Content-Type': 'application/json'
           }
         }
-      });
+      }) as unknown as APIResponse;
 
       console.log('Raw API response:', response);
 
@@ -78,15 +77,13 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
         throw new Error('No response received from AI service');
       }
 
-      const apiResponse = response.body as APIResponse;
-      
-      if (!apiResponse.data) {
+      if (!response.data) {
         console.error('Invalid response format:', response);
         throw new Error('Invalid response format from AI service');
       }
       
-      console.log('Setting challenge with data:', apiResponse.data);
-      setCurrentChallenge(apiResponse.data);
+      console.log('Setting challenge with data:', response.data);
+      setCurrentChallenge(response.data);
     } catch (err) {
       console.error('Detailed error:', {
         error: err,
