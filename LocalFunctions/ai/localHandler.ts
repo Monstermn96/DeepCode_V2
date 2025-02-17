@@ -1,6 +1,6 @@
 import {
 	type APIGatewayProxyEventV2,
-	type APIGatewayProxyStructuredResultV2,
+	type APIGatewayProxyResultV2,
 } from "aws-lambda";
 import OpenAI from "openai";
 
@@ -12,26 +12,35 @@ const PROMPT_CONFIGS = {
 		systemPrompt: `You are a coding problem generator that creates well-structured programming challenges.
     Create diverse and unique problems each time. Always respond with valid JSON only.
     Focus on real-world scenarios and practical coding challenges.
-    Include clear test cases and helpful hints.
+    Include clear test cases with explanations and helpful hints.
     IMPORTANT: Only generate problems for these languages: ${SUPPORTED_LANGUAGES.join(
 			", "
 		)}.
-    Ensure the code examples and solutions are idiomatic for the chosen language.`,
+    Ensure the code examples and solutions are idiomatic for the chosen language.
+    Set difficulty to one of: "easy", "medium", or "hard" based on the problem complexity.
+    
+    Your response must include:
+    - title: A concise problem title
+    - description: A clear problem description
+    - difficulty: One of "easy", "medium", or "hard"
+    - language: The programming language for the solution
+    - functionSignature: The function signature/template for the solution
+    - testCases: Array of test cases, each with input, output, and explanation
+    - hints: Array of helpful hints for solving the problem`,
 		responseFormat: {
-			title: "Problem title",
-			description: "Detailed problem description",
+			title: "string",
+			description: "string",
 			difficulty: "easy|medium|hard",
 			language: SUPPORTED_LANGUAGES.join("|"),
-			starterCode: "Code template",
-			solution: "Complete solution",
+			functionSignature: "string",
 			testCases: [
 				{
-					input: "Test input",
-					expectedOutput: "Expected output",
-					description: "Test case description",
+					input: "string",
+					output: "string",
+					explanation: "string",
 				},
 			],
-			hints: ["Hint 1", "Hint 2"],
+			hints: ["string"],
 		},
 	},
 	evaluation: {
@@ -59,9 +68,23 @@ function calculateCost(usage: OpenAI.CompletionUsage | undefined): number {
 	return Number((promptCost + completionCost).toFixed(4));
 }
 
+interface ParsedContent {
+	title: string;
+	description: string;
+	difficulty: string;
+	language: string;
+	functionSignature: string;
+	testCases: Array<{
+		input: any;
+		output: any;
+		explanation: string;
+	}>;
+	hints: string[];
+}
+
 export async function handler(
 	event: APIGatewayProxyEventV2
-): Promise<APIGatewayProxyStructuredResultV2> {
+): Promise<APIGatewayProxyResultV2> {
 	console.log("Request details:", {
 		method: event.requestContext?.http?.method,
 		path: event.requestContext?.http?.path,
@@ -86,8 +109,7 @@ export async function handler(
 		}
 
 		// Parse the request body
-		const parsedBody =
-			typeof event.body === "string" ? JSON.parse(event.body) : event.body;
+		const parsedBody = JSON.parse(event.body);
 		console.log("Parsed request body:", {
 			type: parsedBody.type,
 			languages: parsedBody.languages,
@@ -117,7 +139,7 @@ export async function handler(
 
 		const startTime = Date.now();
 		const completion = await openai.chat.completions.create({
-			model: "gpt-4-turbo-preview",
+			model: "gpt-4o-mini",
 			messages: [
 				{ role: "system", content: config.systemPrompt },
 				{
@@ -130,21 +152,127 @@ export async function handler(
 				},
 			],
 			temperature: 0.7,
-			max_tokens: 2000,
+			max_tokens: 4000,
 			response_format: { type: "json_object" },
+			stream: false, // Explicitly set to false for JSON responses
 		});
-		const duration = Date.now() - startTime;
 
+		// Verify the response is complete and valid
+		if (
+			!completion.choices?.[0]?.message?.content ||
+			completion.choices[0].finish_reason !== "stop"
+		) {
+			throw new Error("Incomplete response from AI service");
+		}
+
+		const duration = Date.now() - startTime;
 		const cost = calculateCost(completion.usage);
 
-		// Log detailed usage metrics
-		console.log("Request metrics:", {
-			type,
-			duration_ms: duration,
-			tokens: completion.usage,
-			estimated_cost: cost,
-			model: "gpt-4-turbo-preview",
-			languages: validLanguages,
+		// Log OpenAI response details with validation
+		console.log("OpenAI Response Status:", {
+			finish_reason: completion.choices[0].finish_reason,
+			role: completion.choices[0].message.role,
+			content_length: completion.choices[0].message.content.length,
+			usage: completion.usage,
+		});
+
+		// Validate JSON format before parsing
+		let parsedContent: ParsedContent;
+		try {
+			const rawContent = completion.choices[0].message.content;
+			console.log("Raw OpenAI content:", rawContent);
+
+			parsedContent = JSON.parse(rawContent);
+			console.log("Successfully parsed content into JSON");
+
+			// Validate required fields
+			const requiredFields = [
+				"title",
+				"description",
+				"difficulty",
+				"language",
+				"functionSignature",
+				"testCases",
+				"hints",
+			] as const;
+
+			console.log("Validating response fields:", {
+				receivedFields: Object.keys(parsedContent),
+				requiredFields,
+				hasAllFields: requiredFields.every(
+					(field) => parsedContent[field as keyof ParsedContent] !== undefined
+				),
+			});
+
+			const missingFields = requiredFields.filter(
+				(field) => !parsedContent[field as keyof ParsedContent]
+			);
+
+			if (missingFields.length > 0) {
+				console.error("Missing required fields:", {
+					missingFields,
+					receivedFields: Object.keys(parsedContent),
+				});
+				throw new Error(
+					`Missing required fields in AI response: ${missingFields.join(", ")}`
+				);
+			}
+
+			// Validate arrays
+			if (!Array.isArray(parsedContent.testCases)) {
+				throw new Error("testCases must be an array");
+			}
+			if (!Array.isArray(parsedContent.hints)) {
+				throw new Error("hints must be an array");
+			}
+
+			console.log("Response structure validation passed");
+
+			// Log the full validated content
+			console.log("Validated content structure:", {
+				title: typeof parsedContent.title,
+				description: typeof parsedContent.description,
+				difficulty: parsedContent.difficulty,
+				language: parsedContent.language,
+				functionSignature: typeof parsedContent.functionSignature,
+				testCasesCount: parsedContent.testCases.length,
+				hintsCount: parsedContent.hints.length,
+			});
+		} catch (error) {
+			console.error("Failed to parse or validate AI response:", {
+				error,
+				rawContent: completion.choices[0].message.content,
+				errorType:
+					error instanceof Error ? error.constructor.name : typeof error,
+			});
+			throw new Error(
+				`Invalid JSON response from AI service: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`
+			);
+		}
+
+		const responseBody = {
+			data: parsedContent,
+			metadata: {
+				type,
+				model: "gpt-4o-mini",
+				duration_ms: duration,
+				languages: validLanguages,
+				usage: {
+					prompt_tokens: completion.usage?.prompt_tokens || 0,
+					completion_tokens: completion.usage?.completion_tokens || 0,
+					total_tokens: completion.usage?.total_tokens || 0,
+					estimated_cost: cost,
+				},
+			},
+		};
+
+		console.log("Final Response Body Structure:", {
+			hasData: !!responseBody.data,
+			hasMetadata: !!responseBody.metadata,
+			dataFields: Object.keys(responseBody.data),
+			metadataFields: Object.keys(responseBody.metadata),
 		});
 
 		return {
@@ -159,21 +287,7 @@ export async function handler(
 				"X-Response-Time": `${duration}ms`,
 				"X-Token-Usage": JSON.stringify(completion.usage),
 			},
-			body: JSON.stringify({
-				data: JSON.parse(completion.choices[0]?.message?.content || "{}"),
-				metadata: {
-					type,
-					model: "gpt-4-turbo-preview",
-					duration_ms: duration,
-					languages: validLanguages,
-					usage: {
-						prompt_tokens: completion.usage?.prompt_tokens || 0,
-						completion_tokens: completion.usage?.completion_tokens || 0,
-						total_tokens: completion.usage?.total_tokens || 0,
-						estimated_cost: cost,
-					},
-				},
-			}),
+			body: JSON.stringify(responseBody),
 		};
 	} catch (error: unknown) {
 		const typedError = error as Error;

@@ -63,7 +63,10 @@ try {
 		API: {
 			REST: {
 				ai: {
-					endpoint: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}`,
+					endpoint:
+						import.meta.env.VITE_API_LOCAL === "true"
+							? "http://localhost:3001"
+							: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}`,
 					region: region,
 				},
 			},
