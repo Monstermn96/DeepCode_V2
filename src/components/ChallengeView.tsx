@@ -6,6 +6,7 @@ import {
 	SUPPORTED_LANGUAGES,
 	type SupportedLanguage,
 } from "../services/ai/openai";
+import { CodeEditor } from "./CodeEditor";
 import styles from "./ChallengeView.module.css";
 
 interface TestResult {
@@ -29,6 +30,7 @@ export function ChallengeView() {
 		SupportedLanguage[]
 	>([]);
 	const [isGenerating, setIsGenerating] = React.useState(false);
+	const [hintsVisible, setHintsVisible] = React.useState(false);
 
 	const toggleTestCase = (index: number) => {
 		setCollapsedTests((prev) => ({
@@ -189,7 +191,9 @@ export function ChallengeView() {
 				</div>
 
 				{currentChallenge.problem.hints?.length > 0 && (
-					<div className={styles.hints}>
+					<div
+						className={`${styles.hints} ${!hintsVisible ? styles.hidden : ""}`}
+					>
 						<h2>Hints</h2>
 						<ul>
 							{currentChallenge.problem.hints.map((hint, index) => (
@@ -203,15 +207,23 @@ export function ChallengeView() {
 			<div className={styles.editorPanel}>
 				<div className={styles.editorHeader}>
 					<span>{currentChallenge.problem.language}</span>
+					<button
+						className={`${styles.hintToggle} ${
+							hintsVisible ? styles.enabled : styles.disabled
+						}`}
+						onClick={() => setHintsVisible(!hintsVisible)}
+						title={hintsVisible ? "Hide Hints" : "Show Hints"}
+					>
+						{hintsVisible ? "💡 Hints On" : "💡 Hints Off"}
+					</button>
 				</div>
 
 				<div className={styles.editor}>
-					{/* TODO: Integrate Monaco Editor */}
-					<textarea
-						value={code}
-						onChange={(e) => setCode(e.target.value)}
-						className={styles.textarea}
-						placeholder="Your code here..."
+					<CodeEditor
+						code={code}
+						onChange={setCode}
+						language={currentChallenge.problem.language}
+						height="100%"
 					/>
 				</div>
 			</div>

@@ -129,6 +129,9 @@ const PROMPT_CONFIGS = {
 	},
 };
 
+// Get the OpenAI model from environment variables
+const OPENAI_MODEL = import.meta.env.VITE_OPENAI_MODEL || "gpt-4";
+
 export const aiService = {
 	openai: null as OpenAI | null,
 
@@ -180,7 +183,7 @@ export const aiService = {
 
 			const startTime = Date.now();
 			const completion = await this.getClient().chat.completions.create({
-				model: "gpt-4",
+				model: OPENAI_MODEL,
 				messages: [
 					{
 						role: "system",
@@ -232,7 +235,7 @@ export const aiService = {
 				data: responseData,
 				metadata: {
 					type,
-					model: "gpt-4",
+					model: OPENAI_MODEL,
 					duration_ms: duration,
 					languages: inputData.languages || [],
 					usage: {
@@ -250,7 +253,7 @@ export const aiService = {
 					"OpenAI API key is not configured correctly. Please check your environment variables."
 				);
 			}
-			throw new Error("Failed to generate AI response");
+			throw error;
 		}
 	},
 

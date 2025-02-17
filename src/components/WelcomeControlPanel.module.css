@@ -22,7 +22,7 @@
 
 .inputGroup label {
 	font-weight: 600;
-	color: var(--text-primary, #333);
+	color: var(--text-primary, #ffffff);
 }
 
 .textarea {

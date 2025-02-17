@@ -27,13 +27,13 @@
 	font-size: 1.5rem;
 	font-weight: 600;
 	margin-bottom: 1rem;
-	color: var(--text-primary);
+	color: var(--text-primary, #ffffff);
 }
 
 .description {
 	font-size: 1rem;
 	line-height: 1.6;
-	color: var(--text-secondary);
+	color: var(--text-primary, #ffffff);
 	margin-bottom: 2rem;
 	white-space: pre-wrap;
 }
@@ -147,6 +147,18 @@
 	padding: 1rem;
 	background: var(--background-dark);
 	border-radius: 8px;
+	transition: opacity 0.3s ease, transform 0.3s ease;
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.hints.hidden {
+	opacity: 0;
+	transform: translateY(-10px);
+	height: 0;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
 }
 
 .hints h2 {
@@ -173,6 +185,34 @@
 	content: "💡";
 	position: absolute;
 	left: 0;
+}
+
+.hintToggle {
+	padding: 6px 12px;
+	border-radius: 4px;
+	border: 1px solid var(--border-color);
+	background: transparent;
+	color: var(--text-primary);
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.hintToggle:hover {
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.hintToggle.enabled {
+	background: var(--primary-color);
+	border-color: var(--primary-color);
+	color: white;
+}
+
+.hintToggle.disabled {
+	opacity: 0.7;
 }
 
 .editorHeader {
@@ -239,6 +279,7 @@
 	flex: 1;
 	position: relative;
 	overflow: hidden;
+	background: var(--background-dark);
 }
 
 .textarea {
