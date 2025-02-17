@@ -28,7 +28,7 @@ const FEATURES = [
   }
 ];
 
-export default function WelcomeScreen() {
+export function WelcomeScreen() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { generateChallenge } = useAI();
@@ -40,49 +40,26 @@ export default function WelcomeScreen() {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleGenerateNew = async (topic: string) => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    
+  const handleGetStarted = async () => {
     try {
-      setIsLoading(true);
-      await generateChallenge(topic);
+      await generateChallenge({
+        type: 'challenge',
+        description: 'A beginner-friendly coding challenge',
+        languages: ['Python'] // Default to Python for the welcome challenge
+      });
       navigate('/challenges');
     } catch (error) {
-      console.error('Failed to generate challenge:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to generate welcome challenge:', error);
     }
   };
 
   return (
-    <div className={styles.welcomeScreen}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Welcome to DeepDevAi</h1>
-        <p className={styles.subtitle}>
-          Enhance your coding skills with AI-generated challenges tailored to your interests.
-          {!isAuthenticated && ' Sign in to get started!'}
-        </p>
-      </header>
-
-      <div className={styles.controlPanel}>
-        <WelcomeControlPanel
-          onGenerateNew={handleGenerateNew}
-          isLoading={isLoading}
-        />
-      </div>
-
-      <div className={styles.features}>
-        {FEATURES.map((feature, index) => (
-          <div key={index} className={styles.feature}>
-            <div className={styles.icon}>{feature.icon}</div>
-            <h3>{feature.title}</h3>
-            <p>{feature.description}</p>
-          </div>
-        ))}
-      </div>
+    <div className={styles.welcome}>
+      <h1>Welcome to Problem Giver</h1>
+      <p>Your personal AI-powered coding challenge platform</p>
+      <button onClick={handleGetStarted} className={styles.getStartedButton}>
+        Get Started
+      </button>
     </div>
   );
 } 

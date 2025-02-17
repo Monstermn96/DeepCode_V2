@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { useAI } from '../contexts/AIContext';
 import styles from './AIChallenge.module.css';
 
