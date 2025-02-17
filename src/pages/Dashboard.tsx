@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAI } from '../contexts/AIContext';
 import { useAuth } from '../contexts/AuthContext';
 import WelcomeControlPanel from '../components/WelcomeControlPanel';
+import { type SupportedLanguage } from '../services/ai/openai';
 import styles from './Dashboard.module.css';
 
 interface ChallengeStats {
@@ -31,11 +32,11 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  const handleGenerateNew = async (description: string, languages: string[]) => {
+  const handleGenerateNew = async (description: string, languages: SupportedLanguage[]) => {
     try {
       await generateChallenge({
         type: 'challenge',
-        description,
+        topic: description,
         languages
       });
       navigate('/challenges');

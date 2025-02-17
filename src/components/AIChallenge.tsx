@@ -1,4 +1,5 @@
 import { useAI } from '../contexts/AIContext';
+import { ChallengeView } from './ChallengeView';
 import styles from './AIChallenge.module.css';
 
 export function AIChallenge() {
@@ -31,62 +32,5 @@ export function AIChallenge() {
     );
   }
 
-  return (
-    <div className={styles.challenge}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>{currentChallenge.title}</h1>
-        <div className={styles.meta}>
-          <span className={`${styles.badge} ${styles[currentChallenge.difficulty]}`}>
-            {currentChallenge.difficulty}
-          </span>
-          <span className={styles.badge}>{currentChallenge.language}</span>
-        </div>
-      </header>
-
-      <section className={styles.description}>
-        <h2>Problem Description</h2>
-        <p>{currentChallenge.description}</p>
-      </section>
-
-      <section className={styles.codeSection}>
-        <h2>Your Solution</h2>
-        <div className={styles.codeEditor}>
-          <pre className={styles.code}>
-            <code>{currentChallenge.starterCode}</code>
-          </pre>
-        </div>
-      </section>
-
-      <section className={styles.testCases}>
-        <h2>Test Cases</h2>
-        <div className={styles.testList}>
-          {currentChallenge.testCases.map((test, index) => (
-            <div key={index} className={styles.testCase}>
-              <h3>Test {index + 1}</h3>
-              <p>{test.description}</p>
-              <div className={styles.testDetails}>
-                <div>
-                  <strong>Input:</strong>
-                  <code>{test.input}</code>
-                </div>
-                <div>
-                  <strong>Expected Output:</strong>
-                  <code>{test.expectedOutput}</code>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.hints}>
-        <h2>Hints</h2>
-        <ul>
-          {currentChallenge.hints.map((hint, index) => (
-            <li key={index}>{hint}</li>
-          ))}
-        </ul>
-      </section>
-    </div>
-  );
+  return <ChallengeView />;
 } 

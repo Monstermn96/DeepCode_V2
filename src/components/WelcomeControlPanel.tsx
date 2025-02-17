@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import styles from './WelcomeControlPanel.module.css';
-
-const SUPPORTED_LANGUAGES = ['C#', 'Java', 'Python'];
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../services/ai/openai';
 
 interface WelcomeControlPanelProps {
-  onGenerateNew: (description: string, languages: string[]) => void;
+  onGenerateNew: (description: string, languages: SupportedLanguage[]) => void;
   isLoading: boolean;
 }
 
 export default function WelcomeControlPanel({ onGenerateNew, isLoading }: WelcomeControlPanelProps) {
   const [description, setDescription] = useState('');
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [selectedLanguages, setSelectedLanguages] = useState<SupportedLanguage[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +18,7 @@ export default function WelcomeControlPanel({ onGenerateNew, isLoading }: Welcom
     }
   };
 
-  const toggleLanguage = (language: string) => {
+  const toggleLanguage = (language: SupportedLanguage) => {
     setSelectedLanguages(prev =>
       prev.includes(language)
         ? prev.filter(lang => lang !== language)

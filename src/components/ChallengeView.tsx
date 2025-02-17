@@ -1,7 +1,14 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAI } from '../contexts/AIContext';
+import { aiService } from '../services/ai/openai';
 import styles from './ChallengeView.module.css';
+
+interface TestResult {
+  passed: boolean;
+  actual?: string;
+  explanation?: string;
+}
 
 export function ChallengeView() {
   const { challengeId } = useParams();
@@ -9,7 +16,7 @@ export function ChallengeView() {
   const { currentChallenge } = useAI();
   const [code, setCode] = React.useState('');
   const [isRunning, setIsRunning] = React.useState(false);
-  const [testResults, setTestResults] = React.useState<any[]>([]);
+  const [testResults, setTestResults] = React.useState<TestResult[]>([]);
 
   React.useEffect(() => {
     if (!currentChallenge) {
@@ -20,23 +27,39 @@ export function ChallengeView() {
 
     console.log('Loading challenge:', {
       id: challengeId,
-      title: currentChallenge.title,
-      language: currentChallenge.language
+      challenge: currentChallenge
     });
 
-    // Initialize editor with starter code
-    setCode(currentChallenge.starterCode || '');
+    // Initialize editor with starter code if available
+    if (currentChallenge.problem?.examples?.[0]?.input) {
+      setCode(JSON.stringify(currentChallenge.problem.examples[0].input, null, 2));
+    }
   }, [challengeId, currentChallenge, navigate]);
 
   const handleRunTests = async () => {
+    if (!currentChallenge) return;
+
     try {
       console.log('Running tests for challenge:', challengeId);
       setIsRunning(true);
       
-      // TODO: Implement test running logic
-      const results = await Promise.resolve([]); // Placeholder
+      const response = await aiService.evaluateCode(
+        code,
+        currentChallenge.problem.examples.map(ex => ({
+          input: JSON.stringify(ex.input),
+          expectedOutput: ex.output.toString()
+        })),
+        currentChallenge.problem.language || 'C#'
+      );
+
+      console.log('Test results:', response);
+
+      // Map the evaluation response to test results
+      const results = response.data.results.map((passed, index) => ({
+        passed,
+        explanation: response.data.explanations[index]
+      }));
       
-      console.log('Test results:', results);
       setTestResults(results);
     } catch (error) {
       console.error('Failed to run tests:', error);
@@ -45,21 +68,21 @@ export function ChallengeView() {
     }
   };
 
-  if (!currentChallenge) {
+  if (!currentChallenge?.problem) {
     return null;
   }
 
   return (
     <div className={styles.challengeView}>
       <div className={styles.problemPanel}>
-        <h1 className={styles.title}>{currentChallenge.title}</h1>
+        <h1 className={styles.title}>{currentChallenge.problem.title}</h1>
         <div className={styles.description}>
-          {currentChallenge.description}
+          {currentChallenge.problem.description}
         </div>
         
         <div className={styles.testCases}>
           <h2>Test Cases</h2>
-          {currentChallenge.testCases.map((testCase: any, index: number) => (
+          {currentChallenge.problem.examples.map((example, index) => (
             <div key={index} className={styles.testCase}>
               <div className={styles.testHeader}>
                 <span>Test {index + 1}</span>
@@ -70,20 +93,33 @@ export function ChallengeView() {
                 )}
               </div>
               <div className={styles.testDetails}>
-                <div>Input: <code>{testCase.input}</code></div>
-                <div>Expected: <code>{testCase.expectedOutput}</code></div>
-                {testResults[index]?.actual && (
-                  <div>Actual: <code>{testResults[index].actual}</code></div>
+                <div>Input: <code>{JSON.stringify(example.input, null, 2)}</code></div>
+                <div>Expected: <code>{example.output}</code></div>
+                {testResults[index] && !testResults[index].passed && (
+                  <div className={styles.explanation}>
+                    {testResults[index].explanation}
+                  </div>
                 )}
               </div>
             </div>
           ))}
         </div>
+
+        {currentChallenge.problem.hints && currentChallenge.problem.hints.length > 0 && (
+          <div className={styles.hints}>
+            <h2>Hints</h2>
+            <ul>
+              {currentChallenge.problem.hints.map((hint, index) => (
+                <li key={index}>{hint}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className={styles.editorPanel}>
         <div className={styles.editorHeader}>
-          <span>{currentChallenge.language}</span>
+          <span>{currentChallenge.problem.language || 'C#'}</span>
           <button
             className={styles.runButton}
             onClick={handleRunTests}

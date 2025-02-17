@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from 'react';
-import { post } from '@aws-amplify/api-rest';
+import { aiService } from '../services/ai/openai';
 
 interface Challenge {
   title: string;
@@ -18,7 +18,7 @@ interface Challenge {
 
 interface GenerateChallengeParams {
   type: 'challenge';
-  description: string;
+  topic: string;
   languages: string[];
 }
 
@@ -27,22 +27,6 @@ interface AIContextType {
   loading: boolean;
   error: string | null;
   generateChallenge: (params: GenerateChallengeParams) => Promise<void>;
-}
-
-interface APIResponse {
-  data: Challenge;
-  metadata: {
-    type: string;
-    model: string;
-    duration_ms: number;
-    languages: string[];
-    usage: {
-      prompt_tokens: number;
-      completion_tokens: number;
-      total_tokens: number;
-      estimated_cost: number;
-    };
-  };
 }
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
@@ -59,16 +43,7 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Generating challenge with params:', params);
 
-      const response = await post({
-        apiName: 'ai',
-        path: '/',
-        options: {
-          body: JSON.stringify(params),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      }) as unknown as APIResponse;
+      const response = await aiService.generateChallenge(params.topic, params.languages);
 
       console.log('Raw API response:', response);
 

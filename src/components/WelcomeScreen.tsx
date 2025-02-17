@@ -55,13 +55,13 @@ export function WelcomeScreen() {
 
       console.log('Calling AI service with parameters:', {
         type: 'challenge',
-        description: 'A beginner-friendly coding challenge',
+        topic: 'A beginner-friendly coding challenge',
         languages: ['Python']
       });
 
       await generateChallenge({
         type: 'challenge',
-        description: 'A beginner-friendly coding challenge',
+        topic: 'A beginner-friendly coding challenge',
         languages: ['Python']
       });
 

@@ -154,4 +154,18 @@
   .logo {
     font-size: var(--font-size-lg);
   }
+}
+
+.dashboardLayout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--background-dark);
+}
+
+.main {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 } 
