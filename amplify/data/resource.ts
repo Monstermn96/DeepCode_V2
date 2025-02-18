@@ -1,49 +1,55 @@
-import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+// amplify/data/resource.ts
+import {
+  a,
+  defineData,
+  type ClientSchema
+} from '@aws-amplify/backend';
 
-// Define the models
+// Define your schema using the new "Amplify Data" DSL
 const schema = a.schema({
-	UserStats: a
-		.model({
-			userId: a.id().required(),
-			totalChallenges: a.integer(),
-			completedChallenges: a.integer(),
-			lastActiveAt: a.datetime(),
-			expiresAt: a.timestamp(),
-		})
-		.authorization((allow) => [allow.owner()]),
+  UserStats: a
+    .model({
+      userId: a.id().required(),
+      totalChallenges: a.integer(),
+      completedChallenges: a.integer(),
+      lastActiveAt: a.datetime(),
+      expiresAt: a.timestamp()
+    })
+    .authorization((rules: any) => [rules.owner()]),
 
-	TokenUsage: a
-		.model({
-			userId: a.string().required(),
-			challengeId: a.string().required(),
-			timestamp: a.datetime().required(),
-			tokensUsed: a.integer(),
-			promptTokens: a.integer(),
-			completionTokens: a.integer(),
-			cost: a.float(),
-			expiresAt: a.timestamp(),
-		})
-		.authorization((allow) => [allow.owner()]),
+  TokenUsage: a
+    .model({
+      userId: a.string().required(),
+      challengeId: a.string().required(),
+      timestamp: a.datetime().required(),
+      tokensUsed: a.integer(),
+      promptTokens: a.integer(),
+      completionTokens: a.integer(),
+      cost: a.float(),
+      expiresAt: a.timestamp()
+    })
+    .authorization((rules: any) => [rules.owner()]),
 
-	MonthlyUsage: a
-		.model({
-			userId: a.string().required(),
-			yearMonth: a.string().required(),
-			totalTokens: a.integer(),
-			totalCost: a.float(),
-			challengesCompleted: a.integer(),
-			expiresAt: a.timestamp(),
-		})
-		.authorization((allow) => [allow.owner()]),
+  MonthlyUsage: a
+    .model({
+      userId: a.string().required(),
+      yearMonth: a.string().required(),
+      totalTokens: a.integer(),
+      totalCost: a.float(),
+      challengesCompleted: a.integer(),
+      expiresAt: a.timestamp()
+    })
+    .authorization((rules: any) => [rules.owner()]),
 });
 
-// Export the data resources
+// “defineData” to register the schema resource in Amplify
 export const data = defineData({
-	schema,
-	authorizationModes: {
-		defaultAuthorizationMode: "userPool",
-	},
+  schema,
+  authorizationModes: {
+    defaultAuthorizationMode: 'userPool'
+    // or 'apiKey', etc. if your rules require it
+  },
 });
 
-// Export type-safe client schema
+// (Optional) Export type for your frontend’s `generateClient<Schema>()`
 export type Schema = ClientSchema<typeof schema>;

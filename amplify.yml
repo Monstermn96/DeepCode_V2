@@ -4,13 +4,25 @@ applications:
       phases:
         preBuild:
           commands:
+            # Install & use Node 20
             - nvm install 20
             - nvm use 20
-            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify
+
+            # Install all the extra packages you need for Amplify Data (and any others)
+            - npm install \
+                @aws-sdk/client-cognito-identity-provider \
+                @aws-sdk/client-amplify \
+                @aws-amplify/backend@latest \
+                @aws-amplify/data \
+                aws-amplify
+
         build:
           commands:
+            # (Re)install any dependencies from your package.json
             - npm install
+            # Deploy your backend resources
             - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+
     frontend:
       phases:
         preBuild:
