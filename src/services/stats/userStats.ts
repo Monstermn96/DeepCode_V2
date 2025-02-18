@@ -34,6 +34,15 @@ export interface UserStats {
 	updatedAt: string;
 }
 
+export interface MonthlyUsage {
+	userId: string;
+	yearMonth: string;
+	totalTokens: number;
+	totalCost: number;
+	challengesGenerated: number;
+	lastUpdated?: string;
+}
+
 export class UserStatsService {
 	private static instance: UserStatsService;
 
@@ -50,7 +59,7 @@ export class UserStatsService {
 		try {
 			const { data, errors } = await client.models.UserStats.get({ userId });
 			if (errors) throw errors;
-			return data;
+			return data as unknown as UserStats;
 		} catch (error) {
 			console.error("Error fetching user stats:", error);
 			throw error;
@@ -78,7 +87,7 @@ export class UserStatsService {
 				initialStats
 			);
 			if (errors) throw errors;
-			return data;
+			return data as unknown as UserStats;
 		} catch (error) {
 			console.error("Error initializing user stats:", error);
 			throw error;
@@ -190,17 +199,17 @@ export class UserStatsService {
 		challengesGenerated: number;
 	}> {
 		try {
-			const { data, errors } = await client.models.UserMonthlyUsage.get({
+			const { data, errors } = await client.models.MonthlyUsage.get({
 				userId,
 				yearMonth,
 			});
 			if (errors) throw errors;
 
-			const { totalTokens, totalCost, challengesGenerated } = data;
+			const monthlyData = data as unknown as MonthlyUsage;
 			return {
-				totalTokens: totalTokens || 0,
-				totalCost: totalCost || 0,
-				challengesGenerated: challengesGenerated || 0,
+				totalTokens: monthlyData?.totalTokens || 0,
+				totalCost: monthlyData?.totalCost || 0,
+				challengesGenerated: monthlyData?.challengesGenerated || 0,
 			};
 		} catch (error) {
 			console.error("Error fetching monthly usage:", error);
