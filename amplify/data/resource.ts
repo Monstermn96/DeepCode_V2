@@ -1,6 +1,5 @@
-import { defineData, Schema } from "@aws-amplify/backend";
-import { type ClientSchema } from "@aws-amplify/backend";
-import { model, primaryKey, index, ttl } from "@aws-amplify/backend";
+import { defineData, Schema, type ClientSchema } from "@aws-amplify/backend";
+import { type DataSchema } from "@aws-amplify/backend-data";
 
 /**
  * User statistics schema
@@ -90,22 +89,80 @@ class MonthlyUsage {
 	expiresAt?: number;
 }
 
-// Define the schema
-const schema = Schema.define({
-	models: {
-		UserStats,
-		TokenUsage,
-		MonthlyUsage,
+// Define the models
+const schema = {
+	UserStats: {
+		tableName: "UserStats",
+		primaryKey: {
+			partitionKey: "userId",
+		},
+		streamEnabled: true,
+		fields: {
+			userId: "string",
+			totalChallenges: "number?",
+			completedChallenges: "number?",
+			lastActiveAt: "string?",
+			createdAt: "string?",
+			updatedAt: "string?",
+			expiresAt: "number?",
+		},
 	},
-});
+	TokenUsage: {
+		tableName: "TokenUsage",
+		primaryKey: {
+			partitionKey: "userId",
+			sortKey: "challengeId",
+		},
+		streamEnabled: true,
+		fields: {
+			userId: "string",
+			challengeId: "string",
+			timestamp: "string",
+			tokensUsed: "number?",
+			promptTokens: "number?",
+			completionTokens: "number?",
+			cost: "number?",
+			createdAt: "string?",
+			updatedAt: "string?",
+			expiresAt: "number?",
+		},
+		secondaryIndexes: {
+			byTimestamp: {
+				partitionKey: "userId",
+				sortKey: "timestamp",
+			},
+		},
+	},
+	MonthlyUsage: {
+		tableName: "MonthlyUsage",
+		primaryKey: {
+			partitionKey: "userId",
+			sortKey: "yearMonth",
+		},
+		streamEnabled: true,
+		fields: {
+			userId: "string",
+			yearMonth: "string",
+			totalTokens: "number?",
+			totalCost: "number?",
+			challengesCompleted: "number?",
+			createdAt: "string?",
+			updatedAt: "string?",
+			expiresAt: "number?",
+		},
+	},
+} satisfies DataSchema;
 
-// Export the schema
+// Export the data resources
 export const data = defineData({
 	schema,
 	authorizationModes: {
 		defaultAuthorizationMode: "userPool",
 	},
 });
+
+// Export the models for use in backend.ts
+export const { UserStats, TokenUsage, MonthlyUsage } = schema;
 
 // Export type-safe client schema
 export type Schema = ClientSchema<typeof schema>;
