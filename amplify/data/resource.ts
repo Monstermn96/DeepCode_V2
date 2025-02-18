@@ -1,4 +1,4 @@
-import { defineData, Schema, type ClientSchema } from "@aws-amplify/backend";
+import { a, defineData, type ClientSchema } from "@aws-amplify/backend";
 import { type DataSchema } from "@aws-amplify/backend-data";
 
 /**
@@ -90,68 +90,69 @@ class MonthlyUsage {
 }
 
 // Define the models
-const schema = {
-	UserStats: {
-		tableName: "UserStats",
-		primaryKey: {
+const schema = a.schema({
+	UserStats: a
+		.model({
+			userId: a.string().required(),
+			totalChallenges: a.integer(),
+			completedChallenges: a.integer(),
+			lastActiveAt: a.string(),
+			createdAt: a.string(),
+			updatedAt: a.string(),
+			expiresAt: a.integer(),
+		})
+		.authorization((allow) => [allow.owner()])
+		.primaryKey({
 			partitionKey: "userId",
-		},
-		streamEnabled: true,
-		fields: {
-			userId: "string",
-			totalChallenges: "number?",
-			completedChallenges: "number?",
-			lastActiveAt: "string?",
-			createdAt: "string?",
-			updatedAt: "string?",
-			expiresAt: "number?",
-		},
-	},
-	TokenUsage: {
-		tableName: "TokenUsage",
-		primaryKey: {
+		})
+		.addTimestamps()
+		.enableTTL("expiresAt"),
+
+	TokenUsage: a
+		.model({
+			userId: a.string().required(),
+			challengeId: a.string().required(),
+			timestamp: a.string().required(),
+			tokensUsed: a.integer(),
+			promptTokens: a.integer(),
+			completionTokens: a.integer(),
+			cost: a.float(),
+			createdAt: a.string(),
+			updatedAt: a.string(),
+			expiresAt: a.integer(),
+		})
+		.authorization((allow) => [allow.owner()])
+		.primaryKey({
 			partitionKey: "userId",
 			sortKey: "challengeId",
-		},
-		streamEnabled: true,
-		fields: {
-			userId: "string",
-			challengeId: "string",
-			timestamp: "string",
-			tokensUsed: "number?",
-			promptTokens: "number?",
-			completionTokens: "number?",
-			cost: "number?",
-			createdAt: "string?",
-			updatedAt: "string?",
-			expiresAt: "number?",
-		},
-		secondaryIndexes: {
-			byTimestamp: {
-				partitionKey: "userId",
-				sortKey: "timestamp",
-			},
-		},
-	},
-	MonthlyUsage: {
-		tableName: "MonthlyUsage",
-		primaryKey: {
+		})
+		.secondaryIndex({
+			indexName: "byTimestamp",
+			partitionKey: "userId",
+			sortKey: "timestamp",
+		})
+		.addTimestamps()
+		.enableTTL("expiresAt"),
+
+	MonthlyUsage: a
+		.model({
+			userId: a.string().required(),
+			yearMonth: a.string().required(),
+			totalTokens: a.integer(),
+			totalCost: a.float(),
+			challengesCompleted: a.integer(),
+			createdAt: a.string(),
+			updatedAt: a.string(),
+			expiresAt: a.integer(),
+		})
+		.authorization((allow) => [allow.owner()])
+		.primaryKey({
 			partitionKey: "userId",
 			sortKey: "yearMonth",
-		},
-		streamEnabled: true,
-		fields: {
-			userId: "string",
-			yearMonth: "string",
-			totalTokens: "number?",
-			totalCost: "number?",
-			challengesCompleted: "number?",
-			createdAt: "string?",
-			updatedAt: "string?",
-			expiresAt: "number?",
-		},
-	},
-} satisfies DataSchema;
+		})
+		.addTimestamps()
+		.enableTTL("expiresAt"),
+});
 
 // Export the data resources
 export const data = defineData({
