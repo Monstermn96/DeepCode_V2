@@ -1,9 +1,8 @@
 {
-  "type": "module",
-  "devDependencies": {
-    "@types/node": "^22.13.4",
-    "aws-lambda": "^1.0.7",
-    "dotenv": "^16.4.7",
-    "openai": "^4.85.1"
-  }
+	"type": "module",
+	"devDependencies": {
+		"@types/node": "^22.13.4",
+		"aws-lambda": "^1.0.7",
+		"dotenv": "^16.4.7"
+	}
 }
