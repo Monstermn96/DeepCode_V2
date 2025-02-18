@@ -20,6 +20,37 @@ function Write-ErrorLog {
     Write-Host "----------------------------------------" -ForegroundColor Red
 }
 
+# Function to update environment variables
+function Update-EnvFile {
+    param (
+        [string]$PoolId,
+        [string]$ClientId
+    )
+    Write-Host "Updating .env file..." -ForegroundColor Yellow
+    $envPath = ".env"
+    $envContent = Get-Content $envPath
+
+    # Update or add the environment variables
+    $envContent = $envContent | ForEach-Object {
+        if ($_ -match "^VITE_AUTH_USER_POOL_ID=") {
+            "VITE_AUTH_USER_POOL_ID=$PoolId"
+        }
+        elseif ($_ -match "^VITE_AUTH_USER_POOL_CLIENT_ID=") {
+            "VITE_AUTH_USER_POOL_CLIENT_ID=$ClientId"
+        }
+        else {
+            $_
+        }
+    }
+
+    # Write the updated content back to the file
+    $envContent | Set-Content $envPath
+    Write-Host "Environment variables updated successfully!" -ForegroundColor Green
+    Write-Host "New values:" -ForegroundColor Yellow
+    Write-Host "VITE_AUTH_USER_POOL_ID=$PoolId" -ForegroundColor Yellow
+    Write-Host "VITE_AUTH_USER_POOL_CLIENT_ID=$ClientId" -ForegroundColor Yellow
+}
+
 # Log environment state
 Write-Host "Current Environment State:" -ForegroundColor Yellow
 Write-Host "Node Version: $(node -v)" -ForegroundColor Yellow
@@ -27,19 +58,39 @@ Write-Host "NPM Version: $(npm -v)" -ForegroundColor Yellow
 Write-Host "Current Directory: $(Get-Location)" -ForegroundColor Yellow
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
-# 1. First, run cleanup
-Write-Host "Cleaning up existing sandbox environment..." -ForegroundColor Yellow
-try {
-    ./LocalDevScripts/cleanup-sandbox.ps1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Cleanup script failed with exit code $LASTEXITCODE"
+# 1. Check for existing environment
+Write-Host "Checking for existing sandbox environment..." -ForegroundColor Yellow
+$userPools = aws cognito-idp list-user-pools --max-results 60 | ConvertFrom-Json
+$existingPool = $userPools.UserPools | Where-Object { 
+    ($_.Name -like "*sandbox*" -or $_.Name -like "*Sandbox*" -or 
+     ($_.Name -like "*DeepDevAi*" -and $_.Name -like "*Development*")) 
+} | Sort-Object CreationDate -Descending | Select-Object -First 1
+
+if ($existingPool) {
+    Write-Host "Found existing sandbox environment!" -ForegroundColor Green
+    Write-Host "User Pool: $($existingPool.Name) ($($existingPool.Id))" -ForegroundColor Yellow
+    
+    # Get the client ID
+    $clients = aws cognito-idp list-user-pool-clients --user-pool-id $existingPool.Id | ConvertFrom-Json
+    $client = $clients.UserPoolClients[0]
+    
+    if ($client) {
+        Write-Host "Client ID: $($client.ClientId)" -ForegroundColor Yellow
+        Update-EnvFile -PoolId $existingPool.Id -ClientId $client.ClientId
+        
+        Write-Host "
+Existing sandbox environment is ready!
+1. Environment variables have been updated
+2. You can now start the development server with 'npm run dev'
+" -ForegroundColor Green
+        exit 0
     }
-} catch {
-    Write-ErrorLog -ErrorMessage $_.Exception.Message -Stage "Cleanup" -ErrorDetails $_
-    exit 1
 }
 
-# 2. Set environment variables for deployment
+# 2. If no existing environment, set up a new one
+Write-Host "No existing sandbox environment found. Setting up new environment..." -ForegroundColor Yellow
+
+# Set environment variables for deployment
 Write-Host "Setting environment variables..." -ForegroundColor Yellow
 $env:AMPLIFY_ENV = "dev"
 $env:NODE_ENV = "development"
@@ -73,19 +124,13 @@ Write-Host "This may take several minutes..." -ForegroundColor Yellow
 try {
     # Deploy using Amplify Gen 2
     Write-Host "Running: npx ampx sandbox" -ForegroundColor Yellow
-    Write-Host "Current working directory: $(Get-Location)" -ForegroundColor Yellow
-    
-    # First check if ampx is installed
-    Write-Host "Checking ampx installation..." -ForegroundColor Yellow
-    $ampxVersion = npx ampx --version 2>&1
-    Write-Host "ampx version: $ampxVersion" -ForegroundColor Yellow
     
     # Run sandbox with progress indication
     Write-Host "Starting sandbox deployment..." -ForegroundColor Yellow
     Write-Host "This process will create a local development environment." -ForegroundColor Yellow
     Write-Host "----------------------------------------" -ForegroundColor Yellow
     
-    # Run the sandbox command directly
+    # Run the sandbox command
     npm exec ampx sandbox
     if ($LASTEXITCODE -ne 0) {
         throw "Sandbox deployment failed with exit code $LASTEXITCODE"
@@ -102,9 +147,7 @@ try {
     $sandboxPool = $userPools.UserPools | Where-Object { 
         $_.Name -like "*sandbox*" -or 
         $_.Name -like "*Sandbox*" -or 
-        $_.Name -like "*DeepDevAi*" -or
-        $_.Name -like "*development*" -or
-        $_.Name -like "*Development*"
+        ($_.Name -like "*DeepDevAi*" -and $_.Name -like "*Development*")
     } | Sort-Object CreationDate -Descending | Select-Object -First 1
 
     if ($sandboxPool) {
@@ -118,32 +161,7 @@ try {
 
         if ($client) {
             Write-Host "Found Client ID: $($client.ClientId)" -ForegroundColor Yellow
-
-            # 6. Update .env file
-            Write-Host "Updating .env file..." -ForegroundColor Yellow
-            $envPath = ".env"
-            $envContent = Get-Content $envPath
-
-            # Update or add the environment variables
-            $envContent = $envContent | ForEach-Object {
-                if ($_ -match "^VITE_AUTH_USER_POOL_ID=") {
-                    "VITE_AUTH_USER_POOL_ID=$($sandboxPool.Id)"
-                }
-                elseif ($_ -match "^VITE_AUTH_USER_POOL_CLIENT_ID=") {
-                    "VITE_AUTH_USER_POOL_CLIENT_ID=$($client.ClientId)"
-                }
-                else {
-                    $_
-                }
-            }
-
-            # Write the updated content back to the file
-            $envContent | Set-Content $envPath
-
-            Write-Host "Environment variables updated successfully!" -ForegroundColor Green
-            Write-Host "New values:" -ForegroundColor Yellow
-            Write-Host "VITE_AUTH_USER_POOL_ID=$($sandboxPool.Id)" -ForegroundColor Yellow
-            Write-Host "VITE_AUTH_USER_POOL_CLIENT_ID=$($client.ClientId)" -ForegroundColor Yellow
+            Update-EnvFile -PoolId $sandboxPool.Id -ClientId $client.ClientId
         } else {
             throw "No client found for User Pool"
         }

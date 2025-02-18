@@ -24,66 +24,22 @@ const getPoolName = () => {
 export const auth = defineAuth({
   loginWith: {
     email: {
-      verificationEmailSubject: 'Welcome to DeepDevAi - Verify your email',
-      verificationEmailBody: (code: () => string) => `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            .container {
-              font-family: Arial, sans-serif;
-              max-width: 600px;
-              margin: 0 auto;
-              padding: 20px;
-            }
-            .code {
-              font-size: 24px;
-              font-weight: bold;
-              color: #007bff;
-              padding: 10px;
-              margin: 15px 0;
-            }
-            .footer {
-              color: #666;
-              font-size: 14px;
-              margin-top: 20px;
-              font-style: italic;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h2>Welcome to DeepDevAi!</h2>
-            
-            <p>Your verification code is:</p>
-            <div class="code">${code()}</div>
-            
-            <p>Please enter this code in the verification window to complete your registration.</p>
-            
-            <p>If you didn't request this code, please ignore this email.</p>
-            
-            <p>Best regards,<br>Eric</p>
-            
-            <p class="footer">P.S. Account wipes will happen often as the Site is a BIIIIG WIP.</p>
-          </div>
-        </body>
-        </html>
-      `,
-      verificationEmailStyle: 'CODE'
-    }
+      verificationEmailSubject: 'Welcome to DeepDevAi - Verify your email'
+    },
+    phone: undefined
   },
   userAttributes: {
     email: {
       required: true,
-      mutable: true,
+      mutable: true
     },
     nickname: {
       required: true,
-      mutable: false,
-    },
+      mutable: false
+    }
   },
   multifactor: {
-    mode: 'OFF',
+    mode: 'OFF'
   },
   accountRecovery: 'EMAIL_ONLY',
   name: getPoolName()

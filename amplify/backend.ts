@@ -1,11 +1,13 @@
-import { defineBackend } from "@aws-amplify/backend";
-import { auth } from "./auth/resource";
+import { defineBackend } from '@aws-amplify/backend';
+import { auth } from './auth/resource';
+import { userStats, tokenUsage, monthlyUsage } from './data/resource';
 
-// Define the backend with explicit type annotations
-const backend = defineBackend({
-	auth,
+export const backend = defineBackend({
+  // other resources
+  auth,
+
+  // each table is its own resource:
+  userStats,
+  tokenUsage,
+  monthlyUsage
 });
-
-// Export the backend type and instance
-export type Backend = typeof backend;
-export default backend;
