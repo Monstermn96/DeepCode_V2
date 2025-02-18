@@ -93,7 +93,7 @@ class MonthlyUsage {
 const schema = a.schema({
 	UserStats: a
 		.model({
-			userId: a.string().required(),
+			userId: a.id().required(),
 			totalChallenges: a.integer(),
 			completedChallenges: a.integer(),
 			lastActiveAt: a.string(),
@@ -102,18 +102,14 @@ const schema = a.schema({
 			expiresAt: a.integer(),
 		})
 		.authorization((allow) => [allow.owner()])
-		.identifier({
-			primaryKey: {
-				partitionKey: "userId",
-			},
-		})
-		.addTimestamps()
-		.enableTTL("expiresAt"),
+		.id(["userId"])
+		.timestamps()
+		.ttl("expiresAt"),
 
 	TokenUsage: a
 		.model({
-			userId: a.string().required(),
-			challengeId: a.string().required(),
+			userId: a.id().required(),
+			challengeId: a.id().required(),
 			timestamp: a.string().required(),
 			tokensUsed: a.integer(),
 			promptTokens: a.integer(),
@@ -124,24 +120,14 @@ const schema = a.schema({
 			expiresAt: a.integer(),
 		})
 		.authorization((allow) => [allow.owner()])
-		.identifier({
-			primaryKey: {
-				partitionKey: "userId",
-				sortKey: "challengeId",
-			},
-			secondaryIndexes: {
-				byTimestamp: {
-					partitionKey: "userId",
-					sortKey: "timestamp",
-				},
-			},
-		})
-		.addTimestamps()
-		.enableTTL("expiresAt"),
+		.id(["userId", "challengeId"])
+		.index("byTimestamp", ["userId", "timestamp"])
+		.timestamps()
+		.ttl("expiresAt"),
 
 	MonthlyUsage: a
 		.model({
-			userId: a.string().required(),
+			userId: a.id().required(),
 			yearMonth: a.string().required(),
 			totalTokens: a.integer(),
 			totalCost: a.float(),
@@ -151,14 +137,9 @@ const schema = a.schema({
 			expiresAt: a.integer(),
 		})
 		.authorization((allow) => [allow.owner()])
-		.identifier({
-			primaryKey: {
-				partitionKey: "userId",
-				sortKey: "yearMonth",
-			},
-		})
-		.addTimestamps()
-		.enableTTL("expiresAt"),
+		.id(["userId", "yearMonth"])
+		.timestamps()
+		.ttl("expiresAt"),
 });
 
 // Export the data resources
