@@ -1,90 +1,111 @@
-import { defineResource } from "@aws-amplify/cli-extensibility-helper";
+import { defineData, Schema } from "@aws-amplify/backend";
+import { type ClientSchema } from "@aws-amplify/backend";
+import { model, primaryKey, index, ttl } from "@aws-amplify/backend";
 
 /**
- * UserStats table
+ * User statistics schema
  */
-export const userStats = defineResource(() => {
-	return {
-		Type: "AWS::DynamoDB::Table",
-		Properties: {
-			TableName: "UserStats",
-			KeySchema: [{ AttributeName: "userId", KeyType: "HASH" }],
-			AttributeDefinitions: [{ AttributeName: "userId", AttributeType: "S" }],
-			StreamSpecification: {
-				StreamViewType: "NEW_AND_OLD_IMAGES",
-			},
-			TimeToLiveSpecification: {
-				AttributeName: "expiresAt",
-				Enabled: false,
-			},
-			BillingMode: "PAY_PER_REQUEST",
-		},
-	};
-});
+@model({
+	tableName: "UserStats",
+	primaryKey: {
+		partitionKey: "userId",
+	},
+	streamEnabled: true,
+})
+class UserStats {
+	@primaryKey()
+	userId!: string;
+
+	totalChallenges?: number;
+	completedChallenges?: number;
+	lastActiveAt?: string;
+	createdAt?: string;
+	updatedAt?: string;
+
+	@ttl()
+	expiresAt?: number;
+}
 
 /**
- * TokenUsage table
+ * Token usage tracking schema
  */
-export const tokenUsage = defineResource(() => {
-	return {
-		Type: "AWS::DynamoDB::Table",
-		Properties: {
-			TableName: "TokenUsage",
-			KeySchema: [
-				{ AttributeName: "userId", KeyType: "HASH" },
-				{ AttributeName: "challengeId", KeyType: "RANGE" },
-			],
-			AttributeDefinitions: [
-				{ AttributeName: "userId", AttributeType: "S" },
-				{ AttributeName: "challengeId", AttributeType: "S" },
-				{ AttributeName: "timestamp", AttributeType: "S" }, // for GSI
-			],
-			GlobalSecondaryIndexes: [
-				{
-					IndexName: "byTimestamp",
-					KeySchema: [
-						{ AttributeName: "userId", KeyType: "HASH" },
-						{ AttributeName: "timestamp", KeyType: "RANGE" },
-					],
-					Projection: { ProjectionType: "ALL" },
-				},
-			],
-			StreamSpecification: {
-				StreamViewType: "NEW_AND_OLD_IMAGES",
-			},
-			TimeToLiveSpecification: {
-				AttributeName: "expiresAt",
-				Enabled: true,
-			},
-			BillingMode: "PAY_PER_REQUEST",
-		},
-	};
-});
+@model({
+	tableName: "TokenUsage",
+	primaryKey: {
+		partitionKey: "userId",
+		sortKey: "challengeId",
+	},
+	streamEnabled: true,
+})
+class TokenUsage {
+	@primaryKey()
+	userId!: string;
+
+	@primaryKey()
+	challengeId!: string;
+
+	@index({
+		name: "byTimestamp",
+		partitionKey: "userId",
+		sortKey: "timestamp",
+	})
+	timestamp!: string;
+
+	tokensUsed?: number;
+	promptTokens?: number;
+	completionTokens?: number;
+	cost?: number;
+	createdAt?: string;
+	updatedAt?: string;
+
+	@ttl()
+	expiresAt?: number;
+}
 
 /**
- * MonthlyUsage table
+ * Monthly usage tracking schema
  */
-export const monthlyUsage = defineResource(() => {
-	return {
-		Type: "AWS::DynamoDB::Table",
-		Properties: {
-			TableName: "MonthlyUsage",
-			KeySchema: [
-				{ AttributeName: "userId", KeyType: "HASH" },
-				{ AttributeName: "yearMonth", KeyType: "RANGE" },
-			],
-			AttributeDefinitions: [
-				{ AttributeName: "userId", AttributeType: "S" },
-				{ AttributeName: "yearMonth", AttributeType: "S" },
-			],
-			StreamSpecification: {
-				StreamViewType: "NEW_AND_OLD_IMAGES",
-			},
-			TimeToLiveSpecification: {
-				AttributeName: "expiresAt",
-				Enabled: true,
-			},
-			BillingMode: "PAY_PER_REQUEST",
-		},
-	};
+@model({
+	tableName: "MonthlyUsage",
+	primaryKey: {
+		partitionKey: "userId",
+		sortKey: "yearMonth",
+	},
+	streamEnabled: true,
+})
+class MonthlyUsage {
+	@primaryKey()
+	userId!: string;
+
+	@primaryKey()
+	yearMonth!: string;
+
+	totalTokens?: number;
+	totalCost?: number;
+	challengesCompleted?: number;
+	createdAt?: string;
+	updatedAt?: string;
+
+	@ttl()
+	expiresAt?: number;
+}
+
+// Define the schema
+const schema = Schema.define({
+	models: {
+		UserStats,
+		TokenUsage,
+		MonthlyUsage,
+	},
 });
+
+// Export the schema
+export const data = defineData({
+	schema,
+	authorizationModes: {
+		defaultAuthorizationMode: "userPool",
+	},
+});
+
+// Export type-safe client schema
+export type Schema = ClientSchema<typeof schema>;
