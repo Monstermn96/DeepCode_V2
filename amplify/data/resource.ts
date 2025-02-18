@@ -1,16 +1,15 @@
-import { type Schema as DataSchema } from "aws-amplify/data";
-import { defineData, type DefineDataOptions } from "@aws-amplify/backend-data";
+import { defineData, type DataSchemaInput } from "@aws-amplify/backend";
 
 // Define the models
-const schema = {
+const schema: DataSchemaInput = {
 	UserStats: {
 		model: {
 			fields: {
 				userId: { type: "string", required: true },
-				totalChallenges: { type: "number" },
-				completedChallenges: { type: "number" },
+				totalChallenges: { type: "integer" },
+				completedChallenges: { type: "integer" },
 				lastActiveAt: { type: "string" },
-				expiresAt: { type: "number" },
+				expiresAt: { type: "integer" },
 			},
 			authorization: [{ allow: "owner" }],
 		},
@@ -22,11 +21,11 @@ const schema = {
 				userId: { type: "string", required: true },
 				challengeId: { type: "string", required: true },
 				timestamp: { type: "string", required: true },
-				tokensUsed: { type: "number" },
-				promptTokens: { type: "number" },
-				completionTokens: { type: "number" },
-				cost: { type: "number" },
-				expiresAt: { type: "number" },
+				tokensUsed: { type: "integer" },
+				promptTokens: { type: "integer" },
+				completionTokens: { type: "integer" },
+				cost: { type: "float" },
+				expiresAt: { type: "integer" },
 			},
 			authorization: [{ allow: "owner" }],
 			secondaryIndexes: {
@@ -40,10 +39,10 @@ const schema = {
 			fields: {
 				userId: { type: "string", required: true },
 				yearMonth: { type: "string", required: true },
-				totalTokens: { type: "number" },
-				totalCost: { type: "number" },
-				challengesCompleted: { type: "number" },
-				expiresAt: { type: "number" },
+				totalTokens: { type: "integer" },
+				totalCost: { type: "float" },
+				challengesCompleted: { type: "integer" },
+				expiresAt: { type: "integer" },
 			},
 			authorization: [{ allow: "owner" }],
 		},
@@ -56,7 +55,7 @@ export const data = defineData({
 	authorizationModes: {
 		defaultAuthorizationMode: "userPool",
 	},
-} as DefineDataOptions);
+});
 
 // Export type-safe client schema
-export type Schema = DataSchema<typeof schema>;
+export type Schema = typeof schema;
