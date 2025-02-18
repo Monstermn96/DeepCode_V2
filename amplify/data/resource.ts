@@ -1,4 +1,4 @@
-import { defineData, type DataSchemaInput } from "@aws-amplify/backend";
+import { defineData, type DataSchemaInput } from "@aws-amplify/backend-data";
 
 // Define the models
 const schema: DataSchemaInput = {
