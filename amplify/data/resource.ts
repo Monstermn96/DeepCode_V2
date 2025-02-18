@@ -1,41 +1,54 @@
-import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { type Schema as DataSchema } from "aws-amplify/data";
+import { defineData, type DefineDataOptions } from "@aws-amplify/backend-data";
 
 // Define the models
-const schema = a.schema({
-	UserStats: a
-		.model({
-			userId: a.string().required(),
-			totalChallenges: a.integer(),
-			completedChallenges: a.integer(),
-			lastActiveAt: a.datetime(),
-			expiresAt: a.timestamp(),
-		})
-		.authorization((allow) => [allow.owner()]),
+const schema = {
+	UserStats: {
+		model: {
+			fields: {
+				userId: { type: "string", required: true },
+				totalChallenges: { type: "number" },
+				completedChallenges: { type: "number" },
+				lastActiveAt: { type: "string" },
+				expiresAt: { type: "number" },
+			},
+			authorization: [{ allow: "owner" }],
+		},
+	},
 
-	TokenUsage: a
-		.model({
-			userId: a.string().required(),
-			challengeId: a.string().required(),
-			timestamp: a.datetime().required(),
-			tokensUsed: a.integer(),
-			promptTokens: a.integer(),
-			completionTokens: a.integer(),
-			cost: a.float(),
-			expiresAt: a.timestamp(),
-		})
-		.authorization((allow) => [allow.owner()]),
+	TokenUsage: {
+		model: {
+			fields: {
+				userId: { type: "string", required: true },
+				challengeId: { type: "string", required: true },
+				timestamp: { type: "string", required: true },
+				tokensUsed: { type: "number" },
+				promptTokens: { type: "number" },
+				completionTokens: { type: "number" },
+				cost: { type: "number" },
+				expiresAt: { type: "number" },
+			},
+			authorization: [{ allow: "owner" }],
+			secondaryIndexes: {
+				byTimestamp: { sortKey: ["timestamp"] },
+			},
+		},
+	},
 
-	MonthlyUsage: a
-		.model({
-			userId: a.string().required(),
-			yearMonth: a.string().required(),
-			totalTokens: a.integer(),
-			totalCost: a.float(),
-			challengesCompleted: a.integer(),
-			expiresAt: a.timestamp(),
-		})
-		.authorization((allow) => [allow.owner()]),
-});
+	MonthlyUsage: {
+		model: {
+			fields: {
+				userId: { type: "string", required: true },
+				yearMonth: { type: "string", required: true },
+				totalTokens: { type: "number" },
+				totalCost: { type: "number" },
+				challengesCompleted: { type: "number" },
+				expiresAt: { type: "number" },
+			},
+			authorization: [{ allow: "owner" }],
+		},
+	},
+};
 
 // Export the data resources
 export const data = defineData({
@@ -43,7 +56,7 @@ export const data = defineData({
 	authorizationModes: {
 		defaultAuthorizationMode: "userPool",
 	},
-});
+} as DefineDataOptions);
 
 // Export type-safe client schema
-export type Schema = ClientSchema<typeof schema>;
+export type Schema = DataSchema<typeof schema>;
