@@ -102,8 +102,10 @@ const schema = a.schema({
 			expiresAt: a.integer(),
 		})
 		.authorization((allow) => [allow.owner()])
-		.primaryKey({
-			partitionKey: "userId",
+		.identifier({
+			primaryKey: {
+				partitionKey: "userId",
+			},
 		})
 		.addTimestamps()
 		.enableTTL("expiresAt"),
@@ -122,14 +124,17 @@ const schema = a.schema({
 			expiresAt: a.integer(),
 		})
 		.authorization((allow) => [allow.owner()])
-		.primaryKey({
-			partitionKey: "userId",
-			sortKey: "challengeId",
-		})
-		.secondaryIndex({
-			indexName: "byTimestamp",
-			partitionKey: "userId",
-			sortKey: "timestamp",
+		.identifier({
+			primaryKey: {
+				partitionKey: "userId",
+				sortKey: "challengeId",
+			},
+			secondaryIndexes: {
+				byTimestamp: {
+					partitionKey: "userId",
+					sortKey: "timestamp",
+				},
+			},
 		})
 		.addTimestamps()
 		.enableTTL("expiresAt"),
@@ -146,9 +151,11 @@ const schema = a.schema({
 			expiresAt: a.integer(),
 		})
 		.authorization((allow) => [allow.owner()])
-		.primaryKey({
-			partitionKey: "userId",
-			sortKey: "yearMonth",
+		.identifier({
+			primaryKey: {
+				partitionKey: "userId",
+				sortKey: "yearMonth",
+			},
 		})
 		.addTimestamps()
 		.enableTTL("expiresAt"),
