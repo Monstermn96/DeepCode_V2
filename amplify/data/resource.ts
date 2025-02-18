@@ -1,9 +1,13 @@
-import { defineData, type DataSchemaInput } from "@aws-amplify/backend-data";
+import { defineData } from "@aws-amplify/backend";
+import {
+	type DataSchemaInput,
+	type DerivedModelSchema,
+} from "@aws-amplify/data-schema-types";
 
 // Define the models
-const schema: DataSchemaInput = {
-	UserStats: {
-		model: {
+const schema: DerivedModelSchema = {
+	models: {
+		UserStats: {
 			fields: {
 				userId: { type: "string", required: true },
 				totalChallenges: { type: "integer" },
@@ -13,10 +17,8 @@ const schema: DataSchemaInput = {
 			},
 			authorization: [{ allow: "owner" }],
 		},
-	},
 
-	TokenUsage: {
-		model: {
+		TokenUsage: {
 			fields: {
 				userId: { type: "string", required: true },
 				challengeId: { type: "string", required: true },
@@ -32,10 +34,8 @@ const schema: DataSchemaInput = {
 				byTimestamp: { sortKey: ["timestamp"] },
 			},
 		},
-	},
 
-	MonthlyUsage: {
-		model: {
+		MonthlyUsage: {
 			fields: {
 				userId: { type: "string", required: true },
 				yearMonth: { type: "string", required: true },
