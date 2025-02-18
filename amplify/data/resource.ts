@@ -1,53 +1,41 @@
-import { defineData } from "@aws-amplify/backend";
-import {
-	type DataSchemaInput,
-	type DerivedModelSchema,
-} from "@aws-amplify/data-schema-types";
+import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 // Define the models
-const schema: DerivedModelSchema = {
-	models: {
-		UserStats: {
-			fields: {
-				userId: { type: "string", required: true },
-				totalChallenges: { type: "integer" },
-				completedChallenges: { type: "integer" },
-				lastActiveAt: { type: "string" },
-				expiresAt: { type: "integer" },
-			},
-			authorization: [{ allow: "owner" }],
-		},
+const schema = a.schema({
+	UserStats: a
+		.model({
+			userId: a.id().required(),
+			totalChallenges: a.integer(),
+			completedChallenges: a.integer(),
+			lastActiveAt: a.datetime(),
+			expiresAt: a.timestamp(),
+		})
+		.authorization((allow) => [allow.owner()]),
 
-		TokenUsage: {
-			fields: {
-				userId: { type: "string", required: true },
-				challengeId: { type: "string", required: true },
-				timestamp: { type: "string", required: true },
-				tokensUsed: { type: "integer" },
-				promptTokens: { type: "integer" },
-				completionTokens: { type: "integer" },
-				cost: { type: "float" },
-				expiresAt: { type: "integer" },
-			},
-			authorization: [{ allow: "owner" }],
-			secondaryIndexes: {
-				byTimestamp: { sortKey: ["timestamp"] },
-			},
-		},
+	TokenUsage: a
+		.model({
+			userId: a.string().required(),
+			challengeId: a.string().required(),
+			timestamp: a.datetime().required(),
+			tokensUsed: a.integer(),
+			promptTokens: a.integer(),
+			completionTokens: a.integer(),
+			cost: a.float(),
+			expiresAt: a.timestamp(),
+		})
+		.authorization((allow) => [allow.owner()]),
 
-		MonthlyUsage: {
-			fields: {
-				userId: { type: "string", required: true },
-				yearMonth: { type: "string", required: true },
-				totalTokens: { type: "integer" },
-				totalCost: { type: "float" },
-				challengesCompleted: { type: "integer" },
-				expiresAt: { type: "integer" },
-			},
-			authorization: [{ allow: "owner" }],
-		},
-	},
-};
+	MonthlyUsage: a
+		.model({
+			userId: a.string().required(),
+			yearMonth: a.string().required(),
+			totalTokens: a.integer(),
+			totalCost: a.float(),
+			challengesCompleted: a.integer(),
+			expiresAt: a.timestamp(),
+		})
+		.authorization((allow) => [allow.owner()]),
+});
 
 // Export the data resources
 export const data = defineData({
@@ -58,4 +46,4 @@ export const data = defineData({
 });
 
 // Export type-safe client schema
-export type Schema = typeof schema;
+export type Schema = ClientSchema<typeof schema>;
