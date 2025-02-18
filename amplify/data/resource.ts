@@ -1,145 +1,40 @@
-import { a, defineData, type ClientSchema } from "@aws-amplify/backend";
-import { type DataSchema } from "@aws-amplify/backend-data";
-
-/**
- * User statistics schema
- */
-@model({
-	tableName: "UserStats",
-	primaryKey: {
-		partitionKey: "userId",
-	},
-	streamEnabled: true,
-})
-class UserStats {
-	@primaryKey()
-	userId!: string;
-
-	totalChallenges?: number;
-	completedChallenges?: number;
-	lastActiveAt?: string;
-	createdAt?: string;
-	updatedAt?: string;
-
-	@ttl()
-	expiresAt?: number;
-}
-
-/**
- * Token usage tracking schema
- */
-@model({
-	tableName: "TokenUsage",
-	primaryKey: {
-		partitionKey: "userId",
-		sortKey: "challengeId",
-	},
-	streamEnabled: true,
-})
-class TokenUsage {
-	@primaryKey()
-	userId!: string;
-
-	@primaryKey()
-	challengeId!: string;
-
-	@index({
-		name: "byTimestamp",
-		partitionKey: "userId",
-		sortKey: "timestamp",
-	})
-	timestamp!: string;
-
-	tokensUsed?: number;
-	promptTokens?: number;
-	completionTokens?: number;
-	cost?: number;
-	createdAt?: string;
-	updatedAt?: string;
-
-	@ttl()
-	expiresAt?: number;
-}
-
-/**
- * Monthly usage tracking schema
- */
-@model({
-	tableName: "MonthlyUsage",
-	primaryKey: {
-		partitionKey: "userId",
-		sortKey: "yearMonth",
-	},
-	streamEnabled: true,
-})
-class MonthlyUsage {
-	@primaryKey()
-	userId!: string;
-
-	@primaryKey()
-	yearMonth!: string;
-
-	totalTokens?: number;
-	totalCost?: number;
-	challengesCompleted?: number;
-	createdAt?: string;
-	updatedAt?: string;
-
-	@ttl()
-	expiresAt?: number;
-}
+import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 // Define the models
 const schema = a.schema({
 	UserStats: a
 		.model({
-			userId: a.id().required(),
+			userId: a.string().required(),
 			totalChallenges: a.integer(),
 			completedChallenges: a.integer(),
-			lastActiveAt: a.string(),
-			createdAt: a.string(),
-			updatedAt: a.string(),
-			expiresAt: a.integer(),
+			lastActiveAt: a.datetime(),
+			expiresAt: a.timestamp(),
 		})
-		.authorization((allow) => [allow.owner()])
-		.id(["userId"])
-		.timestamps()
-		.ttl("expiresAt"),
+		.authorization((allow) => [allow.owner()]),
 
 	TokenUsage: a
 		.model({
-			userId: a.id().required(),
-			challengeId: a.id().required(),
-			timestamp: a.string().required(),
+			userId: a.string().required(),
+			challengeId: a.string().required(),
+			timestamp: a.datetime().required(),
 			tokensUsed: a.integer(),
 			promptTokens: a.integer(),
 			completionTokens: a.integer(),
 			cost: a.float(),
-			createdAt: a.string(),
-			updatedAt: a.string(),
-			expiresAt: a.integer(),
+			expiresAt: a.timestamp(),
 		})
-		.authorization((allow) => [allow.owner()])
-		.id(["userId", "challengeId"])
-		.index("byTimestamp", ["userId", "timestamp"])
-		.timestamps()
-		.ttl("expiresAt"),
+		.authorization((allow) => [allow.owner()]),
 
 	MonthlyUsage: a
 		.model({
-			userId: a.id().required(),
+			userId: a.string().required(),
 			yearMonth: a.string().required(),
 			totalTokens: a.integer(),
 			totalCost: a.float(),
 			challengesCompleted: a.integer(),
-			createdAt: a.string(),
-			updatedAt: a.string(),
-			expiresAt: a.integer(),
+			expiresAt: a.timestamp(),
 		})
-		.authorization((allow) => [allow.owner()])
-		.id(["userId", "yearMonth"])
-		.timestamps()
-		.ttl("expiresAt"),
+		.authorization((allow) => [allow.owner()]),
 });
 
 // Export the data resources
@@ -149,9 +44,6 @@ export const data = defineData({
 		defaultAuthorizationMode: "userPool",
 	},
 });
-
-// Export the models for use in backend.ts
-export const { UserStats, TokenUsage, MonthlyUsage } = schema;
 
 // Export type-safe client schema
 export type Schema = ClientSchema<typeof schema>;
