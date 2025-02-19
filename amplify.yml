@@ -6,7 +6,7 @@ applications:
           commands:
             - nvm install 20
             - nvm use 20
-            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@latest @aws-amplify/data aws-amplify
+            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@latest
         build:
           commands:
             - npm install
