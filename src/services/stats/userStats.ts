@@ -1,9 +1,5 @@
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "../../../amplify/data/resource";
-
-const client = generateClient<Schema>({
-	authMode: "userPool",
-});
+import { client } from '../../main';
+import { type Schema } from "../../../amplify/data/resource";
 
 interface TokenUsage {
 	promptTokens: number;
@@ -21,17 +17,14 @@ interface LanguageStats {
 }
 
 export interface UserStats {
-	userId: string;
+	id: string;  // Primary key
 	totalChallenges: number;
 	completedChallenges: number;
-	inProgressChallenges: number;
-	totalPoints: number;
-	lastActive: string;
-	currentStreak: number;
-	longestStreak: number;
-	languageStats: Record<string, LanguageStats>;
-	createdAt: string;
-	updatedAt: string;
+	lastActiveAt: string;
+	currentStreak?: number;
+	longestStreak?: number;
+	updatedAt?: string;
+	expiresAt?: number;
 }
 
 export interface MonthlyUsage {
@@ -57,7 +50,9 @@ export class UserStatsService {
 
 	async getUserStats(userId: string): Promise<UserStats | null> {
 		try {
-			const { data, errors } = await client.models.UserStats.get({ userId });
+			const { data, errors } = await client.models.UserStats.get({
+				id: userId
+			});
 			if (errors) throw errors;
 			return data as unknown as UserStats;
 		} catch (error) {
@@ -69,23 +64,19 @@ export class UserStatsService {
 	async initializeUserStats(userId: string): Promise<UserStats> {
 		const now = new Date().toISOString();
 		const initialStats: UserStats = {
-			userId,
+			id: userId,  // Use userId as the id
 			totalChallenges: 0,
 			completedChallenges: 0,
-			inProgressChallenges: 0,
-			totalPoints: 0,
-			lastActive: now,
+			lastActiveAt: now,
 			currentStreak: 0,
 			longestStreak: 0,
-			languageStats: {},
-			createdAt: now,
-			updatedAt: now,
+			updatedAt: now
 		};
 
 		try {
-			const { data, errors } = await client.models.UserStats.create(
-				initialStats
-			);
+			const { data, errors } = await client.models.UserStats.create({
+				input: initialStats
+			});
 			if (errors) throw errors;
 			return data as unknown as UserStats;
 		} catch (error) {
@@ -105,16 +96,19 @@ export class UserStatsService {
 		try {
 			// Record individual usage
 			await client.models.TokenUsage.create({
+				id: `${userId}_${challengeId}`,  // Required by schema
 				userId,
 				challengeId,
-				...usage,
 				timestamp,
+				tokensUsed: usage.totalTokens,
+				promptTokens: usage.promptTokens,
+				completionTokens: usage.completionTokens,
+				cost: usage.estimatedCost
 			});
 
 			// Update monthly aggregates
-			await client.models.UserMonthlyUsage.update({
-				userId,
-				yearMonth,
+			await client.models.MonthlyUsage.update({
+				id: `${userId}_${yearMonth}`,
 				totalTokens: {
 					action: "add",
 					value: usage.totalTokens,
@@ -123,11 +117,10 @@ export class UserStatsService {
 					action: "add",
 					value: usage.estimatedCost,
 				},
-				challengesGenerated: {
+				challengesCompleted: {
 					action: "add",
 					value: 1,
-				},
-				lastUpdated: timestamp,
+				}
 			});
 		} catch (error) {
 			console.error("Error recording token usage:", error);
@@ -137,35 +130,13 @@ export class UserStatsService {
 
 	async updateChallengeCompletion(
 		userId: string,
-		language: string,
-		points: number,
 		completed: boolean
 	): Promise<void> {
 		const now = new Date().toISOString();
 
 		try {
-			const stats =
-				(await this.getUserStats(userId)) ||
-				(await this.initializeUserStats(userId));
-
-			const languageStats = stats.languageStats[language] || {
-				completed: 0,
-				proficiency: 0,
-				totalPoints: 0,
-			};
-
-			if (completed) {
-				languageStats.completed += 1;
-				languageStats.totalPoints += points;
-				// Simple proficiency calculation based on points
-				languageStats.proficiency = Math.min(
-					100,
-					Math.floor((languageStats.totalPoints / 1000) * 100)
-				);
-			}
-
 			await client.models.UserStats.update({
-				userId,
+				id: userId,
 				totalChallenges: {
 					action: "add",
 					value: 1,
@@ -174,15 +145,7 @@ export class UserStatsService {
 					action: "add",
 					value: completed ? 1 : 0,
 				},
-				totalPoints: {
-					action: "add",
-					value: points,
-				},
-				lastActive: now,
-				languageStats: {
-					[language]: languageStats,
-				},
-				updatedAt: now,
+				lastActiveAt: now
 			});
 		} catch (error) {
 			console.error("Error updating challenge completion:", error);
@@ -200,8 +163,7 @@ export class UserStatsService {
 	}> {
 		try {
 			const { data, errors } = await client.models.MonthlyUsage.get({
-				userId,
-				yearMonth,
+				id: `${userId}_${yearMonth}`
 			});
 			if (errors) throw errors;
 
@@ -225,12 +187,12 @@ export class UserStatsService {
 			const stats = await this.getUserStats(userId);
 			if (!stats) return;
 
-			const lastActiveDate = new Date(stats.lastActive.split("T")[0]);
+			const lastActiveDate = new Date(stats.lastActiveAt.split("T")[0]);
 			const daysSinceLastActive = Math.floor(
 				(now.getTime() - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24)
 			);
 
-			let newStreak = stats.currentStreak;
+			let newStreak = stats.currentStreak || 0;  // Default to 0 if undefined
 			if (daysSinceLastActive === 1) {
 				// Consecutive day
 				newStreak += 1;
@@ -240,13 +202,13 @@ export class UserStatsService {
 			}
 
 			await client.models.UserStats.update({
-				userId,
+				id: userId,
 				currentStreak: newStreak,
 				longestStreak: {
 					action: "greatest",
 					value: newStreak,
 				},
-				lastActive: today,
+				lastActiveAt: today,
 				updatedAt: now.toISOString(),
 			});
 		} catch (error) {

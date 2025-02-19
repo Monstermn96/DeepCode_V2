@@ -2,10 +2,15 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Amplify } from "aws-amplify";
 import { type ResourcesConfig } from "aws-amplify";
+import { generateClient } from 'aws-amplify/data';
+import { Schema } from '../amplify/data/resource';
 import App from "./App";
 import "./index.css";
 
+
 // Initialize Amplify
+let client: ReturnType<typeof generateClient<Schema>>;
+
 try {
 	console.log("----------------------------------------");
 	console.log("Initializing Amplify Configuration");
@@ -61,6 +66,11 @@ try {
 			},
 		},
 		API: {
+			GraphQL: {
+				endpoint: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}/graphql`,
+				region: region,
+				defaultAuthMode: 'userPool'
+			},
 			REST: {
 				ai: {
 					endpoint: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}`,
@@ -68,13 +78,21 @@ try {
 				},
 			},
 		},
+		Data: {
+			endpoint: `https://${apiId}.execute-api.${region}.amazonaws.com/${apiStage}`,
+			region: region
+		}
 	};
 
 	Amplify.configure(config);
+	
+	// Initialize the Data API client after configuration
+	client = generateClient<Schema>();
 
 	console.log("Amplify configured successfully");
 	console.log("API Configuration:", {
-		endpoint: config.API?.REST?.ai.endpoint,
+		graphqlEndpoint: config.API?.GraphQL?.endpoint,
+		restEndpoint: config.API?.REST?.ai.endpoint,
 		region: config.API?.REST?.ai.region,
 		stage: apiStage,
 	});
@@ -88,6 +106,8 @@ try {
 	console.error("Error configuring Amplify:", error);
 	console.log("----------------------------------------");
 }
+
+export { client };
 
 // Create root element
 const rootElement = document.getElementById("root");

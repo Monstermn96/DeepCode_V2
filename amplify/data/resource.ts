@@ -9,7 +9,7 @@ import {
 const schema = a.schema({
   UserStats: a
     .model({
-      userId: a.id().required(),
+      id: a.string().required(),
       totalChallenges: a.integer(),
       completedChallenges: a.integer(),
       lastActiveAt: a.datetime(),
@@ -19,6 +19,7 @@ const schema = a.schema({
 
   TokenUsage: a
     .model({
+      id: a.string().required(),
       userId: a.string().required(),
       challengeId: a.string().required(),
       timestamp: a.datetime().required(),
@@ -32,6 +33,7 @@ const schema = a.schema({
 
   MonthlyUsage: a
     .model({
+      id: a.string().required(),
       userId: a.string().required(),
       yearMonth: a.string().required(),
       totalTokens: a.integer(),
@@ -42,7 +44,7 @@ const schema = a.schema({
     .authorization((rules: any) => [rules.owner()]),
 });
 
-// “defineData” to register the schema resource in Amplify
+// "defineData" to register the schema resource in Amplify
 export const data = defineData({
   schema,
   authorizationModes: {
@@ -51,5 +53,5 @@ export const data = defineData({
   },
 });
 
-// (Optional) Export type for your frontend’s `generateClient<Schema>()`
+// (Optional) Export type for your frontend's `generateClient<Schema>()`
 export type Schema = ClientSchema<typeof schema>;

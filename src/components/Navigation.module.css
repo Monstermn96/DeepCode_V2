@@ -94,6 +94,22 @@
 	font-weight: 500;
 }
 
+.initStatsButton {
+	background-color: #4a5568;
+	color: white;
+	border: none;
+	padding: 0.5rem 1rem;
+	border-radius: 0.375rem;
+	font-size: 0.875rem;
+	cursor: pointer;
+	margin-right: 1rem;
+	transition: background-color 0.2s;
+}
+
+.initStatsButton:hover {
+	background-color: #2d3748;
+}
+
 @media (max-width: 768px) {
 	.nav {
 		padding: 0.75rem 1rem;
