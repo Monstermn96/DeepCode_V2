@@ -1,0 +1,193 @@
+---
+description: Amplify information
+globs: 
+---
+**AWS Amplify Gen 2 Overview**  
+- **Developer Experience:**  
+  - TypeScript-based, code-first approach  
+  - Unified developer experience for hosting, backend, and UI-building  
+  - Define backend by expressing data models, business logic, authentication, and authorization in TypeScript  
+  - Automatic configuration of AWS resources without manual stitching of services  
+
+---
+
+**Core Capabilities**
+
+1. **Fullstack TypeScript Development**  
+   - **File-Based Convention:**  
+     - Resources are defined in files (e.g., `amplify/auth/resource.ts`, `amplify/auth/data.ts`)  
+     - Benefits from strict typing, IntelliSense, and immediate type error reflection between backend and frontend  
+   - **Convention over Configuration:**  
+     - Organized resource definitions by type for predictability  
+
+2. **Faster Local Development**  
+   - **Per-Developer Cloud Sandbox Environments:**  
+     - Isolated cloud environments for each developer  
+     - High-fidelity AWS backends during development  
+     - Deployments up to 8X faster compared to Gen 1  
+
+3. **Fullstack Git-Based Environments**  
+   - **Git Branch Mapping:**  
+     - Shared environments (production, staging, etc.) map 1:1 to Git branches  
+     - Ephemeral environments for pull request previews  
+     - Zero-config setup due to code-first approach  
+   - **Source of Truth:**  
+     - Git repository maintains fullstack app state including backend resources  
+
+4. **Unified Management Console**  
+   - **Single Place Management:**  
+     - Manage builds, hosting settings (custom domains), deployed resources (data, auth, storage, functions), and environment variables  
+   - **First-Party Experience:**  
+     - Access and manage key app components without switching to other AWS consoles  
+
+---
+
+**Building an App with Amplify**
+
+1. **Data**
+
+   - **TypeScript-First Data Library:**  
+     - Uses AWS AppSync (GraphQL APIs) and Amazon DynamoDB for NoSQL  
+     - Example file: `amplify/data/resource.ts`  
+   - **Defining a Data Schema:**  
+     - Use `defineData` to generate backend APIs automatically  
+     - **Example Schema:**
+
+     ```typescript
+     const schema = a.schema({
+       Chat: a.model({
+         name: a.string(),
+         message: a.hasMany('Message', 'chatId'),
+       }),
+       Message: a.model({
+         text: a.string(),
+         chat: a.belongsTo('Chat', 'chatId'),
+         chatId: a.id()
+       }),
+     });
+     ```
+
+   - **Generating a Client:**
+
+     ```typescript
+     // Generate your data client using the Schema from your backend
+     const client = generateClient<Schema>();
+
+     // List all messages
+     const { data } = await client.models.Message.list();
+
+     // Create a new message
+     const { errors, data: newMessage } = await client.models.Message.create({
+       text: 'My message text'
+     });
+     ```
+
+2. **Auth**
+
+   - **Configuration:**  
+     - Define authentication settings in `amplify/auth/resource.ts`  
+   - **Customizing Auth Settings:**  
+
+     ```typescript
+     // amplify/auth/resource.ts
+     export const auth = defineAuth({
+       loginWith: {
+         email: {
+           verificationEmailSubject: 'Welcome 👋 Verify your email!'
+         }
+       }
+     });
+     ```
+
+   - **Integrating with Frontend:**  
+     - Use Amplify Authenticator component or client libraries  
+     - **Example:**
+
+     ```javascript
+     import { withAuthenticator } from '@aws-amplify/ui-react';
+
+     function App({ signOut, user }) {
+       return (
+         <>
+           <h1>Hello {user.username}</h1>
+           <button onClick={signOut}>Sign out</button>
+         </>
+       );
+     }
+
+     export default withAuthenticator(App);
+     ```
+
+3. **UI Building**  
+   - **Capabilities:**  
+     - Pre-built UI component library  
+     - Figma-to-code generation  
+     - CRUD form generation  
+   - **Goal:**  
+     - Accelerate building web app interfaces
+
+---
+
+**Connecting to AWS Beyond Amplify**
+
+1. **Extending with Any AWS Resource**
+
+   - **CDK Integration:**  
+     - Amplify Gen 2 layers on top of AWS CDK  
+     - Data and Auth wrap L3 AWS CDK constructs  
+   - **Example – Adding Amazon Location Services:**
+
+     ```typescript
+     import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
+     import * as locations from 'aws-cdk-lib/aws-location';
+     import { Construct } from 'constructs';
+
+     export class LocationMapStack extends Stack {
+       constructor(scope: Construct, id: string, props?: StackProps) {
+         super(scope, id, props);
+
+         // Create the map resource
+         const map = new locations.CfnMap(this, 'LocationMap', {
+           configuration: {
+             style: 'VectorEsriStreets' // map style
+           },
+           description: 'My Location Map',
+           mapName: 'MyMap'
+         });
+
+         new CfnOutput(this, 'mapArn', {
+           value: map.attrArn,
+           exportName: 'mapArn'
+         });
+       }
+     }
+     ```
+
+   - **Integration in Amplify Backend:**
+
+     ```typescript
+     import { Backend } from '@aws-amplify/backend';
+     import { auth } from './auth/resource';
+     import { data } from './data/resource';
+     import { LocationMapStack } from './locationMapStack/resource';
+
+     const backend = new Backend({
+       auth,
+       data
+     });
+
+     new LocationMapStack(
+       backend.getStack('LocationMapStack'),
+       'myLocationResource',
+       {}
+     );
+     ```
+
+2. **Connecting to Existing AWS Resources**  
+   - **Seamless Integration:**  
+     - Use pre-built UI components (e.g., for authentication) with existing Amazon Cognito user pools  
+     - Integrate Amplify Storage to display images/files from an existing Amazon S3 bucket  
+   - **Incremental Adoption:**  
+     - Leverage existing AWS services with Amplify’s libraries without overhauling current infrastructure
+
+---

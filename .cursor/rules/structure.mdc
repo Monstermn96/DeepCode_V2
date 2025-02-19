@@ -1,0 +1,5 @@
+---
+description: searching the project
+globs: 
+---
+When searching the project remember that [backend.ts](mdc:DeepCodeV2/DeepCodeV2/amplify/backend.ts) is where the root of the backend project is and [index.html](mdc:DeepCodeV2/index.html) is at the root of the frontend.
