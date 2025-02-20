@@ -4,25 +4,41 @@ applications:
       phases:
         preBuild:
           commands:
-            - nvm install 20
-            - nvm use 20
-            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1
-            - npm list @aws-amplify/backend
+            - echo "Starting backend preBuild phase..."
+            - echo "Running: nvm install 20"
+            - nvm install 20 && echo "nvm install 20 succeeded" || echo "nvm install 20 failed"
+            - echo "Running: nvm use 20"
+            - nvm use 20 && echo "nvm use 20 succeeded" || echo "nvm use 20 failed"
+            - echo "Running: npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1"
+            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1 && echo "npm install packages succeeded" || echo "npm install packages failed"
+            - echo "Running: npm list @aws-amplify/backend"
+            - npm list @aws-amplify/backend && echo "npm list output:" || echo "npm list failed"
         build:
           commands:
-            - npm install
+            - echo "Starting backend build phase..."
+            - echo "Running: npm install"
+            - npm install && echo "npm install succeeded" || echo "npm install failed"
     frontend:
       phases:
         preBuild:
           commands:
-            - npm install 20
-            - nvm use 20
-            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1
-            - npm list @aws-amplify/backend
+            - echo "Starting frontend preBuild phase..."
+            - echo "Running: npm install 20"
+            - npm install 20 && echo "npm install 20 succeeded" || echo "npm install 20 failed"
+            - echo "Running: nvm use 20"
+            - nvm use 20 && echo "nvm use 20 succeeded" || echo "nvm use 20 failed"
+            - echo "Running: npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1"
+            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1 && echo "npm install packages succeeded" || echo "npm install packages failed"
+            - echo "Running: npm list @aws-amplify/backend"
+            - npm list @aws-amplify/backend && echo "npm list output:" || echo "npm list failed"
         build:
           commands:
-            - if [ "$FIRST_DEPLOY" = "true" ]; then node ./scripts/update-auth-config.js; fi
-            - npm run build
+            - echo "Starting frontend build phase..."
+            - echo "FIRST_DEPLOY value: $FIRST_DEPLOY"
+            - echo "Checking if FIRST_DEPLOY equals true..."
+            - if [ "$FIRST_DEPLOY" = "true" ]; then echo "FIRST_DEPLOY is true; Running update-auth-config.js"; node ./scripts/update-auth-config.js && echo "update-auth-config.js succeeded" || echo "update-auth-config.js failed"; else echo "Skipping update-auth-config.js"; fi
+            - echo "Running: npm run build"
+            - npm run build && echo "npm run build succeeded" || echo "npm run build failed"
       artifacts:
         baseDirectory: dist
         files:
