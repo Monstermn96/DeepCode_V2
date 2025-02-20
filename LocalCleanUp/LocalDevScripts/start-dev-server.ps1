@@ -17,7 +17,41 @@ function Update-EnvFile {
     Write-Host "Environment variables updated successfully!" -ForegroundColor Green
 }
 
-# 1. Verify environment setup
+# Function to ensure correct Node.js version
+function Ensure-NodeVersion {
+    $nodeVersion = (node -v).Replace('v', '')
+    $major = [int]($nodeVersion.Split('.')[0])
+    
+    if ($major -ne 20) {
+        Write-Host "Current Node.js version is $nodeVersion" -ForegroundColor Yellow
+        Write-Host "Attempting to switch to Node.js 20..." -ForegroundColor Yellow
+        
+        # Try using fnm first
+        try {
+            & fnm use 20
+            $nodeVersion = (node -v).Replace('v', '')
+            $major = [int]($nodeVersion.Split('.')[0])
+            if ($major -eq 20) {
+                Write-Host "Successfully switched to Node.js $nodeVersion" -ForegroundColor Green
+                return $true
+            }
+        } catch {
+            Write-Host "Could not switch Node.js version using fnm" -ForegroundColor Yellow
+        }
+        
+        Write-Host "Please install Node.js v20 manually from https://nodejs.org/" -ForegroundColor Red
+        Write-Host "Current Node.js version ($nodeVersion) is not compatible." -ForegroundColor Red
+        return $false
+    }
+    return $true
+}
+
+# 1. Check Node.js version
+if (-not (Ensure-NodeVersion)) {
+    exit 1
+}
+
+# 2. Verify environment setup
 Write-Host "Verifying environment setup..." -ForegroundColor Yellow
 
 # Check if .env file exists
@@ -26,7 +60,7 @@ if (-not (Test-Path ".env")) {
     exit 1
 }
 
-# 2. Get the current User Pool details
+# 3. Get the current User Pool details
 Write-Host "Checking current User Pool configuration..." -ForegroundColor Yellow
 $userPools = aws cognito-idp list-user-pools --max-results 60 | ConvertFrom-Json
 $currentPool = $userPools.UserPools | Where-Object { 
@@ -52,7 +86,7 @@ if ($currentPool) {
     }
 }
 
-# 3. Install dependencies if needed
+# 4. Install dependencies if needed
 if (-not (Test-Path "node_modules")) {
     Write-Host "Installing dependencies..." -ForegroundColor Yellow
     npm install
@@ -62,7 +96,7 @@ if (-not (Test-Path "node_modules")) {
     }
 }
 
-# 4. Start the development server
+# 5. Start the development server
 Write-Host "Starting Vite development server..." -ForegroundColor Yellow
 Write-Host "
 Server is starting...

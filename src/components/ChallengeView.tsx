@@ -10,6 +10,7 @@ import {
 } from "../services/ai/openai";
 import { CodeEditor } from "./CodeEditor";
 import styles from "./ChallengeView.module.css";
+import { useAuth } from '../contexts/AuthContext';
 
 interface TestResult {
 	passed: boolean;
@@ -21,6 +22,7 @@ export function ChallengeView() {
 	const { challengeId } = useParams();
 	const navigate = useNavigate();
 	const { currentChallenge, generateChallenge } = useAI();
+	const { user } = useAuth();
 	const [code, setCode] = React.useState("");
 	const [isRunning, setIsRunning] = React.useState(false);
 	const [testResults, setTestResults] = React.useState<TestResult[]>([]);
@@ -81,7 +83,8 @@ export function ChallengeView() {
 					input: testCase.input,
 					expectedOutput: testCase.expectedOutput,
 				})),
-				currentChallenge.problem.language as "C#" | "Java" | "Python"
+				currentChallenge.problem.language as "C#" | "Java" | "Python",
+				user?.userId
 			);
 
 			console.log("Test results:", response);

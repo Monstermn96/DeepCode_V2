@@ -1,27 +1,68 @@
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserStatsService } from '../services/stats/userStats';
+import { useState, useEffect, useRef } from 'react';
 import styles from './Navigation.module.css';
 
 export default function Navigation() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const handleInitStats = async () => {
-    if (!user?.userId) {
-      console.error('No user ID found:', user);
-      alert('No user ID found. Check console for details.');
-      return;
-    }
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsMenuOpen(false);
+    };
 
-    try {
-      const userStatsService = UserStatsService.getInstance();
-      await userStatsService.initializeUserStats(user.userId);
-      console.log('User stats initialized successfully');
-      alert('User stats initialized successfully!');
-    } catch (error) {
-      console.error('Error initializing user stats:', error);
-      alert('Error initializing user stats. Check console for details.');
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isMenuOpen &&
+        menuRef.current &&
+        buttonRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
+
+  // Handle body scroll lock
+  useEffect(() => {
+    if (isMenuOpen && isMobile) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${window.scrollY}px`;
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+      }
     }
+  }, [isMenuOpen, isMobile]);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
   };
 
   return (
@@ -32,6 +73,7 @@ export default function Navigation() {
           className={({ isActive }) => 
             `${styles.navLink} ${isActive ? styles.active : ''}`
           }
+          onClick={closeMenu}
         >
           Dashboard
         </NavLink>
@@ -40,6 +82,7 @@ export default function Navigation() {
           className={({ isActive }) => 
             `${styles.navLink} ${isActive ? styles.active : ''}`
           }
+          onClick={closeMenu}
         >
           Challenges
         </NavLink>
@@ -48,6 +91,7 @@ export default function Navigation() {
           className={({ isActive }) => 
             `${styles.navLink} ${isActive ? styles.active : ''}`
           }
+          onClick={closeMenu}
         >
           Profile
         </NavLink>
@@ -57,18 +101,26 @@ export default function Navigation() {
         <span className={styles.logoIcon}>⚡</span>
         <span className={styles.logoText}>DeepDevAi</span>
       </Link>
+
+      {isMobile && (
+        <button 
+          ref={buttonRef}
+          className={`${styles.hamburger} ${isMenuOpen ? styles.open : ''}`}
+          onClick={toggleMenu}
+          aria-label="Toggle menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      )}
       
-      <div className={styles.navRight}>
+      <div 
+        ref={menuRef}
+        className={`${styles.menuContainer} ${isMenuOpen ? styles.open : ''}`}
+      >
         {user && (
-          <>
-            <span className={styles.username}>{user.username}</span>
-            <button onClick={handleInitStats} className={styles.initStatsButton}>
-              Initialize Stats
-            </button>
-            <button onClick={signOut} className={styles.signOutButton}>
-              Sign Out
-            </button>
-          </>
+          <span className={styles.username}>{user.username}</span>
         )}
       </div>
     </nav>

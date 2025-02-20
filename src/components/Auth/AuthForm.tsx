@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CSSTransition } from 'react-transition-group';
-import { signIn, signUp, confirmSignUp, resendSignUpCode } from '@aws-amplify/auth';
-import { getCurrentUser } from '@aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, resendSignUpCode, getCurrentUser, fetchUserAttributes } from '@aws-amplify/auth';
 import { UserStatsService } from '../../services/stats/userStats';
 
 import './Auth.css';
@@ -313,10 +312,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
       });
       console.log('Sign in successful');
 
-      // Initialize user stats after successful verification
+      // Get current user and attributes after successful sign in
+      const currentUser = await getCurrentUser();
+      const userAttributes = await fetchUserAttributes();
+      
+      // Initialize user stats with the correct user ID
       try {
         const userStatsService = UserStatsService.getInstance();
-        await userStatsService.initializeUserStats(formData.email);
+        await userStatsService.initializeUserStats(currentUser.userId);
         console.log('User stats initialized successfully');
       } catch (statsError) {
         console.error('Error initializing user stats:', statsError);

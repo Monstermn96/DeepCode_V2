@@ -24,8 +24,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ value, max, color = '#0070f3'
 );
 
 export default function Profile() {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'subscription'>('overview');
+  const { user, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState<'overview' | 'subscription' | 'account'>('overview');
   const [showTipMessage, setShowTipMessage] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [monthlyUsage, setMonthlyUsage] = useState<{
@@ -64,6 +64,14 @@ export default function Profile() {
 
     fetchData();
   }, [user?.userId]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   // Function to handle tip button click
   const handleTipClick = () => {
@@ -121,148 +129,147 @@ export default function Profile() {
         >
           Subscription
         </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'account' ? styles.active : ''}`}
+          onClick={() => setActiveTab('account')}
+        >
+          Account Settings
+        </button>
       </div>
 
       {/* Content Section */}
       <div className={styles.content}>
-        {activeTab === 'overview' ? (
-          <>
+        {activeTab === 'overview' && (
+          <div className={`${styles.overview} ${styles.content}`}>
             {/* Language Proficiency Section */}
-            <div className={styles.section}>
-              <h2>Language Proficiency</h2>
-              <div className={styles.languageGrid}>
-                {Object.entries(userStats?.languageStats || {}).map(([lang, stats]) => (
-                  <div key={lang} className={styles.languageCard}>
-                    <div className={styles.languageHeader}>
-                      <h3>{lang}</h3>
-                      <span>{stats.completed} challenges</span>
-                    </div>
-                    <ProgressBar 
-                      value={stats.proficiency} 
-                      max={100} 
-                      color={
-                        stats.proficiency > 80 ? '#22c55e' : 
-                        stats.proficiency > 60 ? '#3b82f6' : 
-                        '#f59e0b'
-                      } 
-                    />
-                    <span className={styles.proficiencyLabel}>
-                      {stats.proficiency}% Proficiency
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            
+            
 
             {/* Monthly Usage Section */}
-            <div className={styles.section}>
-              <h2>This Month's Usage</h2>
-              <div className={styles.usageStats}>
-                <div className={styles.usageStat}>
-                  <span className={styles.label}>Total Tokens Used</span>
-                  <span className={styles.value}>{monthlyUsage?.totalTokens?.toLocaleString() || 0}</span>
-                </div>
-                <div className={styles.usageStat}>
-                  <span className={styles.label}>Estimated Cost</span>
-                  <span className={styles.value}>
-                    ${monthlyUsage?.totalCost?.toFixed(2) || '0.00'}
-                  </span>
-                </div>
-                <div className={styles.usageStat}>
-                  <span className={styles.label}>Challenges Generated</span>
-                  <span className={styles.value}>
-                    {monthlyUsage?.challengesGenerated || 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Subscription Section */}
-            <div className={styles.section}>
               <div className={styles.subscriptionHeader}>
-                <h2>Pre-Alpha Access</h2>
-                <div className={styles.preAlphaBadge}>
-                  🚧 Work in Progress
-                </div>
+                <h2>Monthly Usage</h2>
               </div>
-              
               <div className={styles.subscriptionCard}>
-                <div className={styles.welcomeMessage}>
-                  <h3>🎉 Welcome to the Future of AI Learning!</h3>
-                  <p>You're one of our early explorers helping shape DeepDevAI. While we're still in pre-alpha, 
-                    you have full access to all features as we develop them!</p>
-                </div>
-
-                <div className={styles.features}>
-                  <h4>What You Get:</h4>
-                  <ul className={styles.featureList}>
-                    <li>✨ Early Access to New Features</li>
-                    <li>🤖 Unlimited AI Challenges</li>
-                    <li>🎯 Custom Learning Paths</li>
-                    <li>🚀 Helping Shape the Future of AI Learning!</li>
-                  </ul>
-                </div>
-
-                <div className={styles.costInfo}>
-                  <h4>A Note About Costs:</h4>
-                  <p>While access is currently free, please note:</p>
-                  <ul>
-                    <li>OpenAI API Usage (~$0.01-0.03 per challenge)</li>
-                    <li>AWS Infrastructure (minimal)</li>
-                    <li>Developer's Coffee ☕</li>
-                  </ul>
-                  
-                  {/* Current Month's Usage Summary */}
-                  <div className={styles.currentUsage}>
-                    <h4>Your Current Month's Usage:</h4>
-                    <p>Total Tokens: {monthlyUsage?.totalTokens?.toLocaleString() || 0}</p>
-                    <p>Estimated Cost: ${monthlyUsage?.totalCost?.toFixed(2) || '0.00'}</p>
-                    <p>Challenges Generated: {monthlyUsage?.challengesGenerated || 0}</p>
+                <div className={styles.usageStats}>
+                  <div className={styles.usageStat}>
+                    <span className={styles.label}>Total Tokens</span>
+                    <span className={styles.value}>{monthlyUsage?.totalTokens || 0}</span>
                   </div>
-                </div>
-
-                <div className={styles.tipSection}>
-                  <div className={styles.tipMessage}>
-                    <h4>💝 Support the Development</h4>
-                    <p>If you're enjoying DeepDevAI and want to support its development (or just buy me a coffee), 
-                      tips are always appreciated but never required!</p>
+                  <div className={styles.usageStat}>
+                    <span className={styles.label}>Total Cost</span>
+                    <span className={styles.value}>${monthlyUsage?.totalCost || 0}</span>
                   </div>
-                  
-                  <div className={styles.qrContainer}>
-                    <QRCodeSVG
-                      value="https://venmo.com/Eric-Bischetsrieder"
-                      size={150}
-                      level="L"
-                      includeMargin={true}
-                      className={styles.qrCode}
-                    />
-                    <p className={styles.qrLabel}>@Eric-Bischetsrieder</p>
+                  <div className={styles.usageStat}>
+                    <span className={styles.label}>Challenges Generated</span>
+                    <span className={styles.value}>{monthlyUsage?.challengesGenerated || 0}</span>
                   </div>
-
-                  <button 
-                    className={styles.tipButton}
-                    onClick={handleTipClick}
-                  >
-                    Open Venmo
-                  </button>
-                  
-                  {showTipMessage && (
-                    <div className={styles.thankYouMessage}>
-                      Thank you for your support! 🙏
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.disclaimer}>
-                  <p>Note: This is a pre-alpha version, and features may change. Your feedback helps shape the future of DeepDevAI!</p>
                 </div>
               </div>
             </div>
-          </>
+        )}
+
+        {activeTab === 'subscription' && (
+          <div className={styles.section}>
+            <div className={styles.subscriptionHeader}>
+              <h2>Pre-Alpha Access</h2>
+              <div className={styles.preAlphaBadge}>
+                🚧 Work in Progress
+              </div>
+            </div>
+            <div className={styles.subscriptionCard}>
+              <div className={styles.welcomeMessage}>
+                <h3>🎉 Welcome to the Future of AI Learning!</h3>
+                <p>
+                  You're one of our early explorers helping shape DeepDevAI. While we're still in pre-alpha, 
+                  you have full access to all features as we develop them!
+                </p>
+              </div>
+              <div className={styles.features}>
+                <h4>What You Get:</h4>
+                <ul className={styles.featureList}>
+                  <li>✨ Early Access to New Features</li>
+                  <li>🤖 Unlimited AI Challenges</li>
+                  <li>🎯 Custom Learning Paths</li>
+                  <li>🚀 Helping Shape the Future of AI Learning!</li>
+                </ul>
+              </div>
+              <div className={styles.costInfo}>
+                <h4>A Note About Costs:</h4>
+                <p>While access is currently free, please note:</p>
+                <ul>
+                  <li>OpenAI API Usage (~$0.01-0.03 per challenge)</li>
+                  <li>AWS Infrastructure (minimal)</li>
+                  <li>Developer's Coffee ☕</li>
+                </ul>
+              </div>
+              <div className={styles.tipSection}>
+                <div className={styles.tipMessage}>
+                  <h4>💝 Support the Development</h4>
+                  <p>
+                    If you're enjoying DeepDevAI and want to support its development (or just buy me a coffee), 
+                    tips are always appreciated but never required!
+                  </p>
+                </div>
+                <div className={styles.qrContainer}>
+                  <QRCodeSVG
+                    value="https://venmo.com/Eric-Bischetsrieder"
+                    size={150}
+                    level="L"
+                    includeMargin={true}
+                    className={styles.qrCode}
+                  />
+                  <p className={styles.qrLabel}>@Eric-Bischetsrieder</p>
+                </div>
+                <button 
+                  className={styles.tipButton}
+                  onClick={handleTipClick}
+                >
+                  Open Venmo
+                </button>
+                {showTipMessage && (
+                  <div className={styles.thankYouMessage}>
+                    Thank you for your support! 🙏
+                  </div>
+                )}
+              </div>
+              <div className={styles.disclaimer}>
+                <p>
+                  Note: This is a pre-alpha version, and features may change. Your feedback helps shape the future of DeepDevAI!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'account' && (
+          <div className={styles.section}>
+            <h2>Account Settings</h2>
+            <div className={styles.accountSettings}>
+              <div className={styles.accountInfo}>
+                <h3>Account Information</h3>
+                <div className={styles.infoItem}>
+                  <span className={styles.label}>Username</span>
+                  <span className={styles.value}>{user?.username}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.label}>Email</span>
+                  <span className={styles.value}>{user?.email}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.label}>Account Type</span>
+                  <span className={styles.value}>Pre-Alpha Access</span>
+                </div>
+              </div>
+              <div className={styles.accountActions}>
+                <button onClick={handleSignOut} className={styles.signOutButton}>
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
+
     </div>
   );
 } 

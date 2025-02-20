@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { UserStatsService } from "../stats/userStats";
 
 export type AIRequestType = "challenge" | "feedback" | "evaluation";
 
@@ -106,9 +107,13 @@ const PROMPT_CONFIGS = {
     Ensure feedback is specific to the language's best practices.`,
 		responseFormat: {
 			passed: "boolean",
-			results: ["Array of test results"],
-			feedback: "Detailed feedback",
-			suggestions: ["Array of improvement suggestions"],
+			results: ["Array of boolean test results"],
+			explanations: ["Array of test explanations"],
+			performance: {
+				timeComplexity: "Big O notation",
+				spaceComplexity: "Big O notation",
+				suggestions: ["Array of performance suggestions"]
+			}
 		},
 	},
 	feedback: {
@@ -287,12 +292,37 @@ export const aiService = {
 	async evaluateCode(
 		submission: string,
 		testCases: Array<{ input: string; expectedOutput: string }>,
-		language: SupportedLanguage
+		language: SupportedLanguage,
+		userId?: string
 	): Promise<AIResponse & { data: EvaluationResponse }> {
-		return this.generateResponse<EvaluationResponse>("evaluation", {
+		const response = await this.generateResponse<EvaluationResponse>("evaluation", {
 			submission,
 			testCases,
 			language,
 		});
+
+		// If we have a userId, record the token usage
+		if (userId && response.metadata.usage) {
+			try {
+				const userStatsService = UserStatsService.getInstance();
+				await userStatsService.recordTokenUsage(
+					userId,
+					`evaluation-${Date.now()}`,
+					{
+						promptTokens: response.metadata.usage.prompt_tokens,
+						completionTokens: response.metadata.usage.completion_tokens,
+						totalTokens: response.metadata.usage.total_tokens,
+						estimatedCost: response.metadata.usage.estimated_cost,
+						model: response.metadata.model,
+						challengeType: "evaluation"
+					}
+				);
+			} catch (error) {
+				console.error("Failed to record evaluation token usage:", error);
+				// Don't throw - we still want to return the evaluation results
+			}
+		}
+
+		return response;
 	},
 };

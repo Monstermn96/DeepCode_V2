@@ -1,5 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import { aiService, type SupportedLanguage } from "../services/ai/openai";
+import { useAuth } from "./AuthContext";
+import { UserStatsService } from "../services/stats/userStats";
 
 interface Problem {
 	title: string;
@@ -36,9 +38,8 @@ interface AIContextType {
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
 export function AIProvider({ children }: { children: React.ReactNode }) {
-	const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(
-		null
-	);
+	const { user } = useAuth();
+	const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -64,6 +65,28 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 			if (!response.data) {
 				console.error("Invalid response format:", response);
 				throw new Error("Invalid response format from AI service");
+			}
+
+			// Record token usage if we have a user ID
+			if (user?.userId && response.metadata.usage) {
+				try {
+					const userStatsService = UserStatsService.getInstance();
+					await userStatsService.recordTokenUsage(
+						user.userId,
+						`challenge-${Date.now()}`, // Generate a unique challenge ID
+						{
+							promptTokens: response.metadata.usage.prompt_tokens,
+							completionTokens: response.metadata.usage.completion_tokens,
+							totalTokens: response.metadata.usage.total_tokens,
+							estimatedCost: response.metadata.usage.estimated_cost,
+							model: response.metadata.model,
+							challengeType: "challenge"
+						}
+					);
+				} catch (error) {
+					console.error("Failed to record token usage:", error);
+					// Don't throw here - we still want to set the challenge even if usage recording fails
+				}
 			}
 
 			console.log("Setting challenge with data:", response.data);

@@ -1,9 +1,4 @@
-// amplify/data/resource.ts
-import {
-  a,
-  defineData,
-  type ClientSchema
-} from '@aws-amplify/backend';
+import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 
 // Define your schema using the new "Amplify Data" DSL
 const schema = a.schema({
@@ -13,10 +8,14 @@ const schema = a.schema({
       totalChallenges: a.integer(),
       completedChallenges: a.integer(),
       lastActiveAt: a.datetime(),
+      currentStreak: a.integer(),
+      longestStreak: a.integer(),
+      totalTokensUsed: a.integer(),
+      totalCost: a.float(),
       expiresAt: a.timestamp()
     })
-    .authorization((rules: any) => [rules.owner()]),
-
+    .authorization(allow => [allow.authenticated()]),
+    
   TokenUsage: a
     .model({
       id: a.string().required(),
@@ -44,14 +43,16 @@ const schema = a.schema({
     .authorization((rules: any) => [rules.owner()]),
 });
 
-// "defineData" to register the schema resource in Amplify
+// Register the schema resource in Amplify
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'userPool'
-    // or 'apiKey', etc. if your rules require it
+    defaultAuthorizationMode: 'userPool',
+    apiKeyAuthorizationMode: {
+      expiresInDays: 30
+    }
   },
 });
 
-// (Optional) Export type for your frontend's `generateClient<Schema>()`
+// (Optional) Export type for your frontend's generateClient<Schema>()
 export type Schema = ClientSchema<typeof schema>;
