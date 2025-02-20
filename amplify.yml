@@ -6,7 +6,8 @@ applications:
           commands:
             - nvm install 20
             - nvm use 20
-            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@latest
+            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1
+            - npm list @aws-amplify/backend
         build:
           commands:
             - npm install
@@ -14,8 +15,10 @@ applications:
       phases:
         preBuild:
           commands:
+            - npm install 20
             - nvm use 20
-            - npm install
+            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1
+            - npm list @aws-amplify/backend
         build:
           commands:
             - if [ "$FIRST_DEPLOY" = "true" ]; then node ./scripts/update-auth-config.js; fi
