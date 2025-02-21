@@ -53,8 +53,8 @@ export class UserStatsService {
 
 	async getUserStats(userId: string): Promise<UserStats | null> {
 		try {
-			const { data: stats } = await client.models.UserStats.get({ id: userId });
-			return stats || null;
+			const { data } = await client.models.UserStats.get({ id: userId });
+			return data ? data[0] : null;
 		} catch (error) {
 			console.error('Error getting user stats:', error);
 			throw error;
@@ -63,7 +63,7 @@ export class UserStatsService {
 
 	async initializeUserStats(userId: string): Promise<UserStats | null> {
 		try {
-			const { data: stats } = await client.models.UserStats.create({
+			const { data } = await client.models.UserStats.create({
 				id: userId,
 				totalChallenges: 0,
 				completedChallenges: 0,
@@ -73,7 +73,7 @@ export class UserStatsService {
 				totalTokensUsed: 0,  // Initialize total tokens
 				totalCost: 0         // Initialize total cost
 			});
-			return stats;
+			return data ? data[0] : null;
 		} catch (error) {
 			console.error('Error initializing user stats:', error);
 			throw error;
@@ -87,7 +87,8 @@ export class UserStatsService {
 	): Promise<void> {
 		try {
 			// First get current user stats to update totals
-			const { data: userStats } = await client.models.UserStats.get({ id: userId });
+			const { data } = await client.models.UserStats.get({ id: userId });
+			const userStats = data ? data[0] : null;
 			if (userStats) {
 				await client.models.UserStats.update({
 					id: userId,
@@ -113,7 +114,8 @@ export class UserStatsService {
 			const monthlyUsageId = `${userId}-${yearMonth}`;
 			
 			try {
-				const { data: existingUsage } = await client.models.MonthlyUsage.get({ id: monthlyUsageId });
+				const { data: monthlyData } = await client.models.MonthlyUsage.get({ id: monthlyUsageId });
+				const existingUsage = monthlyData ? monthlyData[0] : null;
 				if (existingUsage) {
 					await client.models.MonthlyUsage.update({
 						id: monthlyUsageId,
@@ -141,12 +143,10 @@ export class UserStatsService {
 		}
 	}
 
-	async updateChallengeCompletion(
-		userId: string,
-		completed: boolean
-	): Promise<void> {
+	async updateChallengeCompletion(userId: string, completed: boolean): Promise<void> {
 		try {
-			const { data: stats } = await client.models.UserStats.get({ id: userId });
+			const { data } = await client.models.UserStats.get({ id: userId });
+			const stats = data ? data[0] : null;
 			if (stats) {
 				await client.models.UserStats.update({
 					id: userId,
@@ -161,15 +161,12 @@ export class UserStatsService {
 		}
 	}
 
-	async getMonthlyUsage(
-		userId: string,
-		yearMonth: string
-	): Promise<MonthlyUsage | null> {
+	async getMonthlyUsage(userId: string, yearMonth: string): Promise<MonthlyUsage | null> {
 		try {
-			const { data: usage } = await client.models.MonthlyUsage.get({ 
+			const { data } = await client.models.MonthlyUsage.get({ 
 				id: `${userId}-${yearMonth}`
 			});
-			return usage || null;
+			return data ? data[0] : null;
 		} catch (error) {
 			console.error('Error getting monthly usage:', error);
 			throw error;
@@ -178,7 +175,8 @@ export class UserStatsService {
 
 	async updateStreak(userId: string): Promise<void> {
 		try {
-			const { data: stats } = await client.models.UserStats.get({ id: userId });
+			const { data } = await client.models.UserStats.get({ id: userId });
+			const stats = data ? data[0] : null;
 			if (stats) {
 				const lastActive = new Date(stats.lastActiveAt);
 				const now = new Date();

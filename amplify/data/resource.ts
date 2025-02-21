@@ -1,4 +1,4 @@
-import { defineData, a } from '@aws-amplify/backend';
+import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 
 // Define your schema using the new "Amplify Data" DSL
 const schema = a.schema({
@@ -52,4 +52,4 @@ export const data = defineData({
 });
 
 // Export the schema type for the client
-export type Schema = typeof schema;
+export type Schema = ClientSchema<typeof schema>;
