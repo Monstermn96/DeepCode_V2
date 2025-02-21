@@ -13,7 +13,7 @@ const schema = a.schema({
     totalCost: a.float(),
     expiresAt: a.timestamp()
   })
-  .authorization([a.allow.authenticated()]),
+  .authorization(allow => [allow.ownerDefinedIn('id')]),
     
   TokenUsage: a.model({
     id: a.string().required(),
@@ -26,7 +26,7 @@ const schema = a.schema({
     cost: a.float(),
     expiresAt: a.timestamp()
   })
-  .authorization([a.allow.owner()]),
+  .authorization(allow => [allow.ownerDefinedIn('id')]),
 
   MonthlyUsage: a.model({
     id: a.string().required(),
@@ -37,7 +37,7 @@ const schema = a.schema({
     challengesCompleted: a.integer(),
     expiresAt: a.timestamp()
   })
-  .authorization([a.allow.owner()])
+  .authorization(allow => [allow.ownerDefinedIn('id')]),
 });
 
 // Register the schema resource in Amplify
