@@ -1,5 +1,5 @@
 import { defineBackend, defineFunction } from "@aws-amplify/backend";
-import { Stack, RemovalPolicy } from "aws-cdk-lib";
+import { Stack, RemovalPolicy, CfnResource } from "aws-cdk-lib";
 import {
   AuthorizationType,
   Cors,
@@ -11,8 +11,7 @@ import { auth } from "./auth/resource";
 import { data } from "./data/resource";
 import { AttributeType, Table } from "aws-cdk-lib/aws-dynamodb";
 
-// Define the Amplify backend with auth, data, and the functions.
-// Both functions are assigned to the "data" resource group.
+// Define the Amplify backend with auth, data, and the functions
 export const backend = defineBackend({
   auth: auth,
   data: data,
@@ -31,8 +30,14 @@ export const backend = defineBackend({
   })
 });
 
-// Create a data stack for data-related resources (functions and DynamoDB table)
+// Create stacks in order of dependencies
+const authStack = backend.createStack("auth-stackv2");
 const dataStack = backend.createStack("data-stackv2");
+const apiStack = backend.createStack("api-stackv2");
+
+// Add explicit dependencies between stacks
+(dataStack.node.defaultChild as CfnResource).addDependsOn(authStack.node.defaultChild as CfnResource);
+(apiStack.node.defaultChild as CfnResource).addDependsOn(dataStack.node.defaultChild as CfnResource);
 
 // Create a DynamoDB table for user data in the data stack
 const userTable = new Table(dataStack, "UserTable", {
@@ -41,28 +46,23 @@ const userTable = new Table(dataStack, "UserTable", {
   removalPolicy: RemovalPolicy.DESTROY,
 });
 
-// Grant DynamoDB permissions to the API function's Lambda (both are in the data stack)
+// Grant DynamoDB permissions to the API function's Lambda
 userTable.grantReadWriteData(backend.apiFunction.resources.lambda);
-
-// Add a policy to allow the API function's Lambda to access SSM parameters
-backend.apiFunction.resources.lambda.addToRolePolicy(
-  new PolicyStatement({
-    actions: ["ssm:GetParameters"],
-    resources: ["*"],
-  })
-);
 
 // Set the USER_TABLE_NAME environment variable for the API function
 process.env.USER_TABLE_NAME = userTable.tableName;
-
-// Create a separate API stack for the API Gateway
-const apiStack = backend.createStack("api-stackv2");
 
 // Create a REST API in the API stack
 const myRestApi = new RestApi(apiStack, "RestApi", {
   restApiName: "myRestApi",
   deploy: true,
-  deployOptions: { stageName: "dev" },
+  deployOptions: { 
+    stageName: "dev",
+    // Ensure API deployment happens after Lambda function is ready
+    variables: {
+      lambdaAlias: backend.apiFunction.resources.lambda.functionName
+    }
+  },
   defaultCorsPreflightOptions: {
     allowOrigins: Cors.ALL_ORIGINS,
     allowMethods: Cors.ALL_METHODS,
@@ -70,18 +70,40 @@ const myRestApi = new RestApi(apiStack, "RestApi", {
   },
 });
 
-// Create a Lambda integration referencing the API function (which is in the data stack)
+// Create a Lambda integration referencing the API function
 const lambdaIntegration = new LambdaIntegration(backend.apiFunction.resources.lambda);
 
 // Define REST API endpoints
 const initializePath = myRestApi.root.addResource("initialize");
-initializePath.addMethod("POST", lambdaIntegration, { authorizationType: AuthorizationType.IAM });
+initializePath.addMethod("POST", lambdaIntegration, { 
+  authorizationType: AuthorizationType.IAM,
+  // Add explicit dependency on Lambda function
+  methodOptions: {
+    requestParameters: {
+      'integration.request.header.X-Lambda-Function': backend.apiFunction.resources.lambda.functionName
+    }
+  }
+});
 
 const statsPath = myRestApi.root.addResource("stats");
-statsPath.addMethod("GET", lambdaIntegration, { authorizationType: AuthorizationType.IAM });
+statsPath.addMethod("GET", lambdaIntegration, { 
+  authorizationType: AuthorizationType.IAM,
+  methodOptions: {
+    requestParameters: {
+      'integration.request.header.X-Lambda-Function': backend.apiFunction.resources.lambda.functionName
+    }
+  }
+});
 
 const updateStatsPath = myRestApi.root.addResource("update-stats");
-updateStatsPath.addMethod("POST", lambdaIntegration, { authorizationType: AuthorizationType.IAM });
+updateStatsPath.addMethod("POST", lambdaIntegration, { 
+  authorizationType: AuthorizationType.IAM,
+  methodOptions: {
+    requestParameters: {
+      'integration.request.header.X-Lambda-Function': backend.apiFunction.resources.lambda.functionName
+    }
+  }
+});
 
 // Create an IAM policy to allow API invoke access
 const apiRestPolicy = new Policy(apiStack, "RestApiPolicy", {
@@ -97,9 +119,8 @@ const apiRestPolicy = new Policy(apiStack, "RestApiPolicy", {
   ],
 });
 
-// Attach the policy to both authenticated and unauthenticated IAM roles (from the auth stack)
+// Attach the policy to authenticated IAM role (from the auth stack)
 backend.auth.resources.authenticatedUserIamRole.attachInlinePolicy(apiRestPolicy);
-backend.auth.resources.unauthenticatedUserIamRole.attachInlinePolicy(apiRestPolicy);
 
 // Output API details in the Amplify backend configuration
 backend.addOutput({
