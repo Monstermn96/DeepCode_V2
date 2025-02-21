@@ -9,10 +9,13 @@ applications:
             - 'nvm install 22'
             - 'nvm use 22'
             - 'npm install -g @aws-amplify/cli'
+            - 'rm -rf node_modules package-lock.json'
             - 'npm install'
             - 'npm install aws-amplify@6.13.0 @aws-amplify/backend@1.14.1 @aws-amplify/ui-react@6.5.5'
             - 'npm install --save-dev @types/react@18.2.66 @types/react-dom@18.2.22 @types/node@22.13.4 @types/babel__generator @types/babel__template @types/babel__traverse @types/prop-types @types/aws-lambda@8.10.147 @types/react-router-dom@5.3.3 @types/react-transition-group@4.4.12'
-            - 'npm ci'
+            - 'npm install json-schema-to-ts@3.1.1 ts-algebra@2.0.0 --save-dev'
+            - 'npm install --save-dev typescript@5.7.3'
+            - 'npm install'
         build:
           commands:
             - "echo 'Starting backend build phase...'"
@@ -25,13 +28,16 @@ applications:
             - "echo 'Updating Node version...'"
             - 'nvm install 22'
             - 'nvm use 22'
+            - 'rm -rf node_modules package-lock.json'
             - 'npm install'
             - 'npm install aws-amplify@6.13.0 @aws-amplify/backend@1.14.1 @aws-amplify/ui-react@6.5.5'
             - 'npm install --save-dev @types/react@18.2.66 @types/react-dom@18.2.22 @types/node@22.13.4 @types/babel__generator @types/babel__template @types/babel__traverse @types/prop-types @types/aws-lambda@8.10.147 @types/react-router-dom@5.3.3 @types/react-transition-group@4.4.12'
             - 'npm install qrcode.react@4.2.0 monaco-editor@0.52.2 @monaco-editor/react@4.7.0'
             - 'npm install react-router@7.1.5 react-router-dom@7.1.5 react-transition-group@4.4.5 simplebar@6.3.0 simplebar-react@3.3.0'
             - 'npm install @aws-sdk/client-cognito-identity-provider@3.525.0 @aws-sdk/client-amplify@3.525.0 @aws-sdk/client-dynamodb@3.750.0 @aws-sdk/lib-dynamodb@3.750.0 @aws-sdk/client-secrets-manager@3.744.0'
-            - 'npm ci'
+            - 'npm install json-schema-to-ts@3.1.1 ts-algebra@2.0.0 --save-dev'
+            - 'npm install --save-dev typescript@5.7.3'
+            - 'npm install'
         build:
           commands:
             - "echo 'Starting frontend build phase...'"
