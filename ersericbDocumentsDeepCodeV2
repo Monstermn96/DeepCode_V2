@@ -1,0 +1,145 @@
+[33mbb0d0f1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mPreDeploy[m[33m, [m[1;31morigin/PreDeploy[m[33m)[m ...
+[33ma0bf50d[m didnt take ui
+[33mc497a8b[m it needs to be a package
+[33mb3d7588[m Massive overhaul
+[33m68d93ad[m Beginning of now looking only into Package issues
+[33m630064f[m test push
+[33mf164af6[m accidental extra non needed package
+[33m0f81da1[m correcting yaml character issue
+[33m10e7ef2[m Resolving DB issue due to build yaml issue
+[33md4a94a4[m Correcting backend code
+[33m208b8e0[m .
+[33m18f2b4d[m DB testing
+[33mfc1a4fc[m fix
+[33m451cbb0[m back end ts errors failing build at the end
+[33m07dd873[m all lint errors fixed
+[33m4104c83[m import fix
+[33m74b9109[m back end a ts updates
+[33m8685601[m fix(amplify): clean up schema exports - Remove unnecessary model exports - Keep only required data export for backend.ts - Maintain type-safe client schema export
+[33mba0385a[m fix(amplify): update schema to match latest syntax - Use .id() for primary keys - Simplify index definitions - Fix timestamps and TTL methods
+[33m4f80754[m fix(amplify): update schema to use latest identifier syntax - Remove class-based models - Use identifier() for keys - Fix authorization syntax
+[33m797dfe7[m .
+[33m2beff2a[m docs update
+[33mdd1f689[m last deplo
+[33m7b2fdda[m stuff
+[33m6b3de22[m 1123
+[33mac19c64[m better email formatting
+[33m1ff5165[m .
+[33mfcd46ab[m no more lambda
+[33m63310b6[m Big UI clean install test
+[33m0de02ae[m Leaps and bounds update
+[33med97b25[m Working problem generation
+[33mf5db249[m fix: update ChallengeView to use new Problem interface with testCases
+[33mfe8d406[m fix: update AIContext types to match AI service response structure and resolve deployment issues
+[33mfdaca4e[m Removed the transformChallengeResponse function since it's no longer needed
+[33m8143204[m Added a transformChallengeResponse function that converts the API response format to our internal Problem interface
+[33m1637db7[m error fixes
+[33m6de5a48[m This might work
+[33m2dbb98e[m deploy fixes
+[33m311c2bb[m The context
+[33m8e6d7fc[m Back end update
+[33m2677a0c[m FIXES
+[33ma23c5ea[m big push
+[33m2687d60[m boom
+[33mfc0c24e[m deeeeeeploy
+[33mefadfe5[m deploy
+[33m9e2aa5c[m lots of type errors
+[33m30b0b82[m fix
+[33m4bb2608[m deploy fix
+[33m784ead5[m fix
+[33m3373295[m env test
+[33m433d68d[m fixes
+[33mf44aa43[m maybe work?
+[33ma5ef3b7[m Fix
+[33m4aeebbf[m fixes
+[33m811a90e[m AI testing begins
+[33m8e961a4[m back end updates
+[33medf7b33[m fixes
+[33m052bd7b[m bloat remova;
+[33mf448493[m fixes
+[33m53ada21[m removing bloat backend from template
+[33m94da367[m correcting deploy issues
+[33mfdbf839[m Fixing User Auth
+[33m07527f0[m adding local scripts
+[33m6805edc[m build errors
+[33mef15167[m ts errors clean up
+[33ma7c7d72[m more ts errors
+[33m293c0fd[m sign up fixes
+[33m61c64c6[m fixes
+[33m4d0613c[m fixes
+[33m30dd6bb[m Changing to needing local cleanup of backend
+[33m506ea15[m syntax errors
+[33ma31e2f4[m deploy script updates
+[33m416c263[m search fixes for pools
+[33m12f388a[m fixes clean deploy
+[33m7a84396[m better pool searching
+[33ma4c34e1[m clean deploy
+[33m56edc35[m fixing router
+[33m62140a1[m ts fix
+[33me90b2b8[m naming fixes relying on branch naming
+[33m14622d0[m deploy fixes
+[33m8b575e2[m fixing script
+[33m10c2159[m AWS SDK version updates
+[33m496210e[m logging updates
+[33mc084227[m build fixes
+[33m3d30800[m script fixes
+[33mc2c0fdc[m amazon linux fixes
+[33mb6191ca[m jq install
+[33m5bdecc0[m fixes with bravesearch
+[33m181d5c6[m fixes
+[33m6eac529[m clean scripts
+[33mab66e22[m clean deploys
+[33m7c04791[m Correcting backend ts
+[33mceca2ef[m Testing pipeline
+[33me2d592e[m env file
+[33ma9a09c8[m .
+[33me649104[m debug
+[33mf39597e[m Fix environment variable names to match Amplify Console
+[33mac0a06b[m Remove .env file from version control
+[33m9a02646[m debug
+[33m7010af7[m debugging
+[33m8fed7ba[m Mass Debug
+[33m1deb45b[m debugging
+[33ma709f04[m Variable update
+[33m858a20d[m Updated environment variable names to match Amplify Console
+[33maac4d37[m Added type declarations and multi-environment support
+[33m7a64fa7[m Updated auth configuration to use environment variables
+[33mc3dae46[m Readme updates on stack management
+[33md7e0ecc[m retry logic addition
+[33mfc873dd[m unused import
+[33ma6a06b0[m Auth form update push
+[33m177c60f[m MainClear Push
+[33m2bb235a[m Main deploy Auth wipe + verify form
+[33mc267d92[m DeepDevAi rename
+[33ma8e9a9c[m type error
+[33m0c2017d[m UN verified user updates
+[33m7a0ff53[m type errors
+[33md495bb2[m reg fixes
+[33m74ddc59[m redeploy auth
+[33m72f4f66[m build issue
+[33ma9c87b0[m need to fully comment it out
+[33m5728757[m redeploy
+[33maa312e9[m back end redeploy
+[33m6697e49[m Massive UI update
+[33m9844b49[m revert
+[33me80339c[m simplify auth configuration for staging
+[33maef09ee[m fix
+[33m1576b35[m Merge pull request #8 from Monstermn96/feature/localTransform
+[33m8b06ba6[m[33m ([m[1;31morigin/feature/localTransform[m[33m)[m Build error fixes
+[33m2cec422[m Merge pull request #7 from Monstermn96/feature/localTransform
+[33me2990b0[m UI refresh welcome and dash
+[33m59d324b[m Merge pull request #6 from Monstermn96/feature/localTransform
+[33mac2b9a8[m Local fixes
+[33m025d17c[m Merge pull request #5 from Monstermn96/feature/localTransform
+[33mea99c97[m Big back end updates local deploy working
+[33m0f6add2[m Merge pull request #4 from Monstermn96/feature/localTransform
+[33mcc06b11[m Dash refinement
+[33m6d18934[m Merge pull request #3 from Monstermn96/feature/localTransform
+[33m75a260e[m User log in and Dashboard
+[33m2744e12[m Merge pull request #1 from Monstermn96/feature/initial-setup
+[33m0798497[m Update packages
+[33m6cfa9cd[m chore: update amplify build config for Node.js 20 and package sync
+[33m67984ec[m chore: update build configuration and dependencies for Amplify Gen 2
+[33mfcff103[m build script updates
+[33mcf89ffc[m Deploy config updates.
+[33m0e83d9c[m Initial commit
