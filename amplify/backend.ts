@@ -1,5 +1,12 @@
 import { defineBackend, defineFunction } from "@aws-amplify/backend";
-import { Stack, RemovalPolicy, CfnResource, Tags, Duration } from "aws-cdk-lib";
+import { 
+  Stack, 
+  RemovalPolicy, 
+  CfnResource, 
+  Tags, 
+  Duration,
+  CfnOutput 
+} from "aws-cdk-lib";
 import {
   AuthorizationType,
   Cors,
@@ -7,18 +14,44 @@ import {
   RestApi,
   LogGroupLogDestination,
   AccessLogFormat,
-  MethodLoggingLevel
+  MethodLoggingLevel,
+  MethodOptions,
+  ResourceOptions
 } from "aws-cdk-lib/aws-apigateway";
-import { Policy, PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { 
+  Policy, 
+  PolicyStatement,
+  Effect 
+} from "aws-cdk-lib/aws-iam";
+import { 
+  AttributeType, 
+  Table, 
+  BillingMode,
+  StreamViewType 
+} from "aws-cdk-lib/aws-dynamodb";
+import { 
+  LogGroup, 
+  RetentionDays,
+  LogGroupProps 
+} from "aws-cdk-lib/aws-logs";
+
+// Import local resources
 import { auth } from "./auth/resource";
 import { data } from "./data/resource";
-import { AttributeType, Table, BillingMode } from "aws-cdk-lib/aws-dynamodb";
-import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
+
+// Type definitions
+interface EnvironmentConfig {
+  stage: string;
+  region: string;
+  appId: string;
+}
 
 // Get environment-specific configuration
-const stage = process.env.AMPLIFY_ENV || 'dev';
-const region = process.env.AWS_REGION || 'us-east-1';
-const appId = process.env.AWS_APP_ID || 'local';
+const envConfig: EnvironmentConfig = {
+  stage: process.env.AMPLIFY_ENV || 'dev',
+  region: process.env.AWS_REGION || 'us-east-1',
+  appId: process.env.AWS_APP_ID || 'local'
+};
 
 // Define the Amplify backend with auth, data, and the functions
 export const backend = defineBackend({
@@ -29,8 +62,8 @@ export const backend = defineBackend({
     entry: './functions/userStats.ts',
     resourceGroupName: 'data',
     environment: {
-      STAGE: stage,
-      LOG_LEVEL: stage === 'prod' ? 'INFO' : 'DEBUG',
+      STAGE: envConfig.stage,
+      LOG_LEVEL: envConfig.stage === 'prod' ? 'INFO' : 'DEBUG',
       NODE_OPTIONS: '--enable-source-maps'
     },
     memoryMB: 1024,
@@ -42,8 +75,8 @@ export const backend = defineBackend({
     resourceGroupName: 'data',
     environment: {
       USER_TABLE_NAME: 'Users',
-      STAGE: stage,
-      LOG_LEVEL: stage === 'prod' ? 'INFO' : 'DEBUG',
+      STAGE: envConfig.stage,
+      LOG_LEVEL: envConfig.stage === 'prod' ? 'INFO' : 'DEBUG',
       NODE_OPTIONS: '--enable-source-maps'
     },
     memoryMB: 1024,
@@ -58,7 +91,7 @@ const apiStack = backend.createStack("api-stackv2");
 
 // Add stack tags for better resource management
 [authStack, dataStack, apiStack].forEach(stack => {
-  Tags.of(stack).add('Environment', stage);
+  Tags.of(stack).add('Environment', envConfig.stage);
   Tags.of(stack).add('Application', 'DeepCodeV2');
   Tags.of(stack).add('ManagedBy', 'Amplify');
 });
@@ -70,10 +103,10 @@ const apiStack = backend.createStack("api-stackv2");
 // Create a DynamoDB table for user data in the data stack
 const userTable = new Table(dataStack, "UserTable", {
   partitionKey: { name: "userId", type: AttributeType.STRING },
-  tableName: `Users-${stage}-${appId}`,
-  removalPolicy: stage === 'prod' ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
+  tableName: `Users-${envConfig.stage}-${envConfig.appId}`,
+  removalPolicy: envConfig.stage === 'prod' ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
   billingMode: BillingMode.PAY_PER_REQUEST,
-  pointInTimeRecovery: stage === 'prod',
+  pointInTimeRecovery: envConfig.stage === 'prod',
 });
 
 // Grant DynamoDB permissions to the API function's Lambda
@@ -81,8 +114,8 @@ userTable.grantReadWriteData(backend.apiFunction.resources.lambda);
 
 // Create CloudWatch log group for API Gateway
 const apiLogGroup = new LogGroup(apiStack, 'ApiGatewayLogs', {
-  retention: stage === 'prod' ? RetentionDays.ONE_MONTH : RetentionDays.ONE_WEEK,
-  removalPolicy: stage === 'prod' ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
+  retention: envConfig.stage === 'prod' ? RetentionDays.ONE_MONTH : RetentionDays.ONE_WEEK,
+  removalPolicy: envConfig.stage === 'prod' ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
 });
 
 // Define allowed origins based on environment
@@ -117,10 +150,10 @@ const getAllowedOrigins = (stage: string): string[] => {
 
 // Create a REST API in the API stack
 const myRestApi = new RestApi(apiStack, "RestApi", {
-  restApiName: `myRestApi-${stage}`,
+  restApiName: `myRestApi-${envConfig.stage}`,
   deploy: true,
   deployOptions: { 
-    stageName: stage,
+    stageName: envConfig.stage,
     variables: {
       lambdaAlias: backend.apiFunction.resources.lambda.functionName
     },
@@ -129,7 +162,7 @@ const myRestApi = new RestApi(apiStack, "RestApi", {
     accessLogFormat: AccessLogFormat.jsonWithStandardFields()
   },
   defaultCorsPreflightOptions: {
-    allowOrigins: getAllowedOrigins(stage),
+    allowOrigins: getAllowedOrigins(envConfig.stage),
     allowMethods: Cors.ALL_METHODS,
     allowHeaders: [
       ...Cors.DEFAULT_HEADERS,
@@ -178,9 +211,9 @@ const apiRestPolicy = new Policy(apiStack, "RestApiPolicy", {
     new PolicyStatement({
       actions: ["execute-api:Invoke"],
       resources: [
-        `${myRestApi.arnForExecuteApi("*", "/initialize", stage)}`,
-        `${myRestApi.arnForExecuteApi("*", "/stats", stage)}`,
-        `${myRestApi.arnForExecuteApi("*", "/update-stats", stage)}`,
+        `${myRestApi.arnForExecuteApi("*", "/initialize", envConfig.stage)}`,
+        `${myRestApi.arnForExecuteApi("*", "/stats", envConfig.stage)}`,
+        `${myRestApi.arnForExecuteApi("*", "/update-stats", envConfig.stage)}`,
       ],
     }),
   ],
@@ -197,13 +230,13 @@ backend.addOutput({
         endpoint: myRestApi.url,
         region: Stack.of(myRestApi).region,
         apiName: myRestApi.restApiName,
-        stage: stage
+        stage: envConfig.stage
       },
     },
     ENV_VARIABLES: {
-      STAGE: stage,
-      REGION: region,
-      APP_ID: appId,
+      STAGE: envConfig.stage,
+      REGION: envConfig.region,
+      APP_ID: envConfig.appId,
       USER_TABLE_NAME: userTable.tableName
     },
     STACK_REFS: {

@@ -4,6 +4,23 @@ applications:
       phases:
         preBuild:
           commands:
+            # Version checking commands
+            - "echo '=== Environment & Package Versions (Backend) ==='"
+            - "echo 'Operating System:' && uname -a || ver"
+            - "echo 'Node version:' && node --version"
+            - "echo 'NPM version:' && npm --version"
+            - "echo 'Python version:' && python --version || echo 'Python not found'"
+            - "echo 'AWS CLI version:' && aws --version || echo 'AWS CLI not found'"
+            - "echo 'Git version:' && git --version"
+            - "echo 'TypeScript version:' && tsc --version || echo 'TypeScript not installed yet'"
+            - "echo 'Current directory:' && pwd"
+            - "echo 'Environment variables:'"
+            - "echo '  AMPLIFY_ENV=' $AMPLIFY_ENV"
+            - "echo '  NODE_VERSION=' $NODE_VERSION"
+            - "echo '  AWS_APP_ID=' $AWS_APP_ID"
+            - "echo '  AWS_REGION=' $AWS_REGION"
+            - "echo '=== Starting Backend Build Process ==='"
+            # Existing commands
             - "echo 'Starting backend preBuild phase...'"
             - "echo 'Updating Node version...'"
             - 'nvm install 22'
@@ -16,6 +33,10 @@ applications:
             - 'npm install json-schema-to-ts@3.1.1 ts-algebra@2.0.0 --save-dev'
             - 'npm install --save-dev typescript@5.7.3'
             - 'npm install'
+            # Post-install version check
+            - "echo '=== Installed Package Versions (Backend) ==='"
+            - "echo 'Installed packages:' && npm list --depth=0"
+            - "echo '=== End Version Check ==='"
         build:
           commands:
             - "echo 'Starting backend build phase...'"
@@ -24,6 +45,23 @@ applications:
       phases:
         preBuild:
           commands:
+            # Version checking commands
+            - "echo '=== Environment & Package Versions (Frontend) ==='"
+            - "echo 'Operating System:' && uname -a || ver"
+            - "echo 'Node version:' && node --version"
+            - "echo 'NPM version:' && npm --version"
+            - "echo 'Python version:' && python --version || echo 'Python not found'"
+            - "echo 'AWS CLI version:' && aws --version || echo 'AWS CLI not found'"
+            - "echo 'Git version:' && git --version"
+            - "echo 'TypeScript version:' && tsc --version || echo 'TypeScript not installed yet'"
+            - "echo 'Current directory:' && pwd"
+            - "echo 'Environment variables:'"
+            - "echo '  AMPLIFY_ENV=' $AMPLIFY_ENV"
+            - "echo '  NODE_VERSION=' $NODE_VERSION"
+            - "echo '  AWS_APP_ID=' $AWS_APP_ID"
+            - "echo '  AWS_REGION=' $AWS_REGION"
+            - "echo '=== Starting Frontend Build Process ==='"
+            # Existing commands
             - "echo 'Starting frontend preBuild phase...'"
             - "echo 'Updating Node version...'"
             - 'nvm install 22'
@@ -38,6 +76,10 @@ applications:
             - 'npm install json-schema-to-ts@3.1.1 ts-algebra@2.0.0 --save-dev'
             - 'npm install --save-dev typescript@5.7.3'
             - 'npm install'
+            # Post-install version check
+            - "echo '=== Installed Package Versions (Frontend) ==='"
+            - "echo 'Installed packages:' && npm list --depth=0"
+            - "echo '=== End Version Check ==='"
         build:
           commands:
             - "echo 'Starting frontend build phase...'"
