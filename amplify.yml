@@ -4,41 +4,37 @@ applications:
       phases:
         preBuild:
           commands:
-            - echo "Starting backend preBuild phase..."
-            - echo "Running: nvm install 20"
-            - nvm install 20 && echo "nvm install 20 succeeded" || echo "nvm install 20 failed"
-            - echo "Running: nvm use 20"
-            - nvm use 20 && echo "nvm use 20 succeeded" || echo "nvm use 20 failed"
-            - echo "Running: npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1"
-            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1 && echo "npm install packages succeeded" || echo "npm install packages failed"
-            - echo "Running: npm list @aws-amplify/backend"
-            - npm list @aws-amplify/backend && echo "npm list output:" || echo "npm list failed"
+            - "echo 'Starting backend preBuild phase...'"
+            - "echo 'Updating Node version...'"
+            - 'nvm install 22'
+            - 'nvm use 22'
+            - 'npm install -g @aws-amplify/cli'
+            - 'npm ci'
+            - 'npm install aws-amplify@6.13.1 @aws-amplify/backend@1.14.1 @aws-amplify/ui-react@6.9.1'
+            - 'npm install --save-dev @types/react @types/react-dom @types/node @types/babel__generator @types/babel__template @types/babel__traverse @types/prop-types @types/aws-lambda @types/react-router-dom @types/react-transition-group'
         build:
           commands:
-            - echo "Starting backend build phase..."
-            - echo "Running: npm install"
-            - npm install && echo "npm install succeeded" || echo "npm install failed"
+            - "echo 'Starting backend build phase...'"
+            - "npm run build"
     frontend:
       phases:
         preBuild:
           commands:
-            - echo "Starting frontend preBuild phase..."
-            - echo "Running: npm install 20"
-            - npm install 20 && echo "npm install 20 succeeded" || echo "npm install 20 failed"
-            - echo "Running: nvm use 20"
-            - nvm use 20 && echo "nvm use 20 succeeded" || echo "nvm use 20 failed"
-            - echo "Running: npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1"
-            - npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-amplify/backend@1.14.1 && echo "npm install packages succeeded" || echo "npm install packages failed"
-            - echo "Running: npm list @aws-amplify/backend"
-            - npm list @aws-amplify/backend && echo "npm list output:" || echo "npm list failed"
+            - "echo 'Starting frontend preBuild phase...'"
+            - "echo 'Updating Node version...'"
+            - 'nvm install 22'
+            - 'nvm use 22'
+            - 'npm ci'
+            - 'npm install aws-amplify@6.13.1 @aws-amplify/backend@1.14.1 @aws-amplify/ui-react@6.9.1'
+            - 'npm install --save-dev @types/react @types/react-dom @types/node @types/babel__generator @types/babel__template @types/babel__traverse @types/prop-types @types/aws-lambda @types/react-router-dom @types/react-transition-group'
+            - 'npm install qrcode.react monaco-editor @monaco-editor/react'
+            - 'npm install react-router react-router-dom@7.2.0 react-transition-group simplebar simplebar-react'
+            - 'npm install @aws-sdk/client-cognito-identity-provider @aws-sdk/client-amplify @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb @aws-sdk/client-secrets-manager'
         build:
           commands:
-            - echo "Starting frontend build phase..."
-            - echo "FIRST_DEPLOY value: $FIRST_DEPLOY"
-            - echo "Checking if FIRST_DEPLOY equals true..."
-            - if [ "$FIRST_DEPLOY" = "true" ]; then echo "FIRST_DEPLOY is true; Running update-auth-config.js"; node ./scripts/update-auth-config.js && echo "update-auth-config.js succeeded" || echo "update-auth-config.js failed"; else echo "Skipping update-auth-config.js"; fi
-            - echo "Running: npm run build"
-            - npm run build && echo "npm run build succeeded" || echo "npm run build failed"
+            - "echo 'Starting frontend build phase...'"
+            - 'if [ "$FIRST_DEPLOY" = "true" ]; then node ./scripts/update-auth-config.js; fi'
+            - "npm run build"
       artifacts:
         baseDirectory: dist
         files:
@@ -46,3 +42,8 @@ applications:
       cache:
         paths:
           - node_modules/**/*
+    customHeaders:
+      - pattern: '**/*'
+        headers:
+          - key: 'Cache-Control'
+            value: 'max-age=0,no-cache,no-store,must-revalidate'
