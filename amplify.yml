@@ -4,31 +4,33 @@ applications:
       phases:
         preBuild:
           commands:
-            - echo Installing dependencies for %AWS_BRANCH% environment...
-            - npm.cmd ci
-            - npm.cmd install -g @aws-amplify/cli@latest @aws-amplify/backend-cli typescript vite
-            - IF "%AWS_BRANCH%"=="sandbox" (
-                echo Setting up sandbox environment... &&
-                set NODE_ENV=development &&
-                set VITE_AMPLIFY_ENV=sandbox
-              ) ELSE IF "%AWS_BRANCH%"=="PreDeploy" (
-                echo Setting up PreDeploy environment... &&
-                set NODE_ENV=staging &&
-                set VITE_AMPLIFY_ENV=predeploy
-              ) ELSE (
-                echo Setting up production environment... &&
-                set NODE_ENV=production &&
-                set VITE_AMPLIFY_ENV=production
-              )
+            - echo "Installing dependencies for $AWS_BRANCH environment..."
+            - npm ci
+            - npm install -g @aws-amplify/cli@latest @aws-amplify/backend-cli typescript vite
+            - |
+              if [ "$AWS_BRANCH" = "sandbox" ]; then
+                echo "Setting up sandbox environment..."
+                export NODE_ENV=development
+                export VITE_AMPLIFY_ENV=sandbox
+              elif [ "$AWS_BRANCH" = "PreDeploy" ]; then
+                echo "Setting up PreDeploy environment..."
+                export NODE_ENV=staging
+                export VITE_AMPLIFY_ENV=predeploy
+              else
+                echo "Setting up production environment..."
+                export NODE_ENV=production
+                export VITE_AMPLIFY_ENV=production
+              fi
         build:
           commands:
-            - echo Building for %AWS_BRANCH% environment...
-            - IF "%AWS_BRANCH%"=="sandbox" (
-                npm.cmd run dev -- --host 0.0.0.0 &&
-                npx.cmd ampx sandbox
-              ) ELSE (
-                npm.cmd run build
-              )
+            - echo "Building for $AWS_BRANCH environment..."
+            - |
+              if [ "$AWS_BRANCH" = "sandbox" ]; then
+                npm run dev -- --host 0.0.0.0 &
+                npx ampx sandbox
+              else
+                npm run build
+              fi
       artifacts:
         baseDirectory: dist
         files:
@@ -53,28 +55,30 @@ applications:
     build:
       image: ./Dockerfile
       commands:
-        - IF "%AWS_BRANCH%"=="sandbox" (
-            echo Running sandbox build... &&
-            npm.cmd run dev -- --host 0.0.0.0 &&
-            npx.cmd ampx sandbox
-          ) ELSE IF "%AWS_BRANCH%"=="PreDeploy" (
-            echo Running PreDeploy build... &&
-            npm.cmd run build
-          ) ELSE (
-            echo Running production build... &&
-            npm.cmd run build
-          )
+        - |
+          if [ "$AWS_BRANCH" = "sandbox" ]; then
+            echo "Running sandbox build..."
+            npm run dev -- --host 0.0.0.0 &
+            npx ampx sandbox
+          elif [ "$AWS_BRANCH" = "PreDeploy" ]; then
+            echo "Running PreDeploy build..."
+            npm run build
+          else
+            echo "Running production build..."
+            npm run build
+          fi
     test:
       phases:
         preTest:
           commands:
-            - npm.cmd ci
-            - npm.cmd install -g typescript
+            - npm ci
+            - npm install -g typescript
         test:
           commands:
-            - IF NOT "%AWS_BRANCH%"=="sandbox" (
-                npm.cmd run test
-              )
+            - |
+              if [ "$AWS_BRANCH" != "sandbox" ]; then
+                npm run test
+              fi
       artifacts:
         baseDirectory: coverage
         files:
