@@ -1,12 +1,18 @@
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../../amplify/data/resource';
-import amplify_outputs from '../../../amplify_outputs.json';
 
-// Initialize Amplify with outputs
-Amplify.configure(amplify_outputs);
-
-const client = generateClient<Schema>();
+// Initialize Amplify asynchronously
+async function initializeAmplify() {
+	try {
+		const outputs = await import('../../../amplify_outputs.json');
+		Amplify.configure(outputs.default);
+		return generateClient<Schema>();
+	} catch (error) {
+		console.error('Failed to load Amplify outputs:', error);
+		return null;
+	}
+}
 
 interface TokenUsage {
 	promptTokens: number;
@@ -39,6 +45,72 @@ export interface MonthlyUsage {
 	lastUpdated?: string;
 }
 
+let client: Awaited<ReturnType<typeof generateClient<Schema>>> | null = null;
+
+// Initialize the client
+initializeAmplify().then(c => {
+	client = c;
+});
+
+// API endpoints from outputs
+const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'http://localhost:3000';
+
+export async function initializeUserStats(userId: string): Promise<UserStats> {
+	if (!client) throw new Error('Client not initialized');
+	
+	const response = await fetch(`${API_ENDPOINT}/initialize`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ userId }),
+	});
+
+	if (!response.ok) {
+		throw new Error("Failed to initialize user stats");
+	}
+
+	return response.json();
+}
+
+export async function getUserStats(userId: string): Promise<UserStats> {
+	if (!client) throw new Error('Client not initialized');
+
+	const response = await fetch(`${API_ENDPOINT}/stats?userId=${userId}`, {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+		},
+	});
+
+	if (!response.ok) {
+		throw new Error("Failed to get user stats");
+	}
+
+	return response.json();
+}
+
+export async function updateUserStats(
+	userId: string,
+	tokensUsed: number
+): Promise<UserStats> {
+	if (!client) throw new Error('Client not initialized');
+
+	const response = await fetch(`${API_ENDPOINT}/update-stats`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ userId, tokensUsed }),
+	});
+
+	if (!response.ok) {
+		throw new Error("Failed to update user stats");
+	}
+
+	return response.json();
+}
+
 export class UserStatsService {
 	private static instance: UserStatsService;
 
@@ -52,6 +124,7 @@ export class UserStatsService {
 	}
 
 	async getUserStats(userId: string): Promise<UserStats | null> {
+		if (!client) throw new Error('Client not initialized');
 		try {
 			const { data } = await client.models.UserStats.get({ id: userId });
 			return data ? data[0] : null;
@@ -62,6 +135,7 @@ export class UserStatsService {
 	}
 
 	async initializeUserStats(userId: string): Promise<UserStats | null> {
+		if (!client) throw new Error('Client not initialized');
 		try {
 			const { data } = await client.models.UserStats.create({
 				id: userId,
@@ -85,6 +159,7 @@ export class UserStatsService {
 		challengeId: string,
 		usage: TokenUsage
 	): Promise<void> {
+		if (!client) throw new Error('Client not initialized');
 		try {
 			// First get current user stats to update totals
 			const { data } = await client.models.UserStats.get({ id: userId });
@@ -144,6 +219,7 @@ export class UserStatsService {
 	}
 
 	async updateChallengeCompletion(userId: string, completed: boolean): Promise<void> {
+		if (!client) throw new Error('Client not initialized');
 		try {
 			const { data } = await client.models.UserStats.get({ id: userId });
 			const stats = data ? data[0] : null;
@@ -162,6 +238,7 @@ export class UserStatsService {
 	}
 
 	async getMonthlyUsage(userId: string, yearMonth: string): Promise<MonthlyUsage | null> {
+		if (!client) throw new Error('Client not initialized');
 		try {
 			const { data } = await client.models.MonthlyUsage.get({ 
 				id: `${userId}-${yearMonth}`
@@ -174,6 +251,7 @@ export class UserStatsService {
 	}
 
 	async updateStreak(userId: string): Promise<void> {
+		if (!client) throw new Error('Client not initialized');
 		try {
 			const { data } = await client.models.UserStats.get({ id: userId });
 			const stats = data ? data[0] : null;

@@ -15,6 +15,7 @@
 	"dependencies": {
 		"@aws-amplify/api": "^6.3.0",
 		"@aws-amplify/api-rest": "^4.0.69",
+		"@aws-amplify/cli": "^12.14.4",
 		"@aws-amplify/ui-react": "^6.5.5",
 		"@aws-sdk/client-amplify": "^3.525.0",
 		"@aws-sdk/client-cognito-identity-provider": "^3.525.0",

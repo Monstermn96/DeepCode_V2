@@ -1,7 +1,9 @@
 import type { APIGatewayProxyHandler } from "aws-lambda";
-import { DynamoDB } from "aws-sdk";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
-const dynamodb = new DynamoDB.DocumentClient();
+const client = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(client);
 const TABLE_NAME = process.env.USER_TABLE_NAME || "Users";
 
 interface UserProfile {
@@ -50,11 +52,13 @@ export const handler: APIGatewayProxyHandler = async (event) => {
           createdAt: new Date().toISOString(),
           stats: { posts: 0, comments: 0, likes: 0 },
         };
-        await dynamodb.put({
+        
+        await docClient.send(new PutCommand({
           TableName: TABLE_NAME,
           Item: newUser,
           ConditionExpression: "attribute_not_exists(userId)",
-        }).promise();
+        }));
+        
         return { statusCode: 200, headers, body: JSON.stringify(newUser) };
       }
       case "/stats": {
@@ -65,10 +69,12 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         if (!userId) {
           return { statusCode: 400, headers, body: JSON.stringify({ message: "Missing userId parameter" }) };
         }
-        const result = await dynamodb.get({
+        
+        const result = await docClient.send(new GetCommand({
           TableName: TABLE_NAME,
           Key: { userId },
-        }).promise();
+        }));
+        
         if (!result.Item) {
           return { statusCode: 404, headers, body: JSON.stringify({ message: "User not found" }) };
         }
@@ -83,13 +89,15 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         if (!userId || !stats) {
           return { statusCode: 400, headers, body: JSON.stringify({ message: "Missing required fields" }) };
         }
-        const updateResult = await dynamodb.update({
+        
+        const updateResult = await docClient.send(new UpdateCommand({
           TableName: TABLE_NAME,
           Key: { userId },
           UpdateExpression: "SET stats = :stats",
           ExpressionAttributeValues: { ":stats": stats },
           ReturnValues: "ALL_NEW",
-        }).promise();
+        }));
+        
         return { statusCode: 200, headers, body: JSON.stringify(updateResult.Attributes) };
       }
       default:

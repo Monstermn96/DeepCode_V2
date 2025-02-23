@@ -1,11 +1,13 @@
-# Cleanup Script for Sandbox Environment with Docker Support
+# Cleanup Script for PreDeploy Environment
 
-Write-Host "Starting cleanup process for Sandbox environment..." -ForegroundColor Cyan
+Write-Host "Starting cleanup process for PreDeploy environment..." -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
 # Set variables
-$REGION = "us-east-1"
 $APP_ID = "d17nr8d8s58ya5"
+$BRANCH = "PreDeploy"
+$REGION = "us-east-1"
+$ECR_REPO = "deepdevai-predeploy"
 
 # Function to check if AWS CLI command was successful
 function Test-AwsCommand {
@@ -15,62 +17,53 @@ function Test-AwsCommand {
     }
 }
 
-# Function to clean up Docker resources
-function Remove-DockerResources {
-    Write-Host "Cleaning up Docker resources..." -ForegroundColor Yellow
-    
-    # Stop and remove the sandbox container
-    $container = docker ps -a --filter "name=amplify-sandbox" --format "{{.ID}}"
-    if ($container) {
-        Write-Host "Stopping and removing container..." -ForegroundColor Yellow
-        docker stop $container
-        docker rm $container
+# Function to verify AWS credentials
+function Test-AwsCredentials {
+    try {
+        Write-Host "Verifying AWS credentials..." -ForegroundColor Yellow
+        $identity = aws sts get-caller-identity | ConvertFrom-Json
+        Write-Host "Using AWS Account: $($identity.Account)" -ForegroundColor Green
+        Write-Host "Using IAM User: $($identity.Arn)" -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Host "AWS credentials verification failed" -ForegroundColor Red
+        return $false
     }
-    
-    # Remove the amplify-app image
-    $image = docker images amplify-app --format "{{.ID}}"
-    if ($image) {
-        Write-Host "Removing Docker image..." -ForegroundColor Yellow
-        docker rmi $image -f
-    }
-    
-    Write-Host "Docker cleanup completed!" -ForegroundColor Green
 }
 
 Write-Host "Scanning for resources to clean up..." -ForegroundColor Yellow
 
+# Verify AWS credentials
+if (-not (Test-AwsCredentials)) {
+    Write-Host "Please configure your AWS credentials and try again." -ForegroundColor Red
+    exit 1
+}
+
 # 1. List Cognito User Pools
 $userPools = aws cognito-idp list-user-pools --max-results 60 | ConvertFrom-Json
-$sandboxPools = $userPools.UserPools | Where-Object { 
-    $_.Name -like "*sandbox*" -or 
-    ($_.Name -like "*DeepDevAi*" -and $_.Name -like "*Development*") 
+$predeployPools = $userPools.UserPools | Where-Object { 
+    $_.Name -like "*predeploy*" -or 
+    ($_.Name -like "*DeepDevAi*" -and $_.Name -like "*PreDeploy*")
 }
 
 # 2. List CloudFormation stacks
 $stacks = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLETE ROLLBACK_COMPLETE | ConvertFrom-Json
-$sandboxStacks = $stacks.StackSummaries | Where-Object { 
-    ($_.StackName -like "*sandbox*") -or 
-    ($_.StackName -like "*amplify*" -and $_.StackName -like "*development*") -or
-    ($_.StackName -like "*amplify-$APP_ID*" -and $_.StackName -like "*sandbox*")
+$predeployStacks = $stacks.StackSummaries | Where-Object { 
+    ($_.StackName -like "*predeploy*") -or 
+    ($_.StackName -like "*amplify*" -and $_.StackName -like "*predeploy*") -or
+    ($_.StackName -like "*amplify-$APP_ID*" -and $_.StackName -like "*predeploy*")
 }
 
 # Display all resources that will be deleted
 Write-Host "`nResources to be deleted:" -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
-Write-Host "Docker Resources:" -ForegroundColor Yellow
-$container = docker ps -a --filter "name=amplify-sandbox" --format "{{.Names}}"
-if ($container) {
-    Write-Host "- Container: $container" -ForegroundColor White
-}
-$image = docker images amplify-app --format "{{.Repository}}"
-if ($image) {
-    Write-Host "- Image: $image" -ForegroundColor White
-}
+Write-Host "Docker/ECR Resources:" -ForegroundColor Yellow
+Write-Host "- ECR Repository: $ECR_REPO" -ForegroundColor White
 
 Write-Host "`nCognito User Pools:" -ForegroundColor Yellow
-if ($sandboxPools) {
-    foreach ($pool in $sandboxPools) {
+if ($predeployPools) {
+    foreach ($pool in $predeployPools) {
         Write-Host "- $($pool.Name) ($($pool.Id))" -ForegroundColor White
     }
 } else {
@@ -78,8 +71,8 @@ if ($sandboxPools) {
 }
 
 Write-Host "`nCloudFormation Stacks:" -ForegroundColor Yellow
-if ($sandboxStacks) {
-    foreach ($stack in $sandboxStacks) {
+if ($predeployStacks) {
+    foreach ($stack in $predeployStacks) {
         Write-Host "- $($stack.StackName)" -ForegroundColor White
     }
 } else {
@@ -88,23 +81,24 @@ if ($sandboxStacks) {
 
 Write-Host "`nLocal Resources to Clean:" -ForegroundColor Yellow
 Write-Host "- Build artifacts and environment files" -ForegroundColor White
-Write-Host "- Docker containers and images" -ForegroundColor White
+Write-Host "- Docker images" -ForegroundColor White
 
 # Ask for confirmation
 $userResponse = Read-Host "`nDo you want to delete all these resources? (y/n)"
 if ($userResponse -eq 'y') {
-    # Clean up Docker resources first
-    Remove-DockerResources
+    # Clean up ECR repository
+    Write-Host "Cleaning up ECR repository..." -ForegroundColor Yellow
+    aws ecr delete-repository --repository-name $ECR_REPO --force 2>$null
     
     # Delete User Pools
-    foreach ($pool in $sandboxPools) {
+    foreach ($pool in $predeployPools) {
         Write-Host "Deleting User Pool: $($pool.Name) ($($pool.Id))" -ForegroundColor Yellow
         aws cognito-idp delete-user-pool --user-pool-id $pool.Id
         Test-AwsCommand
     }
 
     # Delete CloudFormation stacks
-    foreach ($stack in $sandboxStacks) {
+    foreach ($stack in $predeployStacks) {
         Write-Host "Deleting stack: $($stack.StackName)" -ForegroundColor Yellow
         aws cloudformation delete-stack --stack-name $stack.StackName
         Test-AwsCommand
@@ -115,7 +109,7 @@ if ($userResponse -eq 'y') {
     }
 
     # Clean local sandbox-specific files
-    Write-Host "Cleaning local sandbox files..." -ForegroundColor Yellow
+    Write-Host "Cleaning local files..." -ForegroundColor Yellow
 
     $filesToRemove = @(
         "amplify_outputs.json",
@@ -137,10 +131,16 @@ if ($userResponse -eq 'y') {
         }
     }
 
-    Write-Host "`nSandbox cleanup complete!" -ForegroundColor Green
+    # Clean up Docker images
+    Write-Host "Cleaning up Docker images..." -ForegroundColor Yellow
+    docker rmi amplify-predeploy -f 2>$null
+    $ecrUri = "$($identity.Account).dkr.ecr.$REGION.amazonaws.com/$ECR_REPO"
+    docker rmi $ecrUri`:latest -f 2>$null
+
+    Write-Host "`nPreDeploy cleanup complete!" -ForegroundColor Green
     Write-Host "
 Next steps:
-1. Run deploy-sandbox.ps1 to create a new sandbox environment
+1. Run deploy-predeploy.ps1 to create a new PreDeploy environment
 " -ForegroundColor Cyan 
 } else {
     Write-Host "`nCleanup cancelled by user." -ForegroundColor Yellow

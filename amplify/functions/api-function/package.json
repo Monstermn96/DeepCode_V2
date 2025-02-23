@@ -1,0 +1,12 @@
+{
+  "name": "api-function",
+  "version": "1.0.0",
+  "description": "API Lambda function for DeepDevAi",
+  "main": "handler.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.525.0",
+    "@aws-sdk/lib-dynamodb": "^3.525.0",
+    "@types/aws-lambda": "^8.10.133"
+  },
+  "type": "module"
+} 

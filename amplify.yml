@@ -1,90 +1,36 @@
+version: 1
 applications:
-  - appRoot: .
-    backend:
+  - frontend:
       phases:
         preBuild:
           commands:
-            # Version checking commands
-            - "echo '=== Environment & Package Versions (Backend) ==='"
-            - "echo 'Operating System:' && uname -a || ver"
-            - "echo 'Node version:' && node --version"
-            - "echo 'NPM version:' && npm --version"
-            - "echo 'Python version:' && python --version || echo 'Python not found'"
-            - "echo 'AWS CLI version:' && aws --version || echo 'AWS CLI not found'"
-            - "echo 'Git version:' && git --version"
-            - "echo 'TypeScript version:' && tsc --version || echo 'TypeScript not installed yet'"
-            - "echo 'Current directory:' && pwd"
-            - "echo 'Environment variables:'"
-            - "echo '  AMPLIFY_ENV=' $AMPLIFY_ENV"
-            - "echo '  NODE_VERSION=' $NODE_VERSION"
-            - "echo '  AWS_APP_ID=' $AWS_APP_ID"
-            - "echo '  AWS_REGION=' $AWS_REGION"
-            - "echo '=== Starting Backend Build Process ==='"
-            # Existing commands
-            - "echo 'Starting backend preBuild phase...'"
-            - "echo 'Updating Node version...'"
-            - 'nvm install 22'
-            - 'nvm use 22'
-            - 'npm install -g @aws-amplify/cli'
-            - 'rm -rf node_modules package-lock.json'
-            - 'npm install'
-            - 'npm install aws-amplify@6.13.0 @aws-amplify/backend@1.14.1 @aws-amplify/ui-react@6.5.5'
-            - 'npm install --save-dev @types/react@18.2.66 @types/react-dom@18.2.22 @types/node@22.13.4 @types/babel__generator @types/babel__template @types/babel__traverse @types/prop-types @types/aws-lambda@8.10.147 @types/react-router-dom@5.3.3 @types/react-transition-group@4.4.12'
-            - 'npm install json-schema-to-ts@3.1.1 ts-algebra@2.0.0 --save-dev'
-            - 'npm install --save-dev typescript@5.7.3'
-            - 'npm install'
-            # Post-install version check
-            - "echo '=== Installed Package Versions (Backend) ==='"
-            - "echo 'Installed packages:' && npm list --depth=0"
-            - "echo '=== End Version Check ==='"
+            - echo "Installing dependencies for ${AWS_BRANCH} environment..."
+            - npm ci
+            - npm install -g @aws-amplify/cli@latest @aws-amplify/backend-cli typescript vite
+            - |
+              if [ "${AWS_BRANCH}" = "sandbox" ]; then
+                echo "Setting up sandbox environment..."
+                export NODE_ENV=development
+                export VITE_AMPLIFY_ENV=sandbox
+              elif [ "${AWS_BRANCH}" = "PreDeploy" ]; then
+                echo "Setting up PreDeploy environment..."
+                export NODE_ENV=staging
+                export VITE_AMPLIFY_ENV=predeploy
+              else
+                echo "Setting up production environment..."
+                export NODE_ENV=production
+                export VITE_AMPLIFY_ENV=production
+              fi
         build:
           commands:
-            - "echo 'Starting backend build phase...'"
-            - "npm run build"
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            # Version checking commands
-            - "echo '=== Environment & Package Versions (Frontend) ==='"
-            - "echo 'Operating System:' && uname -a || ver"
-            - "echo 'Node version:' && node --version"
-            - "echo 'NPM version:' && npm --version"
-            - "echo 'Python version:' && python --version || echo 'Python not found'"
-            - "echo 'AWS CLI version:' && aws --version || echo 'AWS CLI not found'"
-            - "echo 'Git version:' && git --version"
-            - "echo 'TypeScript version:' && tsc --version || echo 'TypeScript not installed yet'"
-            - "echo 'Current directory:' && pwd"
-            - "echo 'Environment variables:'"
-            - "echo '  AMPLIFY_ENV=' $AMPLIFY_ENV"
-            - "echo '  NODE_VERSION=' $NODE_VERSION"
-            - "echo '  AWS_APP_ID=' $AWS_APP_ID"
-            - "echo '  AWS_REGION=' $AWS_REGION"
-            - "echo '=== Starting Frontend Build Process ==='"
-            # Existing commands
-            - "echo 'Starting frontend preBuild phase...'"
-            - "echo 'Updating Node version...'"
-            - 'nvm install 22'
-            - 'nvm use 22'
-            - 'rm -rf node_modules package-lock.json'
-            - 'npm install'
-            - 'npm install aws-amplify@6.13.0 @aws-amplify/backend@1.14.1 @aws-amplify/ui-react@6.5.5'
-            - 'npm install --save-dev @types/react@18.2.66 @types/react-dom@18.2.22 @types/node@22.13.4 @types/babel__generator @types/babel__template @types/babel__traverse @types/prop-types @types/aws-lambda@8.10.147 @types/react-router-dom@5.3.3 @types/react-transition-group@4.4.12'
-            - 'npm install qrcode.react@4.2.0 monaco-editor@0.52.2 @monaco-editor/react@4.7.0'
-            - 'npm install react-router@7.1.5 react-router-dom@7.1.5 react-transition-group@4.4.5 simplebar@6.3.0 simplebar-react@3.3.0'
-            - 'npm install @aws-sdk/client-cognito-identity-provider@3.525.0 @aws-sdk/client-amplify@3.525.0 @aws-sdk/client-dynamodb@3.750.0 @aws-sdk/lib-dynamodb@3.750.0 @aws-sdk/client-secrets-manager@3.744.0'
-            - 'npm install json-schema-to-ts@3.1.1 ts-algebra@2.0.0 --save-dev'
-            - 'npm install --save-dev typescript@5.7.3'
-            - 'npm install'
-            # Post-install version check
-            - "echo '=== Installed Package Versions (Frontend) ==='"
-            - "echo 'Installed packages:' && npm list --depth=0"
-            - "echo '=== End Version Check ==='"
-        build:
-          commands:
-            - "echo 'Starting frontend build phase...'"
-            - 'if [ "$FIRST_DEPLOY" = "true" ]; then node ./scripts/update-auth-config.js; fi'
-            - "npm run build"
+            - echo "Building for ${AWS_BRANCH} environment..."
+            - |
+              if [ "${AWS_BRANCH}" = "sandbox" ]; then
+                npm run dev -- --host 0.0.0.0 &
+                npx ampx sandbox
+              else
+                npm run build
+              fi
       artifacts:
         baseDirectory: dist
         files:
@@ -92,8 +38,62 @@ applications:
       cache:
         paths:
           - node_modules/**/*
+          - .npm/**/*
+          - .cache/**/*
+    appRoot: .
     customHeaders:
       - pattern: '**/*'
         headers:
-          - key: 'Cache-Control'
-            value: 'max-age=0,no-cache,no-store,must-revalidate'
+          - key: 'Strict-Transport-Security'
+            value: 'max-age=31536000; includeSubDomains'
+          - key: 'X-Frame-Options'
+            value: 'SAMEORIGIN'
+          - key: 'X-XSS-Protection'
+            value: '1; mode=block'
+          - key: 'X-Content-Type-Options'
+            value: 'nosniff'
+    build:
+      image: /Dockerfile
+      commands:
+        - |
+          if [ "${AWS_BRANCH}" = "sandbox" ]; then
+            echo "Running sandbox build..."
+            npm run dev -- --host 0.0.0.0 &
+            npx ampx sandbox
+          elif [ "${AWS_BRANCH}" = "PreDeploy" ]; then
+            echo "Running PreDeploy build..."
+            npm run build
+          else
+            echo "Running production build..."
+            npm run build
+          fi
+    test:
+      phases:
+        preTest:
+          commands:
+            - npm ci
+            - npm install -g typescript
+        test:
+          commands:
+            - |
+              if [ "${AWS_BRANCH}" != "sandbox" ]; then
+                npm run test
+              fi
+    environmentVariables:
+      sandbox:
+        - name: NODE_ENV
+          value: development
+        - name: VITE_AMPLIFY_ENV
+          value: sandbox
+        - name: AMPLIFY_CLI_MIGRATION_STEPS
+          value: true
+      PreDeploy:
+        - name: NODE_ENV
+          value: staging
+        - name: VITE_AMPLIFY_ENV
+          value: predeploy
+      production:
+        - name: NODE_ENV
+          value: production
+        - name: VITE_AMPLIFY_ENV
+          value: production
