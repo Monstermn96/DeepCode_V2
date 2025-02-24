@@ -5,6 +5,11 @@ import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { UserStatsService, UserStats } from '../services/stats/userStats';
 
+interface UserStatsWithPoints extends Omit<UserStats, 'id'> {
+  id: string;
+  totalPoints: number;
+}
+
 interface ProgressBarProps {
   value: number;
   max: number;
@@ -27,7 +32,7 @@ export default function Profile() {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'subscription' | 'account'>('overview');
   const [showTipMessage, setShowTipMessage] = useState(false);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [userStats, setUserStats] = useState<UserStatsWithPoints | null>(null);
   const [monthlyUsage, setMonthlyUsage] = useState<{
     totalTokens: number;
     totalCost: number;
@@ -44,11 +49,23 @@ export default function Profile() {
         
         // Fetch user stats
         const stats = await statsService.getUserStats(user.userId);
-        if (stats) {
-          setUserStats(stats);
+        if (stats && stats.id) {
+          const statsWithPoints: UserStatsWithPoints = {
+            ...stats,
+            id: stats.id,
+            totalPoints: (stats.completedChallenges || 0) * 10
+          };
+          setUserStats(statsWithPoints);
         } else {
           const initialStats = await statsService.initializeUserStats(user.userId);
-          setUserStats(initialStats);
+          if (initialStats && initialStats.id) {
+            const initialStatsWithPoints: UserStatsWithPoints = {
+              ...initialStats,
+              id: initialStats.id,
+              totalPoints: 0
+            };
+            setUserStats(initialStatsWithPoints);
+          }
         }
 
         // Fetch current month's usage

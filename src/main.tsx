@@ -1,38 +1,46 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Amplify } from "aws-amplify";
-import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
-import { defaultStorage } from "aws-amplify/utils";
+import { type ResourcesConfig } from '@aws-amplify/core';
 import { generateClient } from "aws-amplify/data";
 import App from "./App";
 import "./index.css";
+
+interface AmplifyOutputs {
+	version: string;
+	auth?: {
+		userPoolId: string;
+		userPoolClientId: string;
+	};
+	storage?: {
+		aws_region: string;
+		bucket_name: string;
+	};
+}
 
 // Initialize Amplify asynchronously
 async function initializeAmplify() {
 	try {
 		const outputs = await import('../amplify_outputs.json');
-		const config = {
-			...outputs.default
-		};
-
-		// Only add Auth configuration if the required values are present
-		if (outputs.default.auth?.userPoolId && outputs.default.auth?.userPoolClientId) {
-			config.Auth = {
+		const amplifyOutputs = outputs.default as AmplifyOutputs;
+		
+		const config: ResourcesConfig = {
+			Auth: amplifyOutputs.auth ? {
 				Cognito: {
-					userPoolId: outputs.default.auth.userPoolId,
-					userPoolClientId: outputs.default.auth.userPoolClientId,
+					userPoolId: amplifyOutputs.auth.userPoolId,
+					userPoolClientId: amplifyOutputs.auth.userPoolClientId,
 					signUpVerificationMethod: "code"
 				}
-			};
-		} else {
-			console.warn('Auth configuration not found in amplify_outputs.json');
-		}
+			} : undefined,
+			Storage: amplifyOutputs.storage ? {
+				S3: {
+					region: amplifyOutputs.storage.aws_region,
+					bucket: amplifyOutputs.storage.bucket_name
+				}
+			} : undefined
+		};
 
-		Amplify.configure(config, {
-			Auth: {
-				tokenProvider: cognitoUserPoolsTokenProvider
-			}
-		});
+		Amplify.configure(config);
 		
 		return generateClient();
 	} catch (error) {
