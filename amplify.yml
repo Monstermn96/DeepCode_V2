@@ -5,6 +5,10 @@ applications:
         preBuild:
           commands:
             - echo "Installing dependencies for $AWS_BRANCH environment..."
+            - export NODE_OPTIONS=--max_old_space_size=4096
+            - nvm install 20
+            - nvm use 20
+            - node -v
             - npm ci
             - npm install -g @aws-amplify/cli@latest @aws-amplify/backend-cli typescript vite
             - |
@@ -84,21 +88,3 @@ applications:
         files:
           - '**/*'
         configFilePath: '**/coverage-final.json'
-    environmentVariables:
-      sandbox:
-        - name: NODE_ENV
-          value: development
-        - name: VITE_AMPLIFY_ENV
-          value: sandbox
-        - name: AMPLIFY_CLI_MIGRATION_STEPS
-          value: true
-      PreDeploy:
-        - name: NODE_ENV
-          value: staging
-        - name: VITE_AMPLIFY_ENV
-          value: predeploy
-      production:
-        - name: NODE_ENV
-          value: production
-        - name: VITE_AMPLIFY_ENV
-          value: production
