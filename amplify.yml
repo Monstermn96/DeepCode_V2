@@ -25,15 +25,27 @@ applications:
                 export NODE_ENV=production
                 export VITE_AMPLIFY_ENV=production
               fi
+            - echo "Building Docker image for $AWS_BRANCH environment..."
+            - docker build -t deepdevai-amplify \
+              --build-arg NODE_ENV=${NODE_ENV:-development} \
+              --build-arg VITE_AMPLIFY_ENV=${VITE_AMPLIFY_ENV:-sandbox} \
+              .
         build:
           commands:
-            - echo "Building for $AWS_BRANCH environment..."
+            - echo "Running build in Docker container for $AWS_BRANCH environment..."
             - |
               if [ "$AWS_BRANCH" = "sandbox" ]; then
-                npm run dev -- --host 0.0.0.0 &
-                npx ampx sandbox
+                docker run --rm \
+                  -e NODE_ENV=development \
+                  -e VITE_AMPLIFY_ENV=sandbox \
+                  deepdevai-amplify \
+                  sh -c "npm run dev -- --host 0.0.0.0 & npx ampx sandbox"
               else
-                npm run build
+                docker run --rm \
+                  -e NODE_ENV=${NODE_ENV} \
+                  -e VITE_AMPLIFY_ENV=${VITE_AMPLIFY_ENV} \
+                  deepdevai-amplify \
+                  npm run build
               fi
       artifacts:
         baseDirectory: dist
@@ -56,32 +68,17 @@ applications:
             value: '1; mode=block'
           - key: 'X-Content-Type-Options'
             value: 'nosniff'
-    build:
-      image: ./Dockerfile
-      commands:
-        - |
-          if [ "$AWS_BRANCH" = "sandbox" ]; then
-            echo "Running sandbox build..."
-            npm run dev -- --host 0.0.0.0 &
-            npx ampx sandbox
-          elif [ "$AWS_BRANCH" = "PreDeploy" ]; then
-            echo "Running PreDeploy build..."
-            npm run build
-          else
-            echo "Running production build..."
-            npm run build
-          fi
     test:
       phases:
         preTest:
           commands:
-            - npm ci
-            - npm install -g typescript
+            - docker run --rm deepdevai-amplify npm ci
+            - docker run --rm deepdevai-amplify npm install -g typescript
         test:
           commands:
             - |
               if [ "$AWS_BRANCH" != "sandbox" ]; then
-                npm run test
+                docker run --rm deepdevai-amplify npm run test
               fi
       artifacts:
         baseDirectory: coverage
