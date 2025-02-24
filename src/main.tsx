@@ -6,45 +6,48 @@ import { generateClient } from "aws-amplify/data";
 import App from "./App";
 import "./index.css";
 
-interface AmplifyOutputs {
-	version: string;
-	auth?: {
-		userPoolId: string;
-		userPoolClientId: string;
-	};
-	storage?: {
-		aws_region: string;
-		bucket_name: string;
-	};
-}
-
 // Initialize Amplify asynchronously
 async function initializeAmplify() {
 	try {
-		const outputs = await import('../amplify_outputs.json');
-		const amplifyOutputs = outputs.default as AmplifyOutputs;
-		
 		const config: ResourcesConfig = {
-			Auth: amplifyOutputs.auth ? {
+			Auth: {
 				Cognito: {
-					userPoolId: amplifyOutputs.auth.userPoolId,
-					userPoolClientId: amplifyOutputs.auth.userPoolClientId,
+					userPoolId: import.meta.env.VITE_AUTH_USER_POOL_ID || 'local',
+					userPoolClientId: import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID || 'local',
 					signUpVerificationMethod: "code"
 				}
-			} : undefined,
-			Storage: amplifyOutputs.storage ? {
-				S3: {
-					region: amplifyOutputs.storage.aws_region,
-					bucket: amplifyOutputs.storage.bucket_name
+			},
+			API: {
+				REST: import.meta.env.VITE_API_ID && import.meta.env.VITE_API_STAGE ? {
+					main: {
+						endpoint: `https://${import.meta.env.VITE_API_ID}.execute-api.${import.meta.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${import.meta.env.VITE_API_STAGE}`,
+						region: import.meta.env.AWS_REGION || 'us-east-1'
+					}
+				} : undefined,
+				Events: {
+					endpoint: import.meta.env.VITE_API_ID ? 
+						`https://${import.meta.env.VITE_API_ID}.execute-api.${import.meta.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${import.meta.env.VITE_API_STAGE}` : 
+						'http://localhost:3000',
+					defaultAuthMode: 'userPool'
 				}
-			} : undefined
-		};
+			}
+		} as const;
+
+		// For local development
+		if (import.meta.env.DEV) {
+			console.log('Running in development mode with config:', {
+				env: import.meta.env.VITE_AMPLIFY_ENV,
+				userPoolId: config.Auth?.Cognito?.userPoolId,
+				userPoolClientId: config.Auth?.Cognito?.userPoolClientId,
+				apiStage: import.meta.env.VITE_API_STAGE,
+				apiId: import.meta.env.VITE_API_ID
+			});
+		}
 
 		Amplify.configure(config);
-		
 		return generateClient();
 	} catch (error) {
-		console.error('Failed to load Amplify outputs:', error);
+		console.error('Failed to initialize Amplify:', error);
 		return null;
 	}
 }
