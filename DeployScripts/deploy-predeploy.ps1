@@ -1,4 +1,4 @@
-# Deploy PreDeploy Environment Script
+# Deploy PreDeploy Environment Script lets fix this
 
 Write-Host "Starting PreDeploy deployment process..." -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow
