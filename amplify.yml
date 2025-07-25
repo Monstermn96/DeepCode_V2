@@ -4,38 +4,29 @@ applications:
       phases:
         preBuild:
           commands:
-            - "echo 'Installing dependencies for $AWS_BRANCH environment...'"
-            - "export NODE_OPTIONS=--max_old_space_size=4096"
-            - "nvm install 20"
-            - "nvm use 20"
-            - "node -v"
-            - "npm ci"
-            - "npm install -g @aws-amplify/cli@latest @aws-amplify/backend-cli typescript vite"
-            - |
-              if [ "$AWS_BRANCH" = "sandbox" ]; then
-                echo "Setting up sandbox environment..."
-                export NODE_ENV=development
-                export VITE_AMPLIFY_ENV=sandbox
-              elif [ "$AWS_BRANCH" = "PreDeploy" ]; then
-                echo "Setting up PreDeploy environment..."
-                export NODE_ENV=staging
-                export VITE_AMPLIFY_ENV=predeploy
-              else
-                echo "Setting up production environment..."
-                export NODE_ENV=production
-                export VITE_AMPLIFY_ENV=production
-              fi
-            - "echo 'Environment variables set NODE_ENV=$NODE_ENV, VITE_AMPLIFY_ENV=$VITE_AMPLIFY_ENV'"
+            - echo "Installing dependencies for $AWS_BRANCH environment..."
+            - export NODE_OPTIONS=--max_old_space_size=4096
+            - nvm install 20
+            - nvm use 20
+            - node -v
+            - npm ci
+            - npm install -g @aws-amplify/cli@latest @aws-amplify/backend-cli typescript vite
         build:
           commands:
-            - "echo 'Building for $AWS_BRANCH environment...'"
             - |
+              echo "Building for $AWS_BRANCH environment..."
               if [ "$AWS_BRANCH" = "sandbox" ]; then
-                echo "Building sandbox environment..."
-                npx ampx sandbox --once
+                echo "Setting up sandbox environment..."
+                echo "Building sandbox..."
+                NODE_ENV=development VITE_AMPLIFY_ENV=sandbox npx ampx sandbox --once
+              elif [ "$AWS_BRANCH" = "PreDeploy" ]; then
+                echo "Setting up PreDeploy environment..."
+                echo "Building application with NODE_ENV=staging and VITE_AMPLIFY_ENV=predeploy..."
+                NODE_ENV=staging VITE_AMPLIFY_ENV=predeploy npm run build
               else
-                echo "Building with NODE_ENV=$NODE_ENV and VITE_AMPLIFY_ENV=$VITE_AMPLIFY_ENV"
-                npm run build
+                echo "Setting up production environment..."
+                echo "Building application with NODE_ENV=production and VITE_AMPLIFY_ENV=production..."
+                NODE_ENV=production VITE_AMPLIFY_ENV=production npm run build
               fi
       artifacts:
         baseDirectory: dist
@@ -62,8 +53,8 @@ applications:
       phases:
         preTest:
           commands:
-            - "npm ci"
-            - "npm install -g typescript"
+            - npm ci
+            - npm install -g typescript
         test:
           commands:
             - |
