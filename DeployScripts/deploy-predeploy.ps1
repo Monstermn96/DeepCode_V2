@@ -1,4 +1,4 @@
-# Deploy PreDeploy Environment Script lets fix this
+# Deploy PreDeploy Environment Script - Docker-free version
 
 Write-Host "Starting PreDeploy deployment process..." -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow
@@ -75,98 +75,74 @@ Remove-Item -Path node_modules -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "Installing dependencies..." -ForegroundColor Yellow
 npm install
 
-# Build Docker image
-Write-Host "Building Docker image..." -ForegroundColor Yellow
-docker build -t amplify-predeploy .
+# Build the application locally first
+Write-Host "Building application locally..." -ForegroundColor Yellow
+$env:NODE_ENV = "staging"
+$env:VITE_AMPLIFY_ENV = "predeploy"
+npm run build
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Docker build failed" -ForegroundColor Red
+    Write-Host "Build failed" -ForegroundColor Red
     exit 1
 }
 
-# Push Docker image to ECR
-Write-Host "Creating ECR repository if it doesn't exist..." -ForegroundColor Yellow
-$ecrRepo = "deepdevai-predeploy"
-aws ecr describe-repositories --repository-names $ecrRepo 2>$null
-if ($LASTEXITCODE -ne 0) {
-    aws ecr create-repository --repository-name $ecrRepo
+# Deploy to PreDeploy branch using Amplify CLI
+Write-Host "Deploying to PreDeploy branch..." -ForegroundColor Yellow
+
+# First, check if the branch exists in Amplify
+$branches = aws amplify list-branches --app-id $APP_ID | ConvertFrom-Json
+$predeployBranch = $branches.branches | Where-Object { $_.branchName -eq $BRANCH }
+
+if (-not $predeployBranch) {
+    Write-Host "Creating PreDeploy branch in Amplify..." -ForegroundColor Yellow
+    aws amplify create-branch --app-id $APP_ID --branch-name $BRANCH --stage BETA
     Test-AwsCommand
 }
 
-# Get ECR login token
-Write-Host "Logging into ECR..." -ForegroundColor Yellow
-aws ecr get-login-password | docker login --username AWS --password-stdin "$($identity.Account).dkr.ecr.$REGION.amazonaws.com"
+# Push current code to the branch and trigger deployment
+Write-Host "Pushing code to PreDeploy branch..." -ForegroundColor Yellow
+git add .
+git commit -m "Automated deployment to PreDeploy" -ErrorAction SilentlyContinue
+git push origin PreDeploy
 Test-AwsCommand
 
-# Tag and push image
-$ecrUri = "$($identity.Account).dkr.ecr.$REGION.amazonaws.com/$ecrRepo:latest"
-docker tag amplify-predeploy $ecrUri
-docker push $ecrUri
-Test-AwsCommand
+# Start a new deployment job
+Write-Host "Starting deployment job..." -ForegroundColor Yellow
+$deployment = aws amplify start-deployment --app-id $APP_ID --branch-name $BRANCH | ConvertFrom-Json
+$jobId = $deployment.jobSummary.jobId
 
-# Update Amplify app build settings
-Write-Host "Updating Amplify build settings..." -ForegroundColor Yellow
-$buildSpec = @{
-    version = 1
-    applications = @(
-        @{
-            frontend = @{
-                phases = @{
-                    preBuild = @{
-                        commands = @("npm ci")
-                    }
-                    build = @{
-                        commands = @("npm run build")
-                    }
-                }
-                artifacts = @{
-                    baseDirectory = "dist"
-                    files = @("**/*")
-                }
-                cache = @{
-                    paths = @("node_modules/**/*")
-                }
-            }
-            appRoot = "."
-            customHeaders = @(
-                @{
-                    pattern = "**/*"
-                    headers = @(
-                        @{
-                            key = "Strict-Transport-Security"
-                            value = "max-age=31536000; includeSubDomains"
-                        }
-                        @{
-                            key = "X-Frame-Options"
-                            value = "SAMEORIGIN"
-                        }
-                        @{
-                            key = "X-XSS-Protection"
-                            value = "1; mode=block"
-                        }
-                    )
-                }
-            )
-            build = @{
-                image = $ecrUri
-                commands = @("npm run build")
-            }
-        }
-    )
+Write-Host "Deployment job started with ID: $jobId" -ForegroundColor Green
+Write-Host "Monitoring deployment status..." -ForegroundColor Yellow
+
+# Monitor deployment status
+$maxAttempts = 60  # 10 minutes max wait
+$attempt = 0
+$deploymentComplete = $false
+
+while ($attempt -lt $maxAttempts -and -not $deploymentComplete) {
+    Start-Sleep -Seconds 10
+    $job = aws amplify get-job --app-id $APP_ID --branch-name $BRANCH --job-id $jobId | ConvertFrom-Json
+    $status = $job.job.summary.status
+    
+    Write-Host "[$attempt/$maxAttempts] Deployment status: $status" -ForegroundColor Yellow
+    
+    if ($status -eq "SUCCEED") {
+        $deploymentComplete = $true
+        Write-Host "Deployment completed successfully!" -ForegroundColor Green
+    } elseif ($status -eq "FAILED" -or $status -eq "CANCELLED") {
+        Write-Host "Deployment failed with status: $status" -ForegroundColor Red
+        exit 1
+    }
+    
+    $attempt++
 }
 
-$buildSpecJson = $buildSpec | ConvertTo-Json -Depth 10
-Set-Content -Path "amplify.yml" -Value $buildSpecJson
-
-# Deploy to PreDeploy branch
-Write-Host "Deploying to PreDeploy branch..." -ForegroundColor Yellow
-npx ampx pipeline-deploy --branch $BRANCH --app-id $APP_ID
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Deployment failed" -ForegroundColor Red
+if (-not $deploymentComplete) {
+    Write-Host "Deployment timed out" -ForegroundColor Red
     exit 1
 }
 
 # Get Cognito User Pool details
+Write-Host "Retrieving Cognito User Pool details..." -ForegroundColor Yellow
 $userPools = aws cognito-idp list-user-pools --max-results 60 | ConvertFrom-Json
 $currentPool = $userPools.UserPools | Where-Object { 
     $_.Name -like "*predeploy*" -or 
@@ -182,13 +158,18 @@ if ($currentPool) {
     }
 }
 
+# Get the deployed URL
+$app = aws amplify get-app --app-id $APP_ID | ConvertFrom-Json
+$deployedUrl = "https://$BRANCH.$($app.app.defaultDomain)"
+
 Write-Host "
 PreDeploy environment deployed successfully!
 ----------------------------------------
-- Docker image pushed to ECR: $ecrUri
-- Application deployed to: https://predeploy.$APP_ID.amplifyapp.com
+- Application deployed to: $deployedUrl
 - AWS resources have been provisioned
 - Environment variables have been configured
+- Branch: $BRANCH
+- App ID: $APP_ID
 
 To clean up this environment:
 1. Run cleanup-predeploy.ps1
