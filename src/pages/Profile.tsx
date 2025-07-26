@@ -10,23 +10,24 @@ interface UserStatsWithPoints extends Omit<UserStats, 'id'> {
   totalPoints: number;
 }
 
-interface ProgressBarProps {
-  value: number;
-  max: number;
-  color?: string;
-}
+// Commented out unused component
+// interface ProgressBarProps {
+//   value: number;
+//   max: number;
+//   color?: string;
+// }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ value, max, color = '#0070f3' }) => (
-  <div className={styles.progressBarContainer}>
-    <div 
-      className={styles.progressBar}
-      style={{ 
-        width: `${(value / max) * 100}%`,
-        backgroundColor: color
-      }}
-    />
-  </div>
-);
+// const ProgressBar: React.FC<ProgressBarProps> = ({ value, max, color = '#0070f3' }) => (
+//   <div className={styles.progressBarContainer}>
+//     <div 
+//       className={styles.progressBar}
+//       style={{ 
+//         width: `${(value / max) * 100}%`,
+//         backgroundColor: color
+//       }}
+//     />
+//   </div>
+// );
 
 export default function Profile() {
   const { user, signOut } = useAuth();

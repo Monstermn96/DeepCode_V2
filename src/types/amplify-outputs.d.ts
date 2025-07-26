@@ -2,29 +2,32 @@ declare module '*/amplify_outputs.json' {
     interface AmplifyOutputs {
         version: string;
         auth?: {
-            userPoolId: string;
-            userPoolClientId: string;
-            region?: string;
-            identityPoolId?: string;
+            user_pool_id?: string;
+            user_pool_client_id?: string;
+            identity_pool_id?: string;
+            oauth?: any;
+            aws_region?: string;
+            mfa_configuration?: string;
+            mfa_methods?: string[];
+            password_policy?: any;
+            standard_required_attributes?: string[];
+            username_attributes?: string[];
+            user_verification_types?: string[];
+            unauthenticated_identities_enabled?: boolean;
         };
-        api?: {
-            GraphQL?: {
-                endpoint: string;
-                region: string;
-            };
-            REST?: {
-                [key: string]: {
-                    endpoint: string;
-                    region: string;
-                };
-            };
+        data?: {
+            url: string;
+            aws_region: string;
+            api_key?: string;
+            default_authorization_type: string;
+            authorization_types?: string[];
+            model_introspection?: any;
         };
         storage?: {
-            S3?: {
-                bucket: string;
-                region: string;
-            };
+            aws_region: string;
+            bucket_name: string;
         };
+        custom?: any;
     }
 
     const outputs: AmplifyOutputs;

@@ -312,9 +312,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
       });
       console.log('Sign in successful');
 
-      // Get current user and attributes after successful sign in
+      // Get current user after successful sign in
       const currentUser = await getCurrentUser();
-      const userAttributes = await fetchUserAttributes();
       
       // Initialize user stats with the correct user ID
       try {
