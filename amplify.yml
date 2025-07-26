@@ -62,8 +62,3 @@ applications:
                 echo "Running tests for $AWS_BRANCH..."
                 npm run test || echo "Tests not configured, skipping..."
               fi
-      artifacts:
-        baseDirectory: coverage
-        files:
-          - '**/*'
-        configFilePath: '**/coverage-final.json'
