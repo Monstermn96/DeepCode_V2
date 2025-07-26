@@ -10,6 +10,8 @@ DeepDevAi is an immersive, dynamic platform designed to help developers improve 
 - **Responsive Design**: Beautiful UI that works across all devices
 - **Offline Support**: Continue learning even without internet connection
 - **Real-time Updates**: Instant feedback and progress synchronization
+- **Multi-Model AI Support**: Compatible with GPT-4, o1, o4 series models
+- **Enhanced Security**: Prompt injection protection and secure AI interactions
 
 ## 🛠️ Tech Stack
 
@@ -49,10 +51,11 @@ DeepDevAi is an immersive, dynamic platform designed to help developers improve 
    ```
 
 3. **Set up environment variables**
-   Create a `.env` file:
+   Create a `.env` file or configure in Amplify Console:
    ```env
    # OpenAI Configuration (will be stored securely in AWS)
-   OPENAI_API_KEY=your_api_key
+   VITE_OPENAI_API_KEY=your_api_key
+   VITE_OPENAI_MODEL=gpt-4  # or o4-mini, o1-preview, etc.
 
    # Additional configurations will be managed by Amplify
    ```
@@ -93,6 +96,11 @@ amplify/
 ### Branch Strategy
 - **main**: Production branch - https://main.d17nr8d8s58ya5.amplifyapp.com
 - **PreDeploy**: Pre-production testing - https://predeploy.d17nr8d8s58ya5.amplifyapp.com
+
+### Backend Deployment
+- **Automatic**: Backend deploys automatically when files in `amplify/` change
+- **Manual**: Set `FORCE_BACKEND_DEPLOY=true` in Amplify Console to force deployment
+- **Outputs**: `amplify_outputs.json` is automatically generated for each environment
 
 ### Local Development
 1. **Setup and Testing**
@@ -156,7 +164,12 @@ Amplify.configure({
 - Rate limiting on AI endpoints
 - Data encryption at rest and in transit
 - Regular security audits and updates
-- Authentication Flow:
+- **AI Security**:
+  - Prompt injection protection in all AI interactions
+  - Secure system prompts that prevent command execution
+  - User input treated as data, never as instructions
+  - No execution of user-provided code
+- **Authentication Flow**:
   - Sign In: Redirects to dashboard after successful authentication
   - Sign Out: Properly clears Cognito session and redirects to welcome page
   - Protected Routes: Automatically redirects to login for unauthenticated access
@@ -168,6 +181,25 @@ Amplify.configure({
 - AppSync analytics for API usage
 - Custom event tracking for user engagement
 - Error tracking and reporting
+
+## 🔄 Recent Updates (January 2025)
+
+### AWS Amplify Gen2 Migration
+- **Backend Deployment**: Automated backend deployment with conditional logic
+- **Configuration Management**: `amplify_outputs.json` auto-generation for each environment
+- **Branch-specific Resources**: Each branch has its own Cognito pools, APIs, and databases
+- **CI/CD Pipeline**: Optimized build process with intelligent caching
+
+### OpenAI Integration Improvements
+- **Multi-Model Support**: Now supports GPT-4, o1, and o4 series models
+- **Dynamic Token Handling**: Automatically uses `max_tokens` or `max_completion_tokens` based on model
+- **Enhanced Security**: All prompts include security instructions to prevent injection attacks
+
+### Build & Deployment Enhancements
+- **Conditional Backend Deployment**: Only deploys when backend files change
+- **Environment Variable Management**: Centralized configuration in Amplify Console
+- **Test Phase Compliance**: Fixed Amplify test artifacts requirements
+- **TypeScript Compatibility**: Resolved type issues with Amplify Gen2 imports
 
 ## 🤝 Contributing
 
