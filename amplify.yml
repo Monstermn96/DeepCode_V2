@@ -62,3 +62,10 @@ applications:
                 echo "Running tests for $AWS_BRANCH..."
                 npm run test || echo "Tests not configured, skipping..."
               fi
+              # Create empty test results to satisfy artifacts requirement
+              mkdir -p test-results
+              echo "No tests configured" > test-results/test-summary.txt
+      artifacts:
+        baseDirectory: test-results
+        files:
+          - '**/*'
