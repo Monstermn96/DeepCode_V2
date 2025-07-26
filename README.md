@@ -198,6 +198,14 @@ Amplify.configure({
 ### Build & Deployment Enhancements
 - **Conditional Backend Deployment**: Only deploys when backend files change
 - **Environment Variable Management**: Centralized configuration in Amplify Console
+
+### AI Architecture Refactoring (Latest)
+- **Backend AI Processing**: Moved AI operations to Lambda functions for improved security and scalability
+- **Dual Mode Operation**: Frontend can use either backend Lambda or direct OpenAI calls with automatic fallback
+- **Comprehensive Error Handling**: Implemented retry logic with exponential backoff and structured error responses
+- **Response Validation**: Added schema validation for all AI responses to prevent "Invalid response" errors
+- **Enhanced Token Tracking**: Consistent token usage tracking across all AI operations
+- **Improved Security**: API keys stored securely in Lambda environment, not exposed to frontend
 - **Test Phase Compliance**: Fixed Amplify test artifacts requirements
 - **TypeScript Compatibility**: Resolved type issues with Amplify Gen2 imports
 

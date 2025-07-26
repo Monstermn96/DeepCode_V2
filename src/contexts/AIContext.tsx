@@ -1,29 +1,32 @@
-import { createContext, useContext, useState } from "react";
-import { aiService, type SupportedLanguage } from "../services/ai/openai";
-import { useAuth } from "./AuthContext";
-import { UserStatsService } from "../services/stats/userStats";
+import React, { createContext, useContext, useState } from 'react';
+import { useAuth } from './AuthContext';
+import { aiBackendService } from '../services/ai/ai-backend-service';
+import { UserStatsService } from '../services/stats/userStats';
 
-interface Problem {
-	title: string;
-	description: string;
-	difficulty: "easy" | "medium" | "hard";
-	language: string;
-	starterCode: string;
-	solution: string;
-	testCases: Array<{
-		input: string;
-		expectedOutput: string;
+// Import the old service as fallback
+import { aiService as frontendAIService } from '../services/ai/openai';
+
+export type SupportedLanguage = 'Python' | 'Java' | 'C#';
+
+export interface Challenge {
+	problem: {
+		id?: string;
+		title: string;
 		description: string;
-	}>;
-	hints: string[];
+		language: SupportedLanguage;
+		difficulty: 'Easy' | 'Medium' | 'Hard';
+		testCases: Array<{
+			input: string;
+			expectedOutput: string;
+			explanation?: string;
+		}>;
+		hints: string[];
+		solution?: string;
+	};
 }
 
-interface Challenge {
-	problem: Problem;
-}
-
-interface GenerateChallengeParams {
-	type: "challenge";
+export interface GenerateChallengeParams {
+	type: string;
 	topic: string;
 	languages: SupportedLanguage[];
 }
@@ -33,6 +36,10 @@ interface AIContextType {
 	loading: boolean;
 	error: string | null;
 	generateChallenge: (params: GenerateChallengeParams) => Promise<void>;
+	evaluateCode: (code: string, testCases: any[], language: SupportedLanguage) => Promise<any>;
+	setCurrentChallenge: (challenge: Challenge | null) => void;
+	useBackendAI: boolean;
+	setUseBackendAI: (value: boolean) => void;
 }
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
@@ -42,6 +49,7 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 	const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [useBackendAI, setUseBackendAI] = useState(true); // Default to backend AI
 
 	const generateChallenge = async (params: GenerateChallengeParams) => {
 		setLoading(true);
@@ -49,11 +57,35 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 
 		try {
 			console.log("Generating challenge with params:", params);
+			console.log("Using backend AI:", useBackendAI);
 
-			const response = await aiService.generateChallenge(
-				params.topic,
-				params.languages
-			);
+			let response;
+			
+			if (useBackendAI) {
+				// Use new backend service
+				try {
+					response = await aiBackendService.generateChallenge({
+						topic: params.topic,
+						languages: params.languages,
+						difficulty: 'Medium' // Default difficulty
+					});
+				} catch (backendError) {
+					console.error("Backend AI failed, falling back to frontend:", backendError);
+					// Fallback to frontend service
+					response = await frontendAIService.generateChallenge(
+						params.topic,
+						params.languages,
+						user?.userId
+					);
+				}
+			} else {
+				// Use frontend service directly
+				response = await frontendAIService.generateChallenge(
+					params.topic,
+					params.languages,
+					user?.userId
+				);
+			}
 
 			console.log("Raw API response:", response);
 
@@ -67,48 +99,69 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 				throw new Error("Invalid response format from AI service");
 			}
 
-			// Record token usage if we have a user ID
-			if (user?.userId && response.metadata.usage) {
-				try {
-					const userStatsService = UserStatsService.getInstance();
-					await userStatsService.recordTokenUsage(
-						user.userId,
-						`challenge-${Date.now()}`, // Generate a unique challenge ID
-						{
-							promptTokens: response.metadata.usage.prompt_tokens,
-							completionTokens: response.metadata.usage.completion_tokens,
-							totalTokens: response.metadata.usage.total_tokens,
-							estimatedCost: response.metadata.usage.estimated_cost,
-							model: response.metadata.model,
-							challengeType: "challenge"
-						}
-					);
-				} catch (error) {
-					console.error("Failed to record token usage:", error);
-					// Don't throw here - we still want to set the challenge even if usage recording fails
-				}
-			}
+			// Token usage is now tracked automatically in the backend
 
 			console.log("Setting challenge with data:", response.data);
 
 			// Transform the response data into the Challenge format
 			setCurrentChallenge({ problem: response.data });
-		} catch (err) {
-			console.error("Detailed error:", {
-				error: err,
-				message: err instanceof Error ? err.message : "Unknown error",
-				stack: err instanceof Error ? err.stack : undefined,
-				params: params,
-			});
-
-			const errorMessage =
-				err instanceof Error
-					? err.message
-					: "An error occurred while generating the challenge";
-			setError(errorMessage);
-			throw err;
+		} catch (error) {
+			console.error("Failed to generate challenge:", error);
+			setError(error instanceof Error ? error.message : "Failed to generate challenge");
+			
+			// Show user-friendly error messages
+			if (error instanceof Error) {
+				if (error.message.includes("API key")) {
+					setError("AI service is not configured. Please check your settings.");
+				} else if (error.message.includes("rate limit")) {
+					setError("Too many requests. Please wait a moment and try again.");
+				} else if (error.message.includes("timeout")) {
+					setError("Request timed out. Please try again.");
+				} else {
+					setError("Failed to generate challenge. Please try again.");
+				}
+			}
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const evaluateCode = async (code: string, testCases: any[], language: SupportedLanguage) => {
+		try {
+			console.log("Evaluating code with backend AI:", useBackendAI);
+			
+			let response;
+			
+			if (useBackendAI) {
+				try {
+					response = await aiBackendService.evaluateCode({
+						code,
+						testCases,
+						language
+					});
+				} catch (backendError) {
+					console.error("Backend evaluation failed, falling back to frontend:", backendError);
+					// Fallback to frontend service
+					response = await frontendAIService.evaluateCode(
+						code,
+						testCases,
+						language,
+						user?.userId
+					);
+				}
+			} else {
+				response = await frontendAIService.evaluateCode(
+					code,
+					testCases,
+					language,
+					user?.userId
+				);
+			}
+
+			return response;
+		} catch (error) {
+			console.error("Failed to evaluate code:", error);
+			throw error;
 		}
 	};
 
@@ -119,6 +172,10 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 				loading,
 				error,
 				generateChallenge,
+				evaluateCode,
+				setCurrentChallenge,
+				useBackendAI,
+				setUseBackendAI
 			}}
 		>
 			{children}
@@ -128,8 +185,8 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 
 export function useAI() {
 	const context = useContext(AIContext);
-	if (context === undefined) {
-		throw new Error("useAI must be used within an AIProvider");
+	if (!context) {
+		throw new Error('useAI must be used within an AIProvider');
 	}
 	return context;
 }

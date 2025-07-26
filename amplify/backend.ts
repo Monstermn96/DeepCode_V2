@@ -38,6 +38,8 @@ import {
 // Import local resources
 import { auth } from "./auth/resource";
 import { data } from "./data/resource";
+import { AIGenerationFunction } from "./functions/ai-generation/resource";
+import { AIConversationFunction } from "./functions/ai-conversation/resource";
 
 // Type definitions
 interface EnvironmentConfig {
@@ -81,7 +83,9 @@ export const backend = defineBackend({
     },
     memoryMB: 1024,
     timeoutSeconds: 30
-  })
+  }),
+  aiGeneration: AIGenerationFunction,
+  aiConversation: AIConversationFunction
 });
 
 // Create stacks in order of dependencies

@@ -316,7 +316,8 @@ export const aiService = {
 
 	async generateChallenge(
 		topic: string,
-		languages: SupportedLanguage[] = []
+		languages: SupportedLanguage[] = [],
+		userId?: string
 	): Promise<AIResponse & { data: ChallengeResponse }> {
 		const validLanguages = languages.filter((lang) =>
 			SUPPORTED_LANGUAGES.includes(lang)
@@ -325,20 +326,87 @@ export const aiService = {
 			validLanguages.push(SUPPORTED_LANGUAGES[0]); // Default to first supported language
 		}
 
-		return this.generateResponse<ChallengeResponse>("challenge", {
+		const response = await this.generateResponse<ChallengeResponse>("challenge", {
 			topic,
 			languages: validLanguages,
 		});
+
+		// If we have a userId, record the token usage
+		if (userId && response.metadata.usage) {
+			try {
+				console.log(`🎯 Recording challenge token usage for user ${userId}:`, {
+					promptTokens: response.metadata.usage.prompt_tokens,
+					completionTokens: response.metadata.usage.completion_tokens,
+					totalTokens: response.metadata.usage.total_tokens,
+					estimatedCost: response.metadata.usage.estimated_cost,
+					model: response.metadata.model
+				});
+				const userStatsService = UserStatsService.getInstance();
+				await userStatsService.recordTokenUsage(
+					userId,
+					`challenge-${Date.now()}`,
+					{
+						promptTokens: response.metadata.usage.prompt_tokens,
+						completionTokens: response.metadata.usage.completion_tokens,
+						totalTokens: response.metadata.usage.total_tokens,
+						estimatedCost: response.metadata.usage.estimated_cost,
+						model: response.metadata.model,
+						challengeType: "challenge"
+					}
+				);
+			} catch (error) {
+				console.error("Failed to record challenge token usage:", error);
+				// Don't throw - we still want to return the challenge
+			}
+		} else {
+			console.log(`⚠️ Skipping challenge token tracking - userId: ${userId}, hasUsage: ${!!response.metadata.usage}`);
+		}
+
+		return response;
 	},
 
 	async getCodeFeedback(
 		code: string,
-		language: SupportedLanguage
+		language: SupportedLanguage,
+		userId?: string
 	): Promise<AIResponse & { data: FeedbackResponse }> {
-		return this.generateResponse<FeedbackResponse>("feedback", {
+		const response = await this.generateResponse<FeedbackResponse>("feedback", {
 			code,
 			language,
 		});
+
+		// If we have a userId, record the token usage
+		if (userId && response.metadata.usage) {
+			try {
+				console.log(`🎯 Recording feedback token usage for user ${userId}:`, {
+					promptTokens: response.metadata.usage.prompt_tokens,
+					completionTokens: response.metadata.usage.completion_tokens,
+					totalTokens: response.metadata.usage.total_tokens,
+					estimatedCost: response.metadata.usage.estimated_cost,
+					model: response.metadata.model
+				});
+				const userStatsService = UserStatsService.getInstance();
+				await userStatsService.recordTokenUsage(
+					userId,
+					`feedback-${Date.now()}`,
+					{
+						promptTokens: response.metadata.usage.prompt_tokens,
+						completionTokens: response.metadata.usage.completion_tokens,
+						totalTokens: response.metadata.usage.total_tokens,
+						estimatedCost: response.metadata.usage.estimated_cost,
+						model: response.metadata.model,
+						challengeType: "feedback"
+					}
+				);
+			} catch (error) {
+				console.error("Failed to record feedback token usage:", error);
+				// Don't throw - we still want to return the feedback
+			}
+		} else {
+			console.log(`⚠️ Skipping feedback token tracking - userId: ${userId}, hasUsage: ${!!response.metadata.usage}`);
+		}
+
+		return response;
 	},
 
 	async evaluateCode(
@@ -356,6 +424,13 @@ export const aiService = {
 		// If we have a userId, record the token usage
 		if (userId && response.metadata.usage) {
 			try {
+				console.log(`🎯 Recording evaluation token usage for user ${userId}:`, {
+					promptTokens: response.metadata.usage.prompt_tokens,
+					completionTokens: response.metadata.usage.completion_tokens,
+					totalTokens: response.metadata.usage.total_tokens,
+					estimatedCost: response.metadata.usage.estimated_cost,
+					model: response.metadata.model
+				});
 				const userStatsService = UserStatsService.getInstance();
 				await userStatsService.recordTokenUsage(
 					userId,
@@ -373,6 +448,8 @@ export const aiService = {
 				console.error("Failed to record evaluation token usage:", error);
 				// Don't throw - we still want to return the evaluation results
 			}
+		} else {
+			console.log(`⚠️ Skipping evaluation token tracking - userId: ${userId}, hasUsage: ${!!response.metadata.usage}`);
 		}
 
 		return response;
