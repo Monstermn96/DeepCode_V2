@@ -15,7 +15,24 @@ interface ConversationTurnEvent {
   };
 }
 
-import { log } from '../utils/logger';
+// Simple inline logger for Lambda function
+const isProduction = () => {
+  const env = process.env.AMPLIFY_ENV || 'dev';
+  return env === 'prod' || env === 'production';
+};
+
+const log = {
+  info: (message: string, context?: any) => {
+    if (!isProduction()) {
+      console.log(`[INFO] ${message}`, context || '');
+    }
+  },
+  lambdaStart: (functionName: string, event: any) => {
+    if (!isProduction()) {
+      console.log(`[INFO] Lambda ${functionName} started`);
+    }
+  }
+};
 
 // Simple in-memory conversation storage (use DynamoDB in production)
 const conversations = new Map<string, any[]>();

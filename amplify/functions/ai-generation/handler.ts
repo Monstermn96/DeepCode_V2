@@ -4,7 +4,31 @@ import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedroc
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
-import { log } from '../utils/logger';
+
+// Simple inline logger for Lambda function
+const isProduction = () => {
+  const env = process.env.AMPLIFY_ENV || 'dev';
+  return env === 'prod' || env === 'production';
+};
+
+const log = {
+  info: (message: string, context?: any) => {
+    if (!isProduction()) {
+      console.log(`[INFO] ${message}`, context || '');
+    }
+  },
+  warn: (message: string, context?: any) => {
+    console.warn(`[WARN] ${message}`, context || '');
+  },
+  error: (message: string, error?: any, context?: any) => {
+    console.error(`[ERROR] ${message}`, error || '', context || '');
+  },
+  lambdaStart: (functionName: string, event: any) => {
+    if (!isProduction()) {
+      console.log(`[INFO] Lambda ${functionName} started`);
+    }
+  }
+};
 
 // Initialize clients
 const dataClient = generateClient<Schema>();
