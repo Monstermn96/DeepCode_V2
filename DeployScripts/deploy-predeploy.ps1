@@ -1,5 +1,7 @@
-# Deployment Script for PreDeploy Environment
-Write-Host "Starting deployment process for PreDeploy environment..." -ForegroundColor Cyan
+# Deploy PreDeploy Environment Script
+
+Write-Host "Starting PreDeploy deployment process..." -ForegroundColor Cyan
+Write-Host "----------------------------------------" -ForegroundColor Yellow
 
 # Set variables
 $APP_ID = "d17nr8d8s58ya5"
@@ -14,64 +16,161 @@ function Test-AwsCommand {
     }
 }
 
-# 1. Verify AWS credentials
-Write-Host "Verifying AWS credentials..." -ForegroundColor Yellow
-aws sts get-caller-identity
-Test-AwsCommand
-
-# 2. Set required environment variables
-Write-Host "Setting deployment environment variables..." -ForegroundColor Yellow
-$env:AWS_APP_ID = $APP_ID
-$env:AWS_BRANCH = $BRANCH
-$env:AMPLIFY_ENV = "staging"
-$env:CI = "1"  # Required to run pipeline-deploy locally
-
-# 3. Verify branch exists in Amplify
-Write-Host "Verifying branch exists in Amplify..." -ForegroundColor Yellow
-$branchInfo = aws amplify get-branch --app-id $APP_ID --branch-name $BRANCH | ConvertFrom-Json
-if (-not $branchInfo) {
-    Write-Host "Branch does not exist. Creating branch..." -ForegroundColor Yellow
-    aws amplify create-branch --app-id $APP_ID --branch-name $BRANCH --framework "Next.js - SSR" --stage PRODUCTION
-    Test-AwsCommand
-}
-
-# 4. Clean build artifacts
-Write-Host "Cleaning build artifacts..." -ForegroundColor Yellow
-if (Test-Path "amplify_outputs.json") {
-    Remove-Item "amplify_outputs.json" -Force
-}
-if (Test-Path ".amplify") {
-    Remove-Item ".amplify" -Recurse -Force
-}
-if (Test-Path "dist") {
-    Remove-Item "dist" -Recurse -Force
-}
-
-# 5. Install dependencies if needed
-if (-not (Test-Path "node_modules")) {
-    Write-Host "Installing dependencies..." -ForegroundColor Yellow
-    npm install
-    Test-AwsCommand
-}
-
-# 6. Run the deployment
-Write-Host "Starting deployment..." -ForegroundColor Yellow
-Write-Host "This may take several minutes..." -ForegroundColor Yellow
-
-try {
-    npx ampx pipeline-deploy --branch $BRANCH --app-id $APP_ID
-    if ($LASTEXITCODE -ne 0) {
-        throw "Deployment failed"
+# Function to verify AWS credentials
+function Test-AwsCredentials {
+    try {
+        Write-Host "Verifying AWS credentials..." -ForegroundColor Yellow
+        $identity = aws sts get-caller-identity | ConvertFrom-Json
+        Write-Host "Using AWS Account: $($identity.Account)" -ForegroundColor Green
+        Write-Host "Using IAM User: $($identity.Arn)" -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Host "AWS credentials verification failed" -ForegroundColor Red
+        return $false
     }
-    Write-Host "Deployment completed successfully!" -ForegroundColor Green
-} catch {
-    Write-Host "Deployment failed: $_" -ForegroundColor Red
+}
+
+# Function to update environment variables
+function Update-EnvFile {
+    param (
+        [string]$PoolId,
+        [string]$ClientId
+    )
+    Write-Host "Creating/Updating .env file..." -ForegroundColor Yellow
+    
+    $envContent = @"
+VITE_AMPLIFY_ENV=Predeploy
+VITE_AUTH_USER_POOL_ID=$PoolId
+VITE_AUTH_USER_POOL_CLIENT_ID=$ClientId
+NODE_ENV=staging
+AMPLIFY_ENV=staging
+AMPLIFY_BACKEND_POOL_NAME=DeepDevAi-PreDeploy
+AMPLIFY_BACKEND_PASSWORD_MIN_LENGTH=8
+AMPLIFY_BACKEND_PASSWORD_REQUIRE_LOWERCASE=true
+AMPLIFY_BACKEND_PASSWORD_REQUIRE_NUMBERS=true
+AMPLIFY_BACKEND_PASSWORD_REQUIRE_SPECIAL=true
+AMPLIFY_BACKEND_PASSWORD_REQUIRE_UPPERCASE=true
+FORCE_CLEANUP=false
+"@
+
+    Set-Content -Path ".env" -Value $envContent
+    Write-Host "Environment variables updated successfully!" -ForegroundColor Green
+}
+
+# Verify AWS credentials
+if (-not (Test-AwsCredentials)) {
+    Write-Host "Please configure your AWS credentials and try again." -ForegroundColor Red
     exit 1
 }
 
+# Ensure we're in the right directory
+Set-Location -Path $PSScriptRoot\..
+
+# Clean existing artifacts
+Write-Host "Cleaning existing artifacts..." -ForegroundColor Yellow
+Remove-Item -Path amplify_outputs.json -Force -ErrorAction SilentlyContinue
+Remove-Item -Path node_modules -Recurse -Force -ErrorAction SilentlyContinue
+
+# Install dependencies
+Write-Host "Installing dependencies..." -ForegroundColor Yellow
+npm install
+
+# Build the application locally first
+Write-Host "Building application locally..." -ForegroundColor Yellow
+$env:NODE_ENV = "staging"
+$env:VITE_AMPLIFY_ENV = "predeploy"
+npm run build
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Build failed" -ForegroundColor Red
+    exit 1
+}
+
+# Deploy to PreDeploy branch using Amplify CLI
+Write-Host "Deploying to PreDeploy branch..." -ForegroundColor Yellow
+
+# First, check if the branch exists in Amplify
+$branches = aws amplify list-branches --app-id $APP_ID | ConvertFrom-Json
+$predeployBranch = $branches.branches | Where-Object { $_.branchName -eq $BRANCH }
+
+if (-not $predeployBranch) {
+    Write-Host "Creating PreDeploy branch in Amplify..." -ForegroundColor Yellow
+    aws amplify create-branch --app-id $APP_ID --branch-name $BRANCH --stage BETA
+    Test-AwsCommand
+}
+
+# Push current code to the branch and trigger deployment
+Write-Host "Pushing code to PreDeploy branch..." -ForegroundColor Yellow
+git add .
+git commit -m "Automated deployment to PreDeploy" -ErrorAction SilentlyContinue
+git push origin PreDeploy
+Test-AwsCommand
+
+# Start a new deployment job
+Write-Host "Starting deployment job..." -ForegroundColor Yellow
+$deployment = aws amplify start-deployment --app-id $APP_ID --branch-name $BRANCH | ConvertFrom-Json
+$jobId = $deployment.jobSummary.jobId
+
+Write-Host "Deployment job started with ID: $jobId" -ForegroundColor Green
+Write-Host "Monitoring deployment status..." -ForegroundColor Yellow
+
+# Monitor deployment status
+$maxAttempts = 60  # 10 minutes max wait
+$attempt = 0
+$deploymentComplete = $false
+
+while ($attempt -lt $maxAttempts -and -not $deploymentComplete) {
+    Start-Sleep -Seconds 10
+    $job = aws amplify get-job --app-id $APP_ID --branch-name $BRANCH --job-id $jobId | ConvertFrom-Json
+    $status = $job.job.summary.status
+    
+    Write-Host "[$attempt/$maxAttempts] Deployment status: $status" -ForegroundColor Yellow
+    
+    if ($status -eq "SUCCEED") {
+        $deploymentComplete = $true
+        Write-Host "Deployment completed successfully!" -ForegroundColor Green
+    } elseif ($status -eq "FAILED" -or $status -eq "CANCELLED") {
+        Write-Host "Deployment failed with status: $status" -ForegroundColor Red
+        exit 1
+    }
+    
+    $attempt++
+}
+
+if (-not $deploymentComplete) {
+    Write-Host "Deployment timed out" -ForegroundColor Red
+    exit 1
+}
+
+# Get Cognito User Pool details
+Write-Host "Retrieving Cognito User Pool details..." -ForegroundColor Yellow
+$userPools = aws cognito-idp list-user-pools --max-results 60 | ConvertFrom-Json
+$currentPool = $userPools.UserPools | Where-Object { 
+    $_.Name -like "*predeploy*" -or 
+    ($_.Name -like "*DeepDevAi*" -and $_.Name -like "*PreDeploy*")
+} | Sort-Object CreationDate -Descending | Select-Object -First 1
+
+if ($currentPool) {
+    $clients = aws cognito-idp list-user-pool-clients --user-pool-id $currentPool.Id | ConvertFrom-Json
+    $client = $clients.UserPoolClients[0]
+
+    if ($client) {
+        Update-EnvFile -PoolId $currentPool.Id -ClientId $client.ClientId
+    }
+}
+
+# Get the deployed URL
+$app = aws amplify get-app --app-id $APP_ID | ConvertFrom-Json
+$deployedUrl = "https://$BRANCH.$($app.app.defaultDomain)"
+
 Write-Host "
-Deployment complete! Next steps:
-1. Check the deployment status in Amplify Console: https://console.aws.amazon.com/amplify/home?region=${REGION}#/${APP_ID}
-2. Once backend is deployed, update your environment variables in the Amplify Console with the new User Pool details
-3. Monitor the frontend build progress in the Amplify Console
-" -ForegroundColor Cyan 
+PreDeploy environment deployed successfully!
+----------------------------------------
+- Application deployed to: $deployedUrl
+- AWS resources have been provisioned
+- Environment variables have been configured
+- Branch: $BRANCH
+- App ID: $APP_ID
+
+To clean up this environment:
+1. Run cleanup-predeploy.ps1
+" -ForegroundColor Green 

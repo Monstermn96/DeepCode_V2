@@ -1,0 +1,17 @@
+{
+  "name": "ai-conversation",
+  "version": "1.0.0",
+  "description": "AI Conversation Lambda function for DeepCode V2",
+  "main": "handler.js",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.525.0",
+    "@aws-sdk/lib-dynamodb": "^3.525.0",
+    "@types/aws-lambda": "^8.10.133",
+    "aws-amplify": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+} 

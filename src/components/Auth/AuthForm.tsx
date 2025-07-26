@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CSSTransition } from 'react-transition-group';
-import { signIn, signUp, confirmSignUp, resendSignUpCode } from '@aws-amplify/auth';
-import { getCurrentUser } from '@aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, resendSignUpCode, getCurrentUser } from '@aws-amplify/auth';
+import { UserStatsService } from '../../services/stats/userStats';
 
 import './Auth.css';
 
@@ -157,7 +157,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
         onSuccess();
       }
     } catch (error) {
-      console.log('No user is currently signed in');
+              // No authenticated user found
     } finally {
       setIsLoading(false);
     }
@@ -305,12 +305,26 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onClose, show, onSuccess }) 
     setIsLoading(true);
     
     try {
-      console.log('Attempting sign in after verification...');
+                // Attempting sign in after verification
       await signIn({
         username: formData.email,
         password: formData.password
       });
-      console.log('Sign in successful');
+                // Sign in successful
+
+      // Get current user after successful sign in
+      const currentUser = await getCurrentUser();
+      
+      // Initialize user stats with the correct user ID
+      try {
+        const userStatsService = UserStatsService.getInstance();
+        await userStatsService.initializeUserStats(currentUser.userId);
+                  // User stats initialized
+      } catch (statsError) {
+        console.error('Error initializing user stats:', statsError);
+        // Don't block the sign-in process if stats initialization fails
+      }
+
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error('Sign in after verification failed:', err);

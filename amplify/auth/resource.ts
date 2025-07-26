@@ -9,9 +9,9 @@ const getPoolName = () => {
   
   // Use environment-specific backend naming variables, fall back to defaults if not set
   const poolNames: Record<AmplifyEnv, string> = {
-    'prod': process.env.AMPLIFY_BACKEND_PROD_POOL_NAME || 'DeepDevAi-Fallback-Production',
-    'staging': process.env.AMPLIFY_BACKEND_STAGING_POOL_NAME || 'DeepDevAi-Fallback-PreDeploy',
-    'dev': process.env.AMPLIFY_BACKEND_DEV_POOL_NAME || 'DeepDevAi-Fallback-Development'
+    prod: process.env.AMPLIFY_BACKEND_PROD_POOL_NAME || 'DeepDevAi-Fallback-Production',
+    staging: process.env.AMPLIFY_BACKEND_STAGING_POOL_NAME || 'DeepDevAi-Fallback-PreDeploy',
+    dev: process.env.AMPLIFY_BACKEND_DEV_POOL_NAME || 'DeepDevAi-Fallback-Development'
   };
   
   return poolNames[env];
@@ -26,31 +26,71 @@ export const auth = defineAuth({
     email: {
       verificationEmailSubject: 'Welcome to DeepDevAi - Verify your email',
       verificationEmailBody: (code: () => string) => `
-        Welcome to DeepDevAi!\n\n
-        Your verification code is: ${code()}\n\n
-        Please enter this code in the verification window to complete your registration.\n\n
-        If you didn't request this code, please ignore this email.\n\n
-        
+        Welcome to DeepDevAi!
+
+        Your verification code is: ${code()}
+
+        Please enter this code in the verification window to complete your registration.
+        If you didn't request this code, please ignore this email.
+
         Best regards,
         Eric
 
-        P.S. Account wipes will happen often the Site is a BIIIIG WIP.
+        P.S. Account wipes will happen often as the Site is a WIP.
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            .container {
+              font-family: Arial, sans-serif;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .code {
+              font-size: 24px;
+              font-weight: bold;
+              color: #007bff;
+              padding: 10px;
+              margin: 15px 0;
+            }
+            .footer {
+              color: #666;
+              font-size: 14px;
+              margin-top: 20px;
+              font-style: italic;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h2>Welcome to DeepDevAi!</h2>
+            <p>Your verification code is:</p>
+            <div class="code">${code()}</div>
+            <p>Please enter this code in the verification window to complete your registration.</p>
+            <p>If you didn't request this code, please ignore this email.</p>
+            <p>Best regards,<br>Eric</p>
+            <p class="footer">P.S. Account wipes will happen often as the Site is a BIIIIG WIP.</p>
+          </div>
+        </body>
+        </html>
       `,
       verificationEmailStyle: 'CODE'
-    }
+    },
+    phone: undefined
   },
   userAttributes: {
     email: {
       required: true,
-      mutable: true,
+      mutable: true
     },
     nickname: {
       required: true,
-      mutable: false,
-    },
+      mutable: false
+    }
   },
   multifactor: {
-    mode: 'OFF',
+    mode: 'OFF'
   },
   accountRecovery: 'EMAIL_ONLY',
   name: getPoolName()

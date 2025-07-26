@@ -4,6 +4,7 @@ import { useAI } from '../contexts/AIContext';
 import { useAuth } from '../contexts/AuthContext';
 import WelcomeControlPanel from '../components/WelcomeControlPanel';
 import { type SupportedLanguage } from '../services/ai/openai';
+import { log } from '../utils/logger';
 import styles from './Dashboard.module.css';
 
 interface ChallengeStats {
@@ -28,7 +29,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       // TODO: Fetch user's challenge stats from backend
-      console.log('Current user:', user);
+      log.devOnly('Current user loaded', { hasUser: !!user });
     }
   }, [user]);
 

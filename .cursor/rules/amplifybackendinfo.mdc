@@ -1,0 +1,445 @@
+---
+description: Info on AWS Amplify Backend
+globs: 
+---
+Module @aws-amplify/backend
+Description
+This package is the entry point for customers to define their Amplify backend using defineBackend. It also pulls in functions for defining other feature verticals.
+
+It contains implementations of many of the interfaces in @aws-amplify/plugin-types that orchestrate the CDK Synth process
+
+Index
+Type Aliases
+Backend
+BackendBase
+DefineBackendProps
+Functions
+defineAuth
+defineBackend
+defineData
+defineFunction
+defineStorage
+referenceAuth
+secret
+
+Type alias Backend<T>
+Backend<T>: BackendBase & {
+    [K in keyof T]: Omit<ReturnType<T[K]["getInstance"]>, keyof ResourceAccessAcceptorFactory>
+}
+Use defineBackend to create an instance of this type. This object has the Amplify BackendBase methods on it for interacting with the backend. It also has dynamic properties based on the resources passed into defineBackend
+
+Type Parameters
+T extends DefineBackendProps
+Defined in packages/backend/src/backend.ts:31
+
+Type alias BackendBase
+BackendBase: {
+    addOutput: ((clientConfigPart) => void);
+    createStack: ((name) => Stack);
+    stack: Stack;
+}
+Type declaration
+addOutput: ((clientConfigPart) => void)
+(clientConfigPart): void
+Parameters
+clientConfigPart: DeepPartialAmplifyGeneratedConfigs<ClientConfig>
+Returns void
+createStack: ((name) => Stack)
+(name): Stack
+Parameters
+name: string
+Returns Stack
+stack: Stack
+Defined in packages/backend/src/backend.ts:10
+
+ype alias DefineBackendProps
+DefineBackendProps: Record<string, ConstructFactory<ResourceProvider & Partial<ResourceAccessAcceptorFactory<never>>>> & {
+    [K in keyof BackendBase]?: never
+}
+Defined in packages/backend/src/backend.ts:19
+
+Function defineBackend
+defineBackend<T>(constructFactories): Backend<T>
+Creates a new Amplify backend instance and returns it
+
+Type Parameters
+T extends DefineBackendProps
+Parameters
+constructFactories: T
+list of backend factories such as those created by defineAuth or defineData
+
+Returns Backend<T>
+Defined in packages/backend/src/backend_factory.ts:154
+
+Function defineData
+defineData(props): ConstructFactory<AmplifyGraphqlApi>
+Creates a factory that implements ConstructFactory
+
+Parameters
+props: DataProps
+Returns ConstructFactory<AmplifyGraphqlApi>
+Defined in packages/backend-data/lib/factory.d.ts:26
+
+Function defineFunction
+defineFunction(props?): ConstructFactory<ResourceProvider<FunctionResources> & ResourceAccessAcceptorFactory & AddEnvironmentFactory & StackProvider>
+Parameters
+Optional props: FunctionProps
+Returns ConstructFactory<ResourceProvider<FunctionResources> & ResourceAccessAcceptorFactory & AddEnvironmentFactory & StackProvider>
+Defined in packages/backend-function/lib/factory.d.ts:13
+defineFunction(provider, providerProps?): ConstructFactory<ResourceProvider<FunctionResources> & ResourceAccessAcceptorFactory & StackProvider>
+Parameters
+provider: ((scope) => IFunction)
+(scope): IFunction
+Parameters
+scope: Construct
+Returns IFunction
+Optional providerProps: ProvidedFunctionProps
+Returns ConstructFactory<ResourceProvider<FunctionResources> & ResourceAccessAcceptorFactory & StackProvider>
+Defined in packages/backend-function/lib/factory.d.ts:14
+
+Function defineStorage
+defineStorage(props): ConstructFactory<ResourceProvider<StorageResources> & StackProvider>
+Include storage in your Amplify backend.
+
+Parameters
+props: AmplifyStorageFactoryProps
+Returns ConstructFactory<ResourceProvider<StorageResources> & StackProvider>
+See
+https://docs.amplify.aws/gen2/build-a-backend/storage/
+
+Defined in packages/backend-storage/lib/factory.d.ts:24
+
+Function referenceAuth
+referenceAuth(props): ConstructFactory<BackendReferenceAuth>
+Provide references to existing auth resources.
+
+Parameters
+props: {
+    access?: AuthAccessGenerator;
+    authRoleArn: string;
+    groups?: {
+        [groupName: string]: string;
+    };
+    identityPoolId: string;
+    unauthRoleArn: string;
+    userPoolClientId: string;
+    userPoolId: string;
+}
+Optional access?: AuthAccessGenerator
+Configure access to auth for other Amplify resources
+
+See
+https://docs.amplify.aws/react/build-a-backend/auth/grant-access-to-auth-resources/
+
+Example
+access: (allow) => [allow.resource(postConfirmation).to(["addUserToGroup"])]
+Copy
+Example
+access: (allow) => [allow.resource(groupManager).to(["manageGroups"])]
+Copy
+authRoleArn: string
+Existing AuthRole ARN
+
+Optional groups?: {
+    [groupName: string]: string;
+}
+A mapping of existing group names and their associated role ARNs which can be used for group permissions.
+
+[groupName: string]: string
+identityPoolId: string
+Existing IdentityPool Id
+
+unauthRoleArn: string
+Existing UnauthRole ARN
+
+userPoolClientId: string
+Existing UserPoolClient Id
+
+userPoolId: string
+Existing UserPool Id
+
+Returns ConstructFactory<BackendReferenceAuth>
+Defined in packages/backend-auth/lib/reference_factory.d.ts:71
+
+Function secret
+secret(name): BackendSecret
+Use a secret from AWS Systems Manager (SSM) Parameter Store
+
+Parameters
+name: string
+Returns BackendSecret
+See
+https://docs.amplify.aws/gen2/deploy-and-host/fullstack-branching/secrets-and-vars/
+AWS documentation for SSM Parameter Store
+Example: Creating a sandbox secret with the CLI
+> ampx sandbox secret set MY_SECRET
+Copy
+Example: Using a secret
+secret('MY_SECRET')
+Copy
+Example: <caption>Using with `defineAuth`</caption>
+         defineAuth({
+           loginWith: {
+             email: {},
+             externalProviders: {
+               loginWithAmazon: {
+                 clientId: secret('LOGIN_WITH_AMAZON_CLIENT_ID'),
+                 clientSecret: secret('LOGIN_WITH_AMAZON_CLIENT_SECRET'),
+               },
+              },
+            },
+          })
+         ```
+Copy
+Defined in packages/backend/src/secret.ts:29
+
+
+Type alias AddEnvironmentFactory
+AddEnvironmentFactory: {
+    addEnvironment: ((key, value) => void);
+}
+Type declaration
+addEnvironment: ((key, value) => void)
+(key, value): void
+Parameters
+key: string
+value: string | BackendSecret
+Returns void
+Defined in factory.ts:54
+
+Type alias CronSchedule
+CronSchedule: `${string} ${string} ${string} ${string} ${string}` | `${string} ${string} ${string} ${string} ${string} ${string}`
+Defined in factory.ts:58
+
+Type alias FunctionArchitecture
+FunctionArchitecture: "x86_64" | "arm64"
+Defined in factory.ts:693
+
+ype alias FunctionBundlingOptions
+FunctionBundlingOptions: {
+    minify?: boolean;
+}
+Type declaration
+Optional minify?: boolean
+Whether to minify the function code.
+
+Defaults to true.
+
+Defined in factory.ts:214
+
+Type alias FunctionLogLevel
+FunctionLogLevel: Extract<LogLevel, "info" | "debug" | "warn" | "error" | "fatal" | "trace">
+Defined in factory.ts:70
+
+Type alias FunctionLogRetention
+FunctionLogRetention: LogRetention
+Defined in factory.ts:74
+
+Type alias FunctionLoggingOptions
+FunctionLoggingOptions: ({
+    format: "json";
+    level?: FunctionLogLevel;
+} | {
+    format?: "text";
+}) & {
+    retention?: FunctionLogRetention;
+}
+Type declaration
+Optional retention?: FunctionLogRetention
+Defined in factory.ts:223
+
+Type alias FunctionProps
+FunctionProps: {
+    architecture?: FunctionArchitecture;
+    bundling?: FunctionBundlingOptions;
+    entry?: string;
+    environment?: Record<string, string | BackendSecret>;
+    ephemeralStorageSizeMB?: number;
+    layers?: Record<string, string>;
+    logging?: FunctionLoggingOptions;
+    memoryMB?: number;
+    name?: string;
+    resourceGroupName?: AmplifyResourceGroupName;
+    runtime?: NodeVersion;
+    schedule?: FunctionSchedule | FunctionSchedule[];
+    timeoutSeconds?: number;
+}
+Type declaration
+Optional architecture?: FunctionArchitecture
+The architecture of the target platform for the lambda environment. Defaults to X86_64.
+
+Optional bundling?: FunctionBundlingOptions
+Optional entry?: string
+The path to the file that contains the function entry point. If this is a relative path, it is computed relative to the file where this function is defined
+
+Defaults to './handler.ts'
+
+Optional environment?: Record<string, string | BackendSecret>
+Environment variables that will be available during function execution
+
+Optional ephemeralStorageSizeMB?: number
+The size of the function's /tmp directory in MB. Must be a whole number.
+
+Default
+512
+Copy
+Optional layers?: Record<string, string>
+Attach Lambda layers to a function
+
+A Lambda layer is represented by an object of key/value pair where the key is the module name that is exported from your layer and the value is the ARN of the layer. The key (module name) is used to externalize the module dependency so it doesn't get bundled with your lambda function
+Maximum of 5 layers can be attached to a function and must be in the same region as the function.
+Example
+layers: {
+   "@aws-lambda-powertools/logger": "arn:aws:lambda:<current-region>:094274105915:layer:AWSLambdaPowertoolsTypeScriptV2:11"
+},
+or
+Copy
+Example
+layers: {
+   "Sharp": "SharpLayer:1"
+},
+Copy
+See
+Amplify documentation for Lambda layers
+AWS documentation for Lambda layers
+Optional logging?: FunctionLoggingOptions
+Optional memoryMB?: number
+An amount of memory (RAM) to allocate to the function between 128 and 10240 MB. Must be a whole number. Default is 512MB.
+
+Optional name?: string
+A name for the function. Defaults to the basename of the entry path if specified. If no entry is specified, defaults to the directory name in which this function is defined.
+
+Example: If entry is ./scheduled-db-backup.ts the name will default to "scheduled-db-backup" If entry is not set and the function is defined in amplify/functions/db-backup/resource.ts the name will default to "db-backup"
+
+Optional resourceGroupName?: AmplifyResourceGroupName
+Group the function with existing Amplify resources or separate the function into its own group.
+
+Default
+'function' // grouping with other Amplify functions
+Copy
+Example
+resourceGroupName: 'auth' // to group an auth trigger with an auth resource
+Copy
+Optional runtime?: NodeVersion
+Node runtime version for the lambda environment.
+
+Defaults to the oldest NodeJS LTS version. See https://nodejs.org/en/about/previous-releases
+
+Optional schedule?: FunctionSchedule | FunctionSchedule[]
+A time interval string to periodically run the function. This can be either a string of "every <positive whole number><m (minute) or h (hour)>", "every day|week|month|year" or cron expression. Defaults to no scheduling for the function.
+
+Example
+schedule: "every 5m"
+Copy
+Example
+schedule: "every week"
+Copy
+Example
+schedule: "0 9 ? * 2 *" // every Monday at 9am
+Copy
+Optional timeoutSeconds?: number
+An amount of time in seconds between 1 second and 15 minutes. Must be a whole number. Default is 3 seconds.
+
+Defined in factory.ts:109
+
+Type alias FunctionSchedule
+FunctionSchedule: TimeInterval | CronSchedule
+Defined in factory.ts:68
+
+Type alias NodeVersion
+NodeVersion: 16 | 18 | 20 | 22
+Defined in factory.ts:684
+
+Type alias ProvidedFunctionProps
+ProvidedFunctionProps: {
+    resourceGroupName?: AmplifyResourceGroupName;
+}
+Type declaration
+Optional resourceGroupName?: AmplifyResourceGroupName
+Group the function with existing Amplify resources or separate the function into its own group.
+
+Default
+'function' // grouping with other Amplify functions
+Copy
+Example
+resourceGroupName: 'auth' // to group an auth trigger with an auth resource
+Copy
+Defined in provided_function_factory.ts:20
+
+Type alias TimeInterval
+TimeInterval: `every ${number}m` | `every ${number}h` | "every day" | "every week" | "every month" | "every year"
+Defined in factory.ts:61
+
+Function defineFunction
+defineFunction(props?): ConstructFactory<ResourceProvider<FunctionResources> & ResourceAccessAcceptorFactory & AddEnvironmentFactory & StackProvider>
+Entry point for defining a function in the Amplify ecosystem
+
+Parameters
+Optional props: FunctionProps
+Returns ConstructFactory<ResourceProvider<FunctionResources> & ResourceAccessAcceptorFactory & AddEnvironmentFactory & StackProvider>
+Defined in factory.ts:76
+defineFunction(provider, providerProps?): ConstructFactory<ResourceProvider<FunctionResources> & ResourceAccessAcceptorFactory & StackProvider>
+Entry point for defining a function in the Amplify ecosystem
+
+Parameters
+provider: ((scope) => IFunction)
+(scope): IFunction
+Parameters
+scope: Construct
+Returns IFunction
+Optional providerProps: ProvidedFunctionProps
+Returns ConstructFactory<ResourceProvider<FunctionResources> & ResourceAccessAcceptorFactory & StackProvider>
+Defined in factory.ts:84
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

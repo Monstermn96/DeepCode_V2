@@ -1,26 +1,13 @@
 # Cleanup Script for PreDeploy Environment
 
-Write-Host "----------------------------------------" -ForegroundColor Cyan
 Write-Host "Starting cleanup process for PreDeploy environment..." -ForegroundColor Cyan
-Write-Host "----------------------------------------" -ForegroundColor Cyan
-
-# Log environment variables
-Write-Host "Environment Variables:" -ForegroundColor Yellow
-Write-Host "AWS_APP_ID: $env:AWS_APP_ID" -ForegroundColor Yellow
-Write-Host "AWS_BRANCH: $env:AWS_BRANCH" -ForegroundColor Yellow
-Write-Host "AWS_REGION: $env:AWS_REGION" -ForegroundColor Yellow
-Write-Host "FORCE_CLEANUP: $env:FORCE_CLEANUP" -ForegroundColor Yellow
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
-# Set variables from environment
-$APP_ID = $env:AWS_APP_ID
-$BRANCH = $env:AWS_BRANCH
-$REGION = $env:AWS_REGION
-$STACK_PREFIX = "amplify-${APP_ID}-predeploy"
-
-Write-Host "Using configuration:" -ForegroundColor Yellow
-Write-Host "Stack Prefix: $STACK_PREFIX" -ForegroundColor Yellow
-Write-Host "----------------------------------------" -ForegroundColor Yellow
+# Set variables
+$APP_ID = "d17nr8d8s58ya5"
+$BRANCH = "PreDeploy"
+$REGION = "us-east-1"
+$ECR_REPO = "deepdevai-predeploy"
 
 # Function to check if AWS CLI command was successful
 function Test-AwsCommand {
@@ -30,98 +17,128 @@ function Test-AwsCommand {
     }
 }
 
-# 1. List and delete Cognito User Pools
-Write-Host "Listing Cognito User Pools..." -ForegroundColor Yellow
-$userPoolsJson = aws cognito-idp list-user-pools --max-results 60
-Test-AwsCommand
-$userPools = $userPoolsJson | ConvertFrom-Json
-
-Write-Host "Found User Pools:" -ForegroundColor Green
-foreach ($pool in $userPools.UserPools) {
-    Write-Host "- $($pool.Name) ($($pool.Id))" -ForegroundColor Yellow
+# Function to verify AWS credentials
+function Test-AwsCredentials {
+    try {
+        Write-Host "Verifying AWS credentials..." -ForegroundColor Yellow
+        $identity = aws sts get-caller-identity | ConvertFrom-Json
+        Write-Host "Using AWS Account: $($identity.Account)" -ForegroundColor Green
+        Write-Host "Using IAM User: $($identity.Arn)" -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Host "AWS credentials verification failed" -ForegroundColor Red
+        return $false
+    }
 }
+
+Write-Host "Scanning for resources to clean up..." -ForegroundColor Yellow
+
+# Verify AWS credentials
+if (-not (Test-AwsCredentials)) {
+    Write-Host "Please configure your AWS credentials and try again." -ForegroundColor Red
+    exit 1
+}
+
+# 1. List Cognito User Pools
+$userPools = aws cognito-idp list-user-pools --max-results 60 | ConvertFrom-Json
+$predeployPools = $userPools.UserPools | Where-Object { 
+    $_.Name -like "*predeploy*" -or 
+    ($_.Name -like "*DeepDevAi*" -and $_.Name -like "*PreDeploy*")
+}
+
+# 2. List CloudFormation stacks
+$stacks = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLETE ROLLBACK_COMPLETE | ConvertFrom-Json
+$predeployStacks = $stacks.StackSummaries | Where-Object { 
+    ($_.StackName -like "*predeploy*") -or 
+    ($_.StackName -like "*amplify*" -and $_.StackName -like "*predeploy*") -or
+    ($_.StackName -like "*amplify-$APP_ID*" -and $_.StackName -like "*predeploy*")
+}
+
+# Display all resources that will be deleted
+Write-Host "`nResources to be deleted:" -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
-# Only match pools that explicitly contain "predeploy" or "PreDeploy" in the name
-$predeployPools = $userPools.UserPools | Where-Object { 
-    $_.Name -match "predeploy|PreDeploy" -and 
-    $_.Name -notlike "*Production*" -and 
-    $_.Name -notlike "*Main*"
-}
+Write-Host "AWS Resources:" -ForegroundColor Yellow
+Write-Host "- ECR Repository: $ECR_REPO" -ForegroundColor White
 
+Write-Host "`nCognito User Pools:" -ForegroundColor Yellow
 if ($predeployPools) {
-    Write-Host "Found PreDeploy User Pools to delete:" -ForegroundColor Green
     foreach ($pool in $predeployPools) {
-        Write-Host "- Pool Name: $($pool.Name)" -ForegroundColor Yellow
-        Write-Host "  Pool ID: $($pool.Id)" -ForegroundColor Yellow
-        Write-Host "Deleting User Pool..." -ForegroundColor Yellow
-        aws cognito-idp delete-user-pool --user-pool-id $pool.Id
-        Test-AwsCommand
-        Write-Host "Pool deleted successfully" -ForegroundColor Green
+        Write-Host "- $($pool.Name) ($($pool.Id))" -ForegroundColor White
     }
 } else {
-    Write-Host "No PreDeploy User Pools found" -ForegroundColor Yellow
+    Write-Host "- No User Pools found" -ForegroundColor White
 }
 
-# 2. List and delete CloudFormation stacks
-Write-Host "----------------------------------------" -ForegroundColor Cyan
-Write-Host "Listing CloudFormation stacks..." -ForegroundColor Yellow
-$stacksJson = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE ROLLBACK_COMPLETE UPDATE_ROLLBACK_COMPLETE
-Test-AwsCommand
-$stacks = $stacksJson | ConvertFrom-Json
-
-Write-Host "Found Stacks:" -ForegroundColor Green
-foreach ($stack in $stacks.StackSummaries) {
-    Write-Host "- $($stack.StackName)" -ForegroundColor Yellow
-}
-Write-Host "----------------------------------------" -ForegroundColor Yellow
-
-# Only match stacks that explicitly contain "predeploy" in the name
-$predeployStacks = $stacks.StackSummaries | Where-Object { 
-    $_.StackName -like "${STACK_PREFIX}*" -or 
-    ($_.StackName -like "*predeploy*" -and $_.StackName -like "*${APP_ID}*")
-}
-
+Write-Host "`nCloudFormation Stacks:" -ForegroundColor Yellow
 if ($predeployStacks) {
-    Write-Host "Found PreDeploy stacks to delete:" -ForegroundColor Green
     foreach ($stack in $predeployStacks) {
-        Write-Host "- Stack Name: $($stack.StackName)" -ForegroundColor Yellow
-        Write-Host "Deleting stack..." -ForegroundColor Yellow
+        Write-Host "- $($stack.StackName)" -ForegroundColor White
+    }
+} else {
+    Write-Host "- No Stacks found" -ForegroundColor White
+}
+
+Write-Host "`nLocal Resources to Clean:" -ForegroundColor Yellow
+Write-Host "- Build artifacts and environment files" -ForegroundColor White
+
+# Ask for confirmation
+$userResponse = Read-Host "`nDo you want to delete all these resources? (y/n)"
+if ($userResponse -eq 'y') {
+    # Clean up ECR repository
+    Write-Host "Cleaning up ECR repository..." -ForegroundColor Yellow
+    aws ecr delete-repository --repository-name $ECR_REPO --force 2>$null
+    
+    # Delete User Pools
+    foreach ($pool in $predeployPools) {
+        Write-Host "Deleting User Pool: $($pool.Name) ($($pool.Id))" -ForegroundColor Yellow
+        aws cognito-idp delete-user-pool --user-pool-id $pool.Id
+        Test-AwsCommand
+    }
+
+    # Delete CloudFormation stacks
+    foreach ($stack in $predeployStacks) {
+        Write-Host "Deleting stack: $($stack.StackName)" -ForegroundColor Yellow
         aws cloudformation delete-stack --stack-name $stack.StackName
         Test-AwsCommand
         
         Write-Host "Waiting for stack deletion to complete..." -ForegroundColor Yellow
         aws cloudformation wait stack-delete-complete --stack-name $stack.StackName
         Test-AwsCommand
-        Write-Host "Stack deleted successfully" -ForegroundColor Green
     }
+
+    # Clean local sandbox-specific files
+    Write-Host "Cleaning local files..." -ForegroundColor Yellow
+
+    $filesToRemove = @(
+        "amplify_outputs.json",
+        ".amplify",
+        "dist",
+        ".env"
+    )
+
+    foreach ($file in $filesToRemove) {
+        if (Test-Path $file) {
+            Write-Host "Removing $file..." -ForegroundColor Yellow
+            if (Test-Path $file -PathType Container) {
+                Remove-Item $file -Recurse -Force -ErrorAction SilentlyContinue
+            } else {
+                Remove-Item $file -Force -ErrorAction SilentlyContinue
+            }
+            Write-Host "Removed: $file" -ForegroundColor Green
+        }
+    }
+
+    # Clean up local build artifacts
+    Write-Host "Cleaning up local build artifacts..." -ForegroundColor Yellow
+    Remove-Item -Path "dist" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "node_modules/.cache" -Recurse -Force -ErrorAction SilentlyContinue
+
+    Write-Host "`nPreDeploy cleanup complete!" -ForegroundColor Green
+    Write-Host "
+Next steps:
+1. Run deploy-predeploy.ps1 to create a new PreDeploy environment
+" -ForegroundColor Cyan 
 } else {
-    Write-Host "No PreDeploy stacks found" -ForegroundColor Yellow
-}
-
-# 3. Clean local environment
-Write-Host "----------------------------------------" -ForegroundColor Cyan
-Write-Host "Cleaning local environment..." -ForegroundColor Yellow
-
-# Remove build artifacts
-if (Test-Path "amplify_outputs.json") {
-    Remove-Item "amplify_outputs.json" -Force
-    Write-Host "Removed amplify_outputs.json" -ForegroundColor Yellow
-}
-if (Test-Path ".amplify") {
-    Remove-Item ".amplify" -Recurse -Force
-    Write-Host "Removed .amplify directory" -ForegroundColor Yellow
-}
-if (Test-Path "dist") {
-    Remove-Item "dist" -Recurse -Force
-    Write-Host "Removed dist directory" -ForegroundColor Yellow
-}
-
-Write-Host "----------------------------------------" -ForegroundColor Cyan
-Write-Host "Cleanup complete!" -ForegroundColor Green
-Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "1. New resources will be created during the next build" -ForegroundColor Cyan
-Write-Host "2. The build will fail with new resource IDs" -ForegroundColor Cyan
-Write-Host "3. Update the Amplify environment variables with the new IDs" -ForegroundColor Cyan
-Write-Host "4. Trigger a new build" -ForegroundColor Cyan
-Write-Host "----------------------------------------" -ForegroundColor Cyan 
+    Write-Host "`nCleanup cancelled by user." -ForegroundColor Yellow
+} 
