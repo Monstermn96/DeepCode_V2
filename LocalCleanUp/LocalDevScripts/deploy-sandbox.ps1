@@ -1,4 +1,4 @@
-# Deploy Sandbox Environment Script with Docker Support
+# Deploy Sandbox Environment Script for Local Development
 
 Write-Host "Starting sandbox deployment process..." -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow
@@ -46,16 +46,18 @@ AMPLIFY_BACKEND_PASSWORD_REQUIRE_UPPERCASE=true
     Write-Host "Environment variables updated successfully!" -ForegroundColor Green
 }
 
-# Function to verify Docker installation
-function Test-DockerInstallation {
+# Function to verify Node.js installation
+function Test-NodeInstallation {
     try {
-        Write-Host "Verifying Docker installation..." -ForegroundColor Yellow
-        $dockerVersion = docker --version
-        Write-Host "Docker version: $dockerVersion" -ForegroundColor Green
+        Write-Host "Verifying Node.js installation..." -ForegroundColor Yellow
+        $nodeVersion = node --version
+        $npmVersion = npm --version
+        Write-Host "Node.js version: $nodeVersion" -ForegroundColor Green
+        Write-Host "npm version: $npmVersion" -ForegroundColor Green
         return $true
     } catch {
-        Write-ErrorLog -ErrorMessage "Docker is not installed or not running" -Stage "Docker Verification" -ErrorDetails $_
-        Write-Host "Please install Docker Desktop from https://www.docker.com/products/docker-desktop" -ForegroundColor Red
+        Write-ErrorLog -ErrorMessage "Node.js is not installed or not in PATH" -Stage "Node.js Verification" -ErrorDetails $_
+        Write-Host "Please install Node.js from https://nodejs.org/" -ForegroundColor Red
         return $false
     }
 }
@@ -74,43 +76,25 @@ function Test-AwsCredentials {
     }
 }
 
-# Function to build and start Docker container
-function Start-DockerContainer {
+# Function to start development server
+function Start-DevServer {
     try {
-        Write-Host "Building Docker image..." -ForegroundColor Yellow
-        docker build -t amplify-app .
-        if ($LASTEXITCODE -ne 0) {
-            throw "Docker build failed"
-        }
-
-        Write-Host "Starting Docker container..." -ForegroundColor Yellow
-        docker run -d --name amplify-sandbox `
-            -p 3000:3000 -p 5173:5173 -p 20002:20002 `
-            -v ${PWD}:/app `
-            -e AWS_ACCESS_KEY_ID=$env:AWS_ACCESS_KEY_ID `
-            -e AWS_SECRET_ACCESS_KEY=$env:AWS_SECRET_ACCESS_KEY `
-            -e AWS_SESSION_TOKEN=$env:AWS_SESSION_TOKEN `
-            -e AWS_REGION=$env:AWS_REGION `
-            -e VITE_AMPLIFY_ENV=$env:AMPLIFY_ENV `
-            -e NODE_ENV=$env:NODE_ENV `
-            -e npm_config_user_agent=$env:npm_config_user_agent `
-            -e AMPLIFY_BACKEND_POOL_NAME=$env:AMPLIFY_BACKEND_POOL_NAME `
-            amplify-app
+        Write-Host "Starting development server..." -ForegroundColor Yellow
         
-        if ($LASTEXITCODE -ne 0) {
-            throw "Docker container start failed"
-        }
-
-        Write-Host "Docker container started successfully!" -ForegroundColor Green
+        # Start the development server in the background
+        Start-Process -FilePath "npm" -ArgumentList "run", "dev" -NoNewWindow -PassThru
+        
+        Write-Host "Development server started successfully!" -ForegroundColor Green
+        Write-Host "Server will be available at http://localhost:5173" -ForegroundColor Cyan
         return $true
     } catch {
-        Write-ErrorLog -ErrorMessage $_.Exception.Message -Stage "Docker Container Setup" -ErrorDetails $_
+        Write-ErrorLog -ErrorMessage $_.Exception.Message -Stage "Development Server Setup" -ErrorDetails $_
         return $false
     }
 }
 
 # Verify prerequisites
-if (-not (Test-DockerInstallation)) {
+if (-not (Test-NodeInstallation)) {
     exit 1
 }
 
@@ -164,21 +148,22 @@ try {
         }
     }
 
-    # Build and start Docker container
-    if (-not (Start-DockerContainer)) {
+    # Start development server
+    if (-not (Start-DevServer)) {
         exit 1
     }
 
     Write-Host "
 Sandbox environment deployed successfully!
 ----------------------------------------
-- Amplify sandbox is running at http://localhost:20002
+- Amplify sandbox is running
 - Application is running at http://localhost:5173
 - AWS resources have been provisioned
 - Environment variables have been configured
 
 To stop the sandbox:
-1. Run cleanup-sandbox.ps1 to remove all resources
+1. Stop the development server (Ctrl+C in terminal)
+2. Run cleanup-sandbox.ps1 to remove AWS resources
 " -ForegroundColor Green
 
 } catch {

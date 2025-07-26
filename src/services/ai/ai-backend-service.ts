@@ -9,6 +9,9 @@ export interface GenerateChallengeParams {
   topic: string;
   languages: string[];
   difficulty?: 'Easy' | 'Medium' | 'Hard';
+  useEmptyMethods?: boolean; // If true (default), provides empty method stubs; if false, provides complete starter code
+  learningPathId?: string; // Optional learning path context for better problem generation
+  userSkillLevels?: Record<string, number>; // User's skill levels for fallback generation
 }
 
 export interface EvaluateCodeParams {
@@ -109,10 +112,12 @@ class AIBackendService {
       if (result.status === 'completed' && result.response) {
         const challengeData = result.response;
         const { data: challenge } = await client.models.Challenge.create({
+          userId,
           title: challengeData.title,
           description: challengeData.description,
           language: challengeData.language,
           difficulty: challengeData.difficulty,
+          starterCode: challengeData.starterCode,
           testCases: challengeData.testCases,
           hints: challengeData.hints,
           solution: challengeData.solution

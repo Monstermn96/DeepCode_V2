@@ -4,6 +4,7 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import App from "./App";
 import "./index.css";
+import { log } from "./utils/logger";
 
 // Initialize Amplify configuration
 async function initializeAmplify() {
@@ -14,12 +15,12 @@ async function initializeAmplify() {
 			const response = await fetch('/amplify_outputs.json');
 			if (response.ok) {
 				outputs = await response.json();
-				console.log('✅ Loaded amplify_outputs.json from sandbox');
+				log.info('Loaded amplify_outputs.json from sandbox');
 			} else {
 				throw new Error('amplify_outputs.json not found');
 			}
 		} catch (error) {
-			console.log('⚠️ amplify_outputs.json not found, using fallback configuration for sandbox setup');
+			log.warn('amplify_outputs.json not found, using fallback configuration for sandbox setup');
 			// Fallback configuration for when sandbox is starting up
 			outputs = {
 				version: "1.3",
@@ -56,19 +57,17 @@ async function initializeAmplify() {
 		Amplify.configure(outputs);
 
 		// Debug logging for development
-		if (import.meta.env.DEV) {
-			console.log('🚀 Amplify initialized with configuration:', {
-				env: import.meta.env.VITE_AMPLIFY_ENV || 'development',
-				hasRealOutputs: !!outputs.auth?.user_pool_id && outputs.auth.user_pool_id !== 'local',
-				userPoolId: outputs.auth?.user_pool_id,
-				graphqlEndpoint: outputs.data?.url,
-				apiEndpoint: outputs.custom?.API?.main?.endpoint
-			});
-		}
+		log.devOnly('Amplify initialized with configuration', {
+			env: import.meta.env.VITE_AMPLIFY_ENV || 'development',
+			hasRealOutputs: !!outputs.auth?.user_pool_id && outputs.auth.user_pool_id !== 'local',
+			userPoolId: outputs.auth?.user_pool_id,
+			graphqlEndpoint: outputs.data?.url,
+			apiEndpoint: outputs.custom?.API?.main?.endpoint
+		});
 
 		return generateClient();
 	} catch (error) {
-		console.error('❌ Failed to initialize Amplify:', error);
+		log.error('Failed to initialize Amplify', error);
 		return null;
 	}
 }

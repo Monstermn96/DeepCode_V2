@@ -15,12 +15,14 @@ interface ConversationTurnEvent {
   };
 }
 
+import { log } from '../utils/logger';
+
 // Simple in-memory conversation storage (use DynamoDB in production)
 const conversations = new Map<string, any[]>();
 
 export const handler = async (event: ConversationTurnEvent) => {
   try {
-    console.log('Conversation Event:', JSON.stringify(event, null, 2));
+    log.lambdaStart('ai-conversation', event);
 
     const { conversationId, currentMessageId, messages, request } = event;
     
@@ -87,7 +89,7 @@ export const handler = async (event: ConversationTurnEvent) => {
 async function handleToolCall(toolCall: any, event: ConversationTurnEvent) {
   const { name, input } = toolCall;
   
-  console.log(`Handling tool call: ${name}`, input);
+  log.info('Handling tool call', { toolName: name, hasInput: !!input });
 
   switch (name) {
     case 'analyzeCode':

@@ -1,0 +1,278 @@
+.learningStats {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: var(--color-text-secondary);
+}
+
+.noData {
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: 2rem;
+}
+
+/* Overview Grid */
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.statCard {
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.statIcon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.statContent {
+  flex: 1;
+}
+
+.statContent h3 {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 0.5rem 0;
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Weekly Section */
+.weeklySection {
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.weeklySection h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: var(--color-text-primary);
+}
+
+.weeklyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.weeklyItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.weeklyLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.weeklyValue {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* Skills Section */
+.skillsSection {
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.skillsSection h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: var(--color-text-primary);
+}
+
+.skillsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skillItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--color-bg-primary);
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.skillItem:hover {
+  background: var(--color-bg-hover);
+}
+
+.skillRank {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  min-width: 30px;
+}
+
+.skillInfo {
+  flex: 1;
+}
+
+.skillName {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  text-transform: capitalize;
+}
+
+.skillProgress {
+  height: 8px;
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.skillProgressBar {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.skillLevel {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+  min-width: 50px;
+  justify-content: flex-end;
+}
+
+.skillTrend {
+  font-size: 0.875rem;
+  margin-left: 0.25rem;
+}
+
+/* Language Section */
+.languageSection {
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.languageSection h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: var(--color-text-primary);
+}
+
+.languageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.languageCard {
+  background: var(--color-bg-primary);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.languageCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.languageName {
+  font-weight: 600;
+  font-size: 1.125rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-primary);
+}
+
+.languageStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .statCard,
+  .weeklySection,
+  .skillsSection,
+  .languageSection {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .skillItem,
+  .languageCard {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .skillProgress {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .overviewGrid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .statCard {
+    padding: 1rem;
+  }
+
+  .statIcon {
+    font-size: 2rem;
+  }
+
+  .statValue {
+    font-size: 1.5rem;
+  }
+
+  .weeklyGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+} 

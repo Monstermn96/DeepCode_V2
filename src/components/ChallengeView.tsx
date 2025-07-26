@@ -11,6 +11,9 @@ import {
 import { CodeEditor } from "./CodeEditor";
 import styles from "./ChallengeView.module.css";
 import { useAuth } from '../contexts/AuthContext';
+import { skillAssessmentService } from '../services/learning/skillAssessmentService';
+import { learningPathService } from '../services/learning/learningPathService';
+import { UserStatsService } from '../services/stats/userStats';
 
 interface TestResult {
 	passed: boolean;
@@ -35,6 +38,9 @@ export function ChallengeView() {
 	>([]);
 	const [isGenerating, setIsGenerating] = React.useState(false);
 	const [hintsVisible, setHintsVisible] = React.useState(false);
+	const [startTime, setStartTime] = React.useState<number>(Date.now());
+	const [attempts, setAttempts] = React.useState(0);
+	const [challengeCompleted, setChallengeCompleted] = React.useState(false);
 
 	const toggleTestCase = (index: number) => {
 		setCollapsedTests((prev) => ({
@@ -56,9 +62,10 @@ export function ChallengeView() {
 		});
 
 		// Initialize editor with starter code if available
-		if (currentChallenge.problem?.starterCode) {
-			setCode(currentChallenge.problem.starterCode);
-		}
+		// TODO: Add starterCode field to challenge problem type
+		// if (currentChallenge.problem?.starterCode) {
+		// 	setCode(currentChallenge.problem.starterCode);
+		// }
 
 		// Initialize all test cases as collapsed
 		if (currentChallenge.problem?.testCases) {
@@ -71,11 +78,12 @@ export function ChallengeView() {
 	}, [challengeId, currentChallenge, navigate]);
 
 	const handleRunTests = async () => {
-		if (!currentChallenge) return;
+		if (!currentChallenge || !user?.userId) return;
 
 		try {
 			console.log("Running tests for challenge:", challengeId);
 			setIsRunning(true);
+			setAttempts(prev => prev + 1);
 
 			const response = await aiService.evaluateCode(
 				code,
@@ -96,6 +104,53 @@ export function ChallengeView() {
 			}));
 
 			setTestResults(results);
+
+			// Check if all tests passed
+			const allTestsPassed = results.every(result => result.passed);
+			
+			if (allTestsPassed && !challengeCompleted) {
+				setChallengeCompleted(true);
+				
+				// Calculate time spent
+				const timeSpent = Math.round((Date.now() - startTime) / 1000); // in seconds
+				
+				// Get challenge ID
+				const challengeIdStr = currentChallenge.problem.id || `challenge-${Date.now()}`;
+				
+				try {
+					// Update skill assessments
+					const analysis = await skillAssessmentService.analyzeChallengeCompletion(
+						user.userId,
+						challengeIdStr,
+						code,
+						true, // success
+						timeSpent,
+						attempts
+					);
+					
+					console.log("Skill analysis completed:", analysis);
+					
+					// Update user stats
+					const statsService = UserStatsService.getInstance();
+					await statsService.updateChallengeCompletion(user.userId, true);
+					
+					// Update learning path progress if user has active paths
+					// Note: In a real app, we'd need to track which learning path is active
+					const activePaths = await learningPathService.getUserLearningPaths(user.userId);
+					for (const path of activePaths) {
+						await learningPathService.updateProgress(
+							path.id,
+							challengeIdStr,
+							analysis.skillsUsed
+						);
+					}
+					
+					// Show success message
+					console.log("Challenge completed successfully! Skills improved:", analysis.skillImprovements);
+				} catch (error) {
+					console.error("Failed to update progress tracking:", error);
+				}
+			}
 		} catch (error) {
 			console.error("Failed to run tests:", error);
 		} finally {
@@ -182,9 +237,11 @@ export function ChallengeView() {
 								<div>
 									Expected: <code>{testCase.expectedOutput}</code>
 								</div>
-								<div>
-									Description: <code>{testCase.description}</code>
-								</div>
+								{testCase.explanation && (
+									<div>
+										Description: <code>{testCase.explanation}</code>
+									</div>
+								)}
 								{testResults[index] && !testResults[index].passed && (
 									<div className={styles.explanation}>
 										{testResults[index].explanation}

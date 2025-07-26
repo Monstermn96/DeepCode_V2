@@ -1,4 +1,4 @@
-# Deploy PreDeploy Environment Script - Docker-free version
+# Deploy PreDeploy Environment Script
 
 Write-Host "Starting PreDeploy deployment process..." -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow

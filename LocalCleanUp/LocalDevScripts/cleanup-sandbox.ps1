@@ -1,4 +1,4 @@
-# Cleanup Script for Sandbox Environment with Docker Support
+# Cleanup Script for Sandbox Environment
 
 Write-Host "Starting cleanup process for Sandbox environment..." -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow
@@ -15,26 +15,23 @@ function Test-AwsCommand {
     }
 }
 
-# Function to clean up Docker resources
-function Remove-DockerResources {
-    Write-Host "Cleaning up Docker resources..." -ForegroundColor Yellow
+# Function to stop local development server if running
+function Stop-LocalServer {
+    Write-Host "Checking for running development servers..." -ForegroundColor Yellow
     
-    # Stop and remove the sandbox container
-    $container = docker ps -a --filter "name=amplify-sandbox" --format "{{.ID}}"
-    if ($container) {
-        Write-Host "Stopping and removing container..." -ForegroundColor Yellow
-        docker stop $container
-        docker rm $container
+    # Kill any processes using common dev ports
+    $ports = @(3000, 5173, 20002)
+    foreach ($port in $ports) {
+        $processes = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess
+        foreach ($processId in $processes) {
+            if ($processId) {
+                Write-Host "Stopping process on port $port (PID: $processId)..." -ForegroundColor Yellow
+                Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+            }
+        }
     }
     
-    # Remove the amplify-app image
-    $image = docker images amplify-app --format "{{.ID}}"
-    if ($image) {
-        Write-Host "Removing Docker image..." -ForegroundColor Yellow
-        docker rmi $image -f
-    }
-    
-    Write-Host "Docker cleanup completed!" -ForegroundColor Green
+    Write-Host "Local server cleanup completed!" -ForegroundColor Green
 }
 
 Write-Host "Scanning for resources to clean up..." -ForegroundColor Yellow
@@ -58,15 +55,8 @@ $sandboxStacks = $stacks.StackSummaries | Where-Object {
 Write-Host "`nResources to be deleted:" -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
-Write-Host "Docker Resources:" -ForegroundColor Yellow
-$container = docker ps -a --filter "name=amplify-sandbox" --format "{{.Names}}"
-if ($container) {
-    Write-Host "- Container: $container" -ForegroundColor White
-}
-$image = docker images amplify-app --format "{{.Repository}}"
-if ($image) {
-    Write-Host "- Image: $image" -ForegroundColor White
-}
+Write-Host "Local Development:" -ForegroundColor Yellow
+Write-Host "- Stop any running dev servers on ports 3000, 5173, 20002" -ForegroundColor White
 
 Write-Host "`nCognito User Pools:" -ForegroundColor Yellow
 if ($sandboxPools) {
@@ -87,14 +77,14 @@ if ($sandboxStacks) {
 }
 
 Write-Host "`nLocal Resources to Clean:" -ForegroundColor Yellow
-Write-Host "- Build artifacts and environment files" -ForegroundColor White
-Write-Host "- Docker containers and images" -ForegroundColor White
+Write-Host "- Build artifacts and temporary files" -ForegroundColor White
+Write-Host "- Stop running development servers" -ForegroundColor White
 
 # Ask for confirmation
 $userResponse = Read-Host "`nDo you want to delete all these resources? (y/n)"
 if ($userResponse -eq 'y') {
-    # Clean up Docker resources first
-    Remove-DockerResources
+    # Stop local development servers first
+    Stop-LocalServer
     
     # Delete User Pools
     foreach ($pool in $sandboxPools) {
@@ -121,8 +111,7 @@ if ($userResponse -eq 'y') {
         "amplify_outputs.json",
         ".amplify",
         "dist",
-        ".env",
-        "docker-compose.override.yml"
+        "node_modules/.cache"
     )
 
     foreach ($file in $filesToRemove) {

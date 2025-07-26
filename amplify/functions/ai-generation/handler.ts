@@ -3,6 +3,8 @@ import { generateClient } from 'aws-amplify/data';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import OpenAI from 'openai';
 import { z } from 'zod';
+import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
+import { log } from '../utils/logger';
 
 // Initialize clients
 const dataClient = generateClient<Schema>();
@@ -22,6 +24,7 @@ const challengeSchema = z.object({
   description: z.string(),
   language: z.string(),
   difficulty: z.string(),
+  starterCode: z.string(),
   testCases: z.array(z.object({
     input: z.string(),
     expectedOutput: z.string(),
@@ -56,7 +59,9 @@ class AIErrorHandler {
 
     const maxRetries = parseInt(process.env.MAX_RETRIES || '3');
     if (retryCount >= maxRetries) {
-      throw new Error(`Max retries (${maxRetries}) exceeded: ${error.message}`);
+      // Use intelligent fallback on final retry
+      log.warn('Max retries reached, attempting intelligent fallback', { retryCount });
+      return this.generateFallbackPrompt(context);
     }
 
     // Classify error and handle accordingly
@@ -67,13 +72,16 @@ class AIErrorHandler {
       return null; // Signal to retry
     } else if (error.message?.includes('timeout')) {
       return this.handleTimeout(context, retryCount);
+    } else if (retryCount >= 1) {
+      // After first retry, use intelligent fallback
+      return this.generateFallbackPrompt(context);
     }
 
     throw error;
   }
 
   static async handleInvalidJSON(context: any, retryCount: number) {
-    console.log('Handling invalid JSON response, using structured prompt...');
+    log.warn('Handling invalid JSON response, using structured prompt', { retryCount });
     
     // Add more explicit JSON formatting instructions
     const enhancedPrompt = `
@@ -90,7 +98,7 @@ class AIErrorHandler {
   }
 
   static async handleTimeout(context: any, retryCount: number) {
-    console.log('Handling timeout, reducing scope...');
+    log.warn('Handling timeout, reducing scope', { retryCount });
     
     // Reduce token limits for retry
     context.maxTokens = Math.floor(context.maxTokens * 0.75);
@@ -100,24 +108,100 @@ class AIErrorHandler {
   static delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  static async generateFallbackPrompt(context: any): Promise<null> {
+    log.info('Generating intelligent fallback prompt', { function: 'generateFallbackPrompt' });
+    
+    const args = context.originalArgs || {};
+    const language = args.language || 'Python';
+    const difficulty = args.difficulty || 'medium';
+    
+    // Define fallback topics based on skill levels and learning paths
+    const fallbackTopics = [
+      'array manipulation and iteration',
+      'string processing and formatting',
+      'basic mathematical calculations',
+      'conditional logic and decision making',
+      'loop control and iteration patterns',
+      'function definition and parameter handling',
+      'data structure traversal',
+      'input validation and error handling',
+      'sorting and searching algorithms',
+      'pattern matching and regular expressions'
+    ];
+    
+    // Select a random topic for fallback
+    const randomTopic = fallbackTopics[Math.floor(Math.random() * fallbackTopics.length)];
+    
+    // Create skill-appropriate prompt
+    const skillBasedPrompt = this.createSkillBasedPrompt(language, difficulty, randomTopic, args);
+    
+    log.info('Using fallback topic', { topic: randomTopic, language, difficulty });
+    
+    // Update context with new prompt
+    context.prompt = skillBasedPrompt;
+    context.temperature = 0.5; // Lower temperature for more reliable output
+    
+    return null; // Signal to retry with new context
+  }
+
+  static createSkillBasedPrompt(language: string, difficulty: string, topic: string, args: any): string {
+    const useEmptyMethods = args.useEmptyMethods !== false;
+    const starterCodeInstruction = useEmptyMethods 
+      ? "Provide EMPTY method stubs with just the method signature and pass/return statements. Do NOT include implementation details."
+      : "Provide helpful starter code with basic structure and comments to guide the solution.";
+
+    const difficultyContext: Record<string, string> = {
+      'easy': 'Focus on basic concepts with simple logic. Use straightforward test cases.',
+      'medium': 'Include moderate complexity with multiple steps. Test edge cases.',
+      'hard': 'Implement advanced algorithms or complex logic. Include comprehensive test coverage.'
+    };
+
+    return `Create a ${difficulty} programming challenge focused on ${topic} in ${language}.
+
+REQUIREMENTS:
+- Language: ${language}
+- Difficulty: ${difficulty}
+- Topic: ${topic}
+- ${difficultyContext[difficulty.toLowerCase()] || difficultyContext['medium']}
+
+STARTER CODE: ${starterCodeInstruction}
+
+OUTPUT FORMAT:
+- Provide a clear, engaging problem title
+- Write a detailed problem description with examples
+- Include exactly 3-5 test cases with inputs, expected outputs, and explanations
+- Provide 2-3 helpful hints
+- Include a complete solution
+- Ensure the starter code matches the language syntax
+
+Make this problem practical and educational, suitable for a coding practice platform.`;
+  }
 }
 
 // Main handler function
-export const handler: Schema['generateChallenge']['functionHandler'] = async (event, context) => {
+export const handler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
   const startTime = Date.now();
   let aiRequest: any;
 
   try {
     // Log the incoming request
-    console.log('AI Generation Request:', JSON.stringify(event, null, 2));
+    log.lambdaStart('ai-generation', event);
+
+    // Parse the request body
+    const requestBody = event.body ? JSON.parse(event.body) : {};
+    const { operation, requestId, ...args } = requestBody;
+
+    // Extract user ID from headers or use anonymous
+    const userId = event.requestContext?.authorizer?.claims?.sub || 'anonymous';
 
     // Create AI request record
     const { data: request } = await dataClient.models.AIRequest.create({
-      userId: event.identity?.username || 'anonymous',
-      type: event.fieldName === 'generateChallenge' ? 'challenge' : 
-            event.fieldName === 'evaluateCode' ? 'evaluation' : 'feedback',
+      userId,
+      type: operation === 'generateChallenge' ? 'challenge' : 
+            operation === 'evaluateCode' ? 'evaluation' : 'feedback',
       status: 'processing',
-      input: event.arguments,
+      input: args,
       createdAt: new Date().toISOString()
     });
 
@@ -125,12 +209,12 @@ export const handler: Schema['generateChallenge']['functionHandler'] = async (ev
 
     // Process based on operation type
     let result;
-    if (event.fieldName === 'generateChallenge') {
-      result = await generateChallengeWithRetry(event.arguments);
-    } else if (event.fieldName === 'evaluateCode') {
-      result = await evaluateCodeWithRetry(event.arguments);
+    if (operation === 'generateChallenge') {
+      result = await generateChallengeWithRetry(args);
+    } else if (operation === 'evaluateCode') {
+      result = await evaluateCodeWithRetry(args);
     } else {
-      throw new Error(`Unsupported operation: ${event.fieldName}`);
+      throw new Error(`Unsupported operation: ${operation}`);
     }
 
     // Update request as completed
@@ -143,7 +227,22 @@ export const handler: Schema['generateChallenge']['functionHandler'] = async (ev
       completedAt: new Date().toISOString()
     });
 
-    return result;
+    // Return successful API Gateway response
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'POST,OPTIONS'
+      },
+      body: JSON.stringify({
+        success: true,
+        data: result,
+        requestId: aiRequest.id,
+        processingTime: Date.now() - startTime
+      })
+    };
 
   } catch (error: any) {
     console.error('AI Generation Error:', error);
@@ -158,23 +257,46 @@ export const handler: Schema['generateChallenge']['functionHandler'] = async (ev
       });
     }
 
-    throw error;
+    // Return error API Gateway response
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'POST,OPTIONS'
+      },
+      body: JSON.stringify({
+        success: false,
+        error: error.message,
+        requestId: aiRequest?.id
+      })
+    };
   }
 };
 
 // Generate challenge with retry logic
 async function generateChallengeWithRetry(args: any, retryCount: number = 0): Promise<any> {
+  // Build the initial prompt
+  const useEmptyMethods = args.useEmptyMethods !== false; // Default to true
+  const starterCodeInstruction = useEmptyMethods 
+    ? "Provide EMPTY method stubs with just the method signature and pass/return statements. Do NOT include implementation details."
+    : "Provide helpful starter code with basic structure and comments to guide the solution.";
+
   const context = {
     prompt: `Create a programming challenge with the following requirements:
     - Topic: ${args.topic}
     - Language: ${args.language}
     - Difficulty: ${args.difficulty}
     
+    STARTER CODE: ${starterCodeInstruction}
+    
     Provide a well-structured challenge with clear description, at least 3 test cases, 
     helpful hints, and a complete solution.`,
     expectedFormat: challengeSchema.shape,
     temperature: 0.7,
-    maxTokens: 2000
+    maxTokens: 2000,
+    originalArgs: args
   };
 
   try {

@@ -58,7 +58,7 @@ $predeployStacks = $stacks.StackSummaries | Where-Object {
 Write-Host "`nResources to be deleted:" -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Yellow
 
-Write-Host "Docker/ECR Resources:" -ForegroundColor Yellow
+Write-Host "AWS Resources:" -ForegroundColor Yellow
 Write-Host "- ECR Repository: $ECR_REPO" -ForegroundColor White
 
 Write-Host "`nCognito User Pools:" -ForegroundColor Yellow
@@ -81,7 +81,6 @@ if ($predeployStacks) {
 
 Write-Host "`nLocal Resources to Clean:" -ForegroundColor Yellow
 Write-Host "- Build artifacts and environment files" -ForegroundColor White
-Write-Host "- Docker images" -ForegroundColor White
 
 # Ask for confirmation
 $userResponse = Read-Host "`nDo you want to delete all these resources? (y/n)"
@@ -115,8 +114,7 @@ if ($userResponse -eq 'y') {
         "amplify_outputs.json",
         ".amplify",
         "dist",
-        ".env",
-        "docker-compose.override.yml"
+        ".env"
     )
 
     foreach ($file in $filesToRemove) {
@@ -131,11 +129,10 @@ if ($userResponse -eq 'y') {
         }
     }
 
-    # Clean up Docker images
-    Write-Host "Cleaning up Docker images..." -ForegroundColor Yellow
-    docker rmi amplify-predeploy -f 2>$null
-    $ecrUri = "$($identity.Account).dkr.ecr.$REGION.amazonaws.com/$ECR_REPO"
-    docker rmi $ecrUri`:latest -f 2>$null
+    # Clean up local build artifacts
+    Write-Host "Cleaning up local build artifacts..." -ForegroundColor Yellow
+    Remove-Item -Path "dist" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "node_modules/.cache" -Recurse -Force -ErrorAction SilentlyContinue
 
     Write-Host "`nPreDeploy cleanup complete!" -ForegroundColor Green
     Write-Host "

@@ -36,7 +36,7 @@ export const auth = defineAuth({
         Best regards,
         Eric
 
-        P.S. Account wipes will happen often as the Site is a BIIIIG WIP.
+        P.S. Account wipes will happen often as the Site is a WIP.
         <!DOCTYPE html>
         <html>
         <head>

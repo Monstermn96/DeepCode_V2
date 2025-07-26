@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { aiBackendService } from '../services/ai/ai-backend-service';
 import { UserStatsService } from '../services/stats/userStats';
+import { log } from '../utils/logger';
 
 // Import the old service as fallback
 import { aiService as frontendAIService } from '../services/ai/openai';
@@ -15,6 +16,7 @@ export interface Challenge {
 		description: string;
 		language: SupportedLanguage;
 		difficulty: 'Easy' | 'Medium' | 'Hard';
+		starterCode?: string;
 		testCases: Array<{
 			input: string;
 			expectedOutput: string;
@@ -29,6 +31,9 @@ export interface GenerateChallengeParams {
 	type: string;
 	topic: string;
 	languages: SupportedLanguage[];
+	useEmptyMethods?: boolean; // If true (default), provides empty method stubs; if false, provides complete starter code
+	learningPathId?: string; // Optional learning path context for better problem generation
+	userSkillLevels?: Record<string, number>; // User's skill levels for fallback generation
 }
 
 interface AIContextType {
@@ -56,8 +61,11 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 		setError(null);
 
 		try {
-			console.log("Generating challenge with params:", params);
-			console.log("Using backend AI:", useBackendAI);
+			log.aiOperation("Generating challenge", { 
+				topic: params.topic, 
+				languages: params.languages, 
+				useBackendAI 
+			});
 
 			let response;
 			
@@ -67,15 +75,21 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 					response = await aiBackendService.generateChallenge({
 						topic: params.topic,
 						languages: params.languages,
-						difficulty: 'Medium' // Default difficulty
+						difficulty: 'Medium', // Default difficulty
+						useEmptyMethods: params.useEmptyMethods,
+						learningPathId: params.learningPathId,
+						userSkillLevels: params.userSkillLevels
 					});
 				} catch (backendError) {
-					console.error("Backend AI failed, falling back to frontend:", backendError);
+					log.warn("Backend AI failed, falling back to frontend", { error: backendError });
 					// Fallback to frontend service
 					response = await frontendAIService.generateChallenge(
 						params.topic,
 						params.languages,
-						user?.userId
+						user?.userId,
+						params.useEmptyMethods,
+						params.learningPathId,
+						params.userSkillLevels
 					);
 				}
 			} else {
@@ -83,25 +97,28 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 				response = await frontendAIService.generateChallenge(
 					params.topic,
 					params.languages,
-					user?.userId
+					user?.userId,
+					params.useEmptyMethods,
+					params.learningPathId,
+					params.userSkillLevels
 				);
 			}
 
-			console.log("Raw API response:", response);
+			log.devOnly("Raw API response", response);
 
 			if (!response) {
-				console.error("No response received from API");
+				log.error("No response received from API");
 				throw new Error("No response received from AI service");
 			}
 
 			if (!response.data) {
-				console.error("Invalid response format:", response);
+				log.error("Invalid response format", response);
 				throw new Error("Invalid response format from AI service");
 			}
 
 			// Token usage is now tracked automatically in the backend
 
-			console.log("Setting challenge with data:", response.data);
+			log.aiOperation("Challenge generated successfully", { hasData: !!response.data });
 
 			// Transform the response data into the Challenge format
 			setCurrentChallenge({ problem: response.data });
@@ -128,7 +145,7 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 
 	const evaluateCode = async (code: string, testCases: any[], language: SupportedLanguage) => {
 		try {
-			console.log("Evaluating code with backend AI:", useBackendAI);
+			log.aiOperation("Evaluating code", { language, useBackendAI, testCaseCount: testCases.length });
 			
 			let response;
 			
@@ -140,7 +157,7 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
 						language
 					});
 				} catch (backendError) {
-					console.error("Backend evaluation failed, falling back to frontend:", backendError);
+					log.warn("Backend evaluation failed, falling back to frontend", { error: backendError });
 					// Fallback to frontend service
 					response = await frontendAIService.evaluateCode(
 						code,

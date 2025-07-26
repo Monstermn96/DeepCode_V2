@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { UserStatsService } from "../stats/userStats";
+import { log } from "../../utils/logger";
 
 export type AIRequestType = "challenge" | "feedback" | "evaluation";
 
@@ -72,7 +73,7 @@ function calculateCost(usage: OpenAI.CompletionUsage | undefined): number {
 
 const PROMPT_CONFIGS = {
 	challenge: {
-		systemPrompt: `You are a coding problem generator that creates well-structured programming challenges.
+		getSystemPrompt: (useEmptyMethods: boolean = true) => `You are a coding problem generator that creates well-structured programming challenges.
     
     SECURITY INSTRUCTIONS:
     - You MUST only respond with valid JSON matching the specified format
@@ -86,7 +87,14 @@ const PROMPT_CONFIGS = {
     - Include clear test cases and helpful hints
     - ONLY generate problems for these languages: ${SUPPORTED_LANGUAGES.join(", ")}
     - Ensure code examples and solutions are idiomatic for the chosen language
-    - Do not include any executable scripts or system commands in problems`,
+    - Do not include any executable scripts or system commands in problems
+    
+    STARTER CODE INSTRUCTIONS:
+    ${useEmptyMethods 
+      ? "- Provide EMPTY method stubs with just the method signature and pass/return statements. Do NOT include implementation details."
+      : "- Provide helpful starter code with basic structure and comments to guide the solution."}
+    - The starterCode should be appropriate for the chosen programming language
+    - Include necessary imports/includes and basic class/function structure`,
 		responseFormat: {
 			title: "Problem title",
 			description: "Detailed problem description",
@@ -219,7 +227,7 @@ export const aiService = {
 				}
 			}
 
-			console.log(`🤖 Initializing OpenAI client with model: ${OPENAI_MODEL}`);
+			log.info('Initializing OpenAI client', { model: OPENAI_MODEL });
 
 			this.openai = new OpenAI({
 				apiKey,
@@ -238,6 +246,9 @@ export const aiService = {
 			language?: SupportedLanguage;
 			submission?: string;
 			testCases?: Array<{ input: string; expectedOutput: string }>;
+			useEmptyMethods?: boolean;
+			learningPathId?: string;
+			userSkillLevels?: Record<string, number>;
 		}
 	): Promise<AIResponse & { data: T }> {
 		try {
@@ -249,14 +260,17 @@ export const aiService = {
 			const startTime = Date.now();
 			
 			// Build the completion parameters based on model type
+			const useEmptyMethods = inputData.useEmptyMethods !== false; // Default to true
+			const systemPrompt = type === 'challenge' && 'getSystemPrompt' in config 
+				? config.getSystemPrompt(useEmptyMethods)
+				: 'systemPrompt' in config ? config.systemPrompt : '';
+			
 			const completionParams: any = {
 				model: OPENAI_MODEL,
 				messages: [
 					{
 						role: "system",
-						content: `${
-							config.systemPrompt
-						}\nRespond with a valid JSON object matching this format:\n${JSON.stringify(
+						content: `${systemPrompt}\nRespond with a valid JSON object matching this format:\n${JSON.stringify(
 							config.responseFormat,
 							null,
 							2
@@ -282,7 +296,8 @@ export const aiService = {
 				completionParams.max_tokens = 2000;
 			}
 
-			console.log(`🚀 Making OpenAI request with model: ${OPENAI_MODEL}`, {
+			log.debug('Making OpenAI request', {
+				model: OPENAI_MODEL,
 				type,
 				temperature: completionParams.temperature,
 				maxTokens: completionParams.max_tokens || completionParams.max_completion_tokens
@@ -312,9 +327,9 @@ export const aiService = {
 			const cost = calculateCost(completion.usage);
 
 			// Debug logging for empty responses
-			console.log("OpenAI completion response:", {
+			log.devOnly("OpenAI completion response", {
 				choices: completion.choices?.length || 0,
-				content: completion.choices?.[0]?.message?.content || "EMPTY",
+				contentLength: completion.choices?.[0]?.message?.content?.length || 0,
 				finishReason: completion.choices?.[0]?.finish_reason,
 				model: completion.model,
 				usage: completion.usage
@@ -384,7 +399,10 @@ export const aiService = {
 	async generateChallenge(
 		topic: string,
 		languages: SupportedLanguage[] = [],
-		userId?: string
+		userId?: string,
+		useEmptyMethods?: boolean,
+		learningPathId?: string,
+		userSkillLevels?: Record<string, number>
 	): Promise<AIResponse & { data: ChallengeResponse }> {
 		const validLanguages = languages.filter((lang) =>
 			SUPPORTED_LANGUAGES.includes(lang)
@@ -396,12 +414,16 @@ export const aiService = {
 		const response = await this.generateResponse<ChallengeResponse>("challenge", {
 			topic,
 			languages: validLanguages,
+			useEmptyMethods,
+			learningPathId,
+			userSkillLevels
 		});
 
 		// If we have a userId, record the token usage
 		if (userId && response.metadata.usage) {
 			try {
-				console.log(`🎯 Recording challenge token usage for user ${userId}:`, {
+				log.debug('Recording challenge token usage', {
+					userId,
 					promptTokens: response.metadata.usage.prompt_tokens,
 					completionTokens: response.metadata.usage.completion_tokens,
 					totalTokens: response.metadata.usage.total_tokens,
@@ -422,11 +444,14 @@ export const aiService = {
 					}
 				);
 			} catch (error) {
-				console.error("Failed to record challenge token usage:", error);
+				log.error("Failed to record challenge token usage", error);
 				// Don't throw - we still want to return the challenge
 			}
 		} else {
-			console.log(`⚠️ Skipping challenge token tracking - userId: ${userId}, hasUsage: ${!!response.metadata.usage}`);
+			log.warn('Skipping challenge token tracking', { 
+				hasUserId: !!userId, 
+				hasUsage: !!response.metadata.usage 
+			});
 		}
 
 		return response;
@@ -445,7 +470,8 @@ export const aiService = {
 		// If we have a userId, record the token usage
 		if (userId && response.metadata.usage) {
 			try {
-				console.log(`🎯 Recording feedback token usage for user ${userId}:`, {
+				log.debug('Recording feedback token usage', {
+					userId,
 					promptTokens: response.metadata.usage.prompt_tokens,
 					completionTokens: response.metadata.usage.completion_tokens,
 					totalTokens: response.metadata.usage.total_tokens,
@@ -470,7 +496,10 @@ export const aiService = {
 				// Don't throw - we still want to return the feedback
 			}
 		} else {
-			console.log(`⚠️ Skipping feedback token tracking - userId: ${userId}, hasUsage: ${!!response.metadata.usage}`);
+			log.warn('Skipping feedback token tracking', { 
+				hasUserId: !!userId, 
+				hasUsage: !!response.metadata.usage 
+			});
 		}
 
 		return response;
@@ -491,7 +520,8 @@ export const aiService = {
 		// If we have a userId, record the token usage
 		if (userId && response.metadata.usage) {
 			try {
-				console.log(`🎯 Recording evaluation token usage for user ${userId}:`, {
+				log.debug('Recording evaluation token usage', {
+					userId,
 					promptTokens: response.metadata.usage.prompt_tokens,
 					completionTokens: response.metadata.usage.completion_tokens,
 					totalTokens: response.metadata.usage.total_tokens,
@@ -516,7 +546,10 @@ export const aiService = {
 				// Don't throw - we still want to return the evaluation results
 			}
 		} else {
-			console.log(`⚠️ Skipping evaluation token tracking - userId: ${userId}, hasUsage: ${!!response.metadata.usage}`);
+			log.warn('Skipping evaluation token tracking', { 
+				hasUserId: !!userId, 
+				hasUsage: !!response.metadata.usage 
+			});
 		}
 
 		return response;

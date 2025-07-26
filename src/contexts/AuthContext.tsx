@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { getCurrentUser, signOut, resendSignUpCode } from 'aws-amplify/auth';
 import { Hub } from '@aws-amplify/core';
 import { fetchUserAttributes } from 'aws-amplify/auth';
+import { log } from '../utils/logger';
 
 interface AuthPayload {
   event: string;
@@ -25,12 +26,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkUser = useCallback(async () => {
     try {
-      console.log('🔍 Checking user authentication...');
+      log.authEvent('Checking user authentication');
       const currentUser = await getCurrentUser();
-      console.log('✅ Found authenticated user:', currentUser.username);
+      log.authEvent('Found authenticated user', { username: currentUser.username });
       
       const userAttributes = await fetchUserAttributes();
-      console.log('📋 User attributes:', userAttributes);
+      log.devOnly('User attributes loaded', userAttributes);
       
       // Create a user object that includes both the user and their attributes
       const userWithAttributes = {
@@ -40,9 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       
       setUser(userWithAttributes);
-      console.log('👤 User state updated successfully');
+      log.authEvent('User state updated successfully');
     } catch (error) {
-      console.log('❌ No authenticated user found:', error instanceof Error ? error.message : 'Unknown error');
+      log.warn('No authenticated user found', { error: error instanceof Error ? error.message : 'Unknown error' });
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -52,13 +53,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = useCallback(async () => {
     try {
-      console.log('🚪 Signing out user...');
+      log.authEvent('Signing out user');
       setIsLoading(true);
       await signOut();
       setUser(null);
-      console.log('✅ User signed out successfully');
+      log.authEvent('User signed out successfully');
     } catch (error) {
-      console.error('❌ Error signing out:', error);
+      log.error('Error signing out', error);
     } finally {
       setIsLoading(false);
     }
@@ -66,11 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleResendVerification = async (username: string) => {
     try {
-      console.log('📧 Resending verification code for:', username);
+      log.authEvent('Resending verification code', { username });
       await resendSignUpCode({ username });
-      console.log('✅ Verification code sent');
+      log.authEvent('Verification code sent');
     } catch (error) {
-      console.error('❌ Error resending verification:', error);
+      log.error('Error resending verification', error);
       throw error;
     }
   };
@@ -82,33 +83,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth events
     const unsubscribe = Hub.listen('auth', ({ payload }: { payload: AuthPayload }) => {
-      console.log('🔔 Auth event received:', payload.event);
+      log.authEvent('Auth event received', { event: payload.event });
       
       switch (payload.event) {
         case 'signedIn':
-          console.log('🎉 User signed in event - checking user');
+          log.authEvent('User signed in event - checking user');
           // Add a small delay to ensure Cognito session is fully established
           setTimeout(() => {
             checkUser();
           }, 1000);
           break;
         case 'signedOut':
-          console.log('👋 User signed out event');
+          log.authEvent('User signed out event');
           setUser(null);
           setIsLoading(false);
           break;
         case 'tokenRefresh':
-          console.log('🔄 Token refresh event');
+          log.authEvent('Token refresh event');
           checkUser();
           break;
         case 'tokenRefresh_failure':
-          console.log('❌ Token refresh failed');
+          log.warn('Token refresh failed');
           setUser(null);
           setIsLoading(false);
           break;
         case 'signInWithRedirect':
         case 'customOAuthState':
-          console.log('🔄 OAuth/redirect event - checking user');
+          log.authEvent('OAuth/redirect event - checking user');
           setTimeout(() => {
             checkUser();
           }, 1500);
@@ -123,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = !!user && !isLoading;
 
-  console.log('🔐 Auth state:', { 
+  log.devOnly('Auth state:', { 
     hasUser: !!user, 
     isLoading, 
     isAuthenticated, 

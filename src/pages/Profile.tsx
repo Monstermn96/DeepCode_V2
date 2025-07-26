@@ -4,6 +4,11 @@ import styles from './Profile.module.css';
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { UserStatsService, UserStats } from '../services/stats/userStats';
+import { LearningStats } from '../components/LearningStats';
+import { LearningPathManager } from '../components/LearningPathManager';
+import { SkillProgressChart } from '../components/SkillProgressChart';
+import { skillAssessmentService } from '../services/learning/skillAssessmentService';
+import { SkillAssessment } from '../types/learning';
 
 interface UserStatsWithPoints extends Omit<UserStats, 'id'> {
   id: string;
@@ -32,6 +37,7 @@ interface UserStatsWithPoints extends Omit<UserStats, 'id'> {
 export default function Profile() {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'subscription' | 'account'>('overview');
+  const [overviewTab, setOverviewTab] = useState<'stats' | 'skills' | 'paths'>('stats');
   const [showTipMessage, setShowTipMessage] = useState(false);
   const [userStats, setUserStats] = useState<UserStatsWithPoints | null>(null);
   const [monthlyUsage, setMonthlyUsage] = useState<{
@@ -39,6 +45,7 @@ export default function Profile() {
     totalCost: number;
     challengesGenerated: number;
   } | null>(null);
+  const [skillAssessments, setSkillAssessments] = useState<SkillAssessment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -73,6 +80,10 @@ export default function Profile() {
         const currentYearMonth = new Date().toISOString().substring(0, 7);
         const usage = await statsService.getMonthlyUsage(user.userId, currentYearMonth);
         setMonthlyUsage(usage);
+        
+        // Fetch skill assessments
+        const skills = await skillAssessmentService.getUserSkillAssessments(user.userId);
+        setSkillAssessments(skills);
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -158,32 +169,47 @@ export default function Profile() {
       {/* Content Section */}
       <div className={styles.content}>
         {activeTab === 'overview' && (
-          <div className={`${styles.overview} ${styles.content}`}>
-            {/* Language Proficiency Section */}
-            
-            
-
-            {/* Monthly Usage Section */}
-              <div className={styles.subscriptionHeader}>
-                <h2>Monthly Usage</h2>
-              </div>
-              <div className={styles.subscriptionCard}>
-                <div className={styles.usageStats}>
-                  <div className={styles.usageStat}>
-                    <span className={styles.label}>Total Tokens</span>
-                    <span className={styles.value}>{monthlyUsage?.totalTokens || 0}</span>
-                  </div>
-                  <div className={styles.usageStat}>
-                    <span className={styles.label}>Total Cost</span>
-                    <span className={styles.value}>${monthlyUsage?.totalCost || 0}</span>
-                  </div>
-                  <div className={styles.usageStat}>
-                    <span className={styles.label}>Challenges Generated</span>
-                    <span className={styles.value}>{monthlyUsage?.challengesGenerated || 0}</span>
-                  </div>
-                </div>
-              </div>
+          <div className={styles.overview}>
+            {/* Overview Sub-tabs */}
+            <div className={styles.overviewTabs}>
+              <button
+                className={`${styles.overviewTab} ${overviewTab === 'stats' ? styles.active : ''}`}
+                onClick={() => setOverviewTab('stats')}
+              >
+                📊 Learning Stats
+              </button>
+              <button
+                className={`${styles.overviewTab} ${overviewTab === 'skills' ? styles.active : ''}`}
+                onClick={() => setOverviewTab('skills')}
+              >
+                💪 Skill Progress
+              </button>
+              <button
+                className={`${styles.overviewTab} ${overviewTab === 'paths' ? styles.active : ''}`}
+                onClick={() => setOverviewTab('paths')}
+              >
+                🎯 Learning Paths
+              </button>
             </div>
+
+            {/* Overview Content */}
+            <div className={styles.overviewContent}>
+              {overviewTab === 'stats' && user?.userId && (
+                <LearningStats userId={user.userId} />
+              )}
+              
+              {overviewTab === 'skills' && (
+                <SkillProgressChart 
+                  skills={skillAssessments}
+                  title="Your Skill Development"
+                />
+              )}
+              
+              {overviewTab === 'paths' && user?.userId && (
+                <LearningPathManager userId={user.userId} />
+              )}
+            </div>
+          </div>
         )}
 
         {activeTab === 'subscription' && (
