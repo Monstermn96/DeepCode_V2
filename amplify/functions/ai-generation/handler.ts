@@ -1,6 +1,5 @@
 import { Schema } from '../../data/resource';
 import { generateClient } from 'aws-amplify/data';
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
@@ -32,7 +31,6 @@ const log = {
 
 // Initialize clients
 const dataClient = generateClient<Schema>();
-const bedrockClient = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION });
 
 // Initialize OpenAI client if API key is available
 let openaiClient: OpenAI | null = null;
@@ -330,10 +328,8 @@ async function generateChallengeWithRetry(args: any, retryCount: number = 0): Pr
       const validated = challengeSchema.parse(response);
       return validated;
     } else {
-      // Fallback to Bedrock
-      const response = await callBedrock(context);
-      const validated = challengeSchema.parse(response);
-      return validated;
+      // No fallback available - OpenAI is required
+      throw new Error('OpenAI client not available and no fallback configured. Please ensure OPENAI_API_KEY is set.');
     }
   } catch (error: any) {
     // Handle error and potentially retry
@@ -431,34 +427,6 @@ async function callOpenAI(context: any): Promise<any> {
   }
 
   return JSON.parse(content);
-}
-
-// Call Amazon Bedrock
-async function callBedrock(context: any): Promise<any> {
-  const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
-  
-  const params = {
-    modelId,
-    contentType: 'application/json',
-    accept: 'application/json',
-    body: JSON.stringify({
-      anthropic_version: "bedrock-2023-05-31",
-      max_tokens: context.maxTokens,
-      temperature: context.temperature,
-      messages: [
-        {
-          role: 'user',
-          content: `${context.prompt}\n\nRespond with valid JSON only: ${JSON.stringify(context.expectedFormat)}`
-        }
-      ]
-    })
-  };
-
-  const command = new InvokeModelCommand(params);
-  const response = await bedrockClient.send(command);
-  const result = JSON.parse(new TextDecoder().decode(response.body));
-  
-  return JSON.parse(result.content[0].text);
 }
 
 // Simulate code execution (simplified - in production use a sandboxed environment)
