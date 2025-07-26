@@ -2,15 +2,48 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../../amplify/data/resource';
 
-// Initialize Amplify asynchronously
+// Initialize Amplify asynchronously using runtime fetch (like main.tsx)
 async function initializeAmplify() {
 	try {
-		const outputs = await import('../../../amplify_outputs.json');
-		// Use type assertion to avoid type checking issues
-		Amplify.configure(outputs.default as any);
+		// Try to fetch amplify_outputs.json at runtime to avoid build-time import issues
+		let outputs;
+		try {
+			const response = await fetch('/amplify_outputs.json');
+			if (response.ok) {
+				outputs = await response.json();
+				console.log('✅ UserStats: Loaded amplify_outputs.json');
+			} else {
+				throw new Error('amplify_outputs.json not found');
+			}
+		} catch (error) {
+			console.log('⚠️ UserStats: amplify_outputs.json not found, using fallback configuration');
+			// Fallback configuration
+			outputs = {
+				version: "1.3",
+				auth: {
+					user_pool_id: import.meta.env.VITE_AUTH_USER_POOL_ID || 'local',
+					user_pool_client_id: import.meta.env.VITE_AUTH_USER_POOL_CLIENT_ID || 'local',
+					oauth: {},
+					password_policy: {},
+					standard_required_attributes: ["email"],
+					username_attributes: ["email"],
+					user_verification_types: ["email"],
+					unauthenticated_identities_enabled: true
+				},
+				data: {
+					url: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql',
+					aws_region: import.meta.env.AWS_REGION || 'us-east-1',
+					default_authorization_type: "userPool",
+					authorization_types: ["userPool", "iam"]
+				}
+			};
+		}
+
+		// Configure Amplify with outputs
+		Amplify.configure(outputs);
 		return generateClient<Schema>();
 	} catch (error) {
-		console.error('Failed to load Amplify outputs:', error);
+		console.error('Failed to initialize Amplify in UserStats:', error);
 		return null;
 	}
 }
