@@ -1,4 +1,5 @@
-import { type ClientSchema, defineData, a } from '@aws-amplify/data-schema';
+import { type ClientSchema, a } from '@aws-amplify/data-schema';
+import { defineData } from '@aws-amplify/backend';
 
 // Define your schema using the new "Amplify Data" DSL
 const schema = a.schema({

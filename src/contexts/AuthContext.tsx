@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userWithAttributes);
       console.log('👤 User state updated successfully');
     } catch (error) {
-      console.log('❌ No authenticated user found:', error.message);
+      console.log('❌ No authenticated user found:', error instanceof Error ? error.message : 'Unknown error');
       setUser(null);
     } finally {
       setIsLoading(false);

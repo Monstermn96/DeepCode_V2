@@ -45,12 +45,14 @@ export interface MonthlyUsage {
 	lastUpdated?: string;
 }
 
-let client: Awaited<ReturnType<typeof generateClient<Schema>>> | null = null;
+// Simplified client type
+let client: ReturnType<typeof generateClient<Schema>> | null = null;
 
-// Initialize the client
-initializeAmplify().then(c => {
-	client = c;
-});
+// Initialize the client without complex type inference
+(async () => {
+	const c = await initializeAmplify();
+	if (c) client = c;
+})();
 
 // API endpoints from outputs
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'http://localhost:3000';
@@ -127,7 +129,7 @@ export class UserStatsService {
 		if (!client) throw new Error('Client not initialized');
 		try {
 			const { data } = await client.models.UserStats.get({ id: userId });
-			return data ? data[0] : null;
+			return data as unknown as UserStats | null;
 		} catch (error) {
 			console.error('Error getting user stats:', error);
 			throw error;
@@ -147,7 +149,7 @@ export class UserStatsService {
 				totalTokensUsed: 0,  // Initialize total tokens
 				totalCost: 0         // Initialize total cost
 			});
-			return data ? data[0] : null;
+			return data as unknown as UserStats | null;
 		} catch (error) {
 			console.error('Error initializing user stats:', error);
 			throw error;
@@ -163,7 +165,7 @@ export class UserStatsService {
 		try {
 			// First get current user stats to update totals
 			const { data } = await client.models.UserStats.get({ id: userId });
-			const userStats = data ? data[0] : null;
+			const userStats = data as any;
 			if (userStats) {
 				await client.models.UserStats.update({
 					id: userId,
@@ -190,7 +192,7 @@ export class UserStatsService {
 			
 			try {
 				const { data: monthlyData } = await client.models.MonthlyUsage.get({ id: monthlyUsageId });
-				const existingUsage = monthlyData ? monthlyData[0] : null;
+				const existingUsage = monthlyData as any;
 				if (existingUsage) {
 					await client.models.MonthlyUsage.update({
 						id: monthlyUsageId,
@@ -222,7 +224,7 @@ export class UserStatsService {
 		if (!client) throw new Error('Client not initialized');
 		try {
 			const { data } = await client.models.UserStats.get({ id: userId });
-			const stats = data ? data[0] : null;
+			const stats = data as any;
 			if (stats) {
 				await client.models.UserStats.update({
 					id: userId,
@@ -243,7 +245,7 @@ export class UserStatsService {
 			const { data } = await client.models.MonthlyUsage.get({ 
 				id: `${userId}-${yearMonth}`
 			});
-			return data ? data[0] : null;
+			return data as unknown as MonthlyUsage | null;
 		} catch (error) {
 			console.error('Error getting monthly usage:', error);
 			throw error;
@@ -254,7 +256,7 @@ export class UserStatsService {
 		if (!client) throw new Error('Client not initialized');
 		try {
 			const { data } = await client.models.UserStats.get({ id: userId });
-			const stats = data ? data[0] : null;
+			const stats = data as any;
 			if (stats) {
 				const lastActive = new Date(stats.lastActiveAt);
 				const now = new Date();

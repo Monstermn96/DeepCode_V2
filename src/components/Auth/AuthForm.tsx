@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CSSTransition } from 'react-transition-group';
-import { signIn, signUp, confirmSignUp, resendSignUpCode, getCurrentUser, fetchUserAttributes } from '@aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, resendSignUpCode, getCurrentUser } from '@aws-amplify/auth';
 import { UserStatsService } from '../../services/stats/userStats';
 
 import './Auth.css';
