@@ -14,7 +14,19 @@ applications:
             # Install backend dependencies
             - "echo 'Installing backend dependencies...'"
             - "cd amplify && npm install && cd .."
-            # Generate amplify_outputs.json from existing deployed backend
+            # Check if backend deployment is needed
+            - "echo 'Checking if backend deployment is needed...'"
+            - |
+              if [ "$FORCE_BACKEND_DEPLOY" = "true" ]; then
+                echo "FORCE_BACKEND_DEPLOY is set - deploying backend..."
+                npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+              elif git diff HEAD~1 --name-only 2>/dev/null | grep -E '^amplify/(auth|data|functions|backend)'; then
+                echo "Backend files changed - deploying backend..."
+                npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+              else
+                echo "No backend changes detected - skipping backend deployment"
+              fi
+            # Generate amplify_outputs.json from deployed backend
             - "echo 'Generating amplify_outputs.json from deployed backend...'"
             - "echo 'AWS_APP_ID: $AWS_APP_ID'"
             - "echo 'AWS_BRANCH: $AWS_BRANCH'"
