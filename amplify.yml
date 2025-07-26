@@ -14,18 +14,20 @@ applications:
             # Install backend dependencies
             - "echo 'Installing backend dependencies...'"
             - "cd amplify && npm install && cd .."
-            # Deploy backend resources first
-            - "echo 'Deploying backend resources...'"
+            # Generate amplify_outputs.json from existing deployed backend
+            - "echo 'Generating amplify_outputs.json from deployed backend...'"
             - "echo 'AWS_APP_ID: $AWS_APP_ID'"
             - "echo 'AWS_BRANCH: $AWS_BRANCH'"
-            - |
-              if [ -n "$AWS_APP_ID" ]; then
-                echo "Deploying backend with app ID: $AWS_APP_ID"
-                npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
-              else
-                echo "AWS_APP_ID not set, trying alternative backend deployment..."
-                npx ampx generate outputs --branch $AWS_BRANCH
-              fi
+            - "npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID"
+            # Verify the file was generated
+            - "echo 'Checking if amplify_outputs.json was generated...'"
+            - "ls -la amplify_outputs.json || echo 'amplify_outputs.json not found'"
+            - "cat amplify_outputs.json || echo 'Could not read amplify_outputs.json'"
+            # Copy outputs to public directory so frontend can access it during build
+            - "echo 'Copying amplify_outputs.json to public directory...'"
+            - "mkdir -p public"
+            - "cp amplify_outputs.json public/amplify_outputs.json || echo 'Failed to copy to public'"
+            - "ls -la public/"
         build:
           commands:
             - |
@@ -43,6 +45,13 @@ applications:
                 echo "Building application with NODE_ENV=production and VITE_AMPLIFY_ENV=production..."
                 NODE_ENV=production VITE_AMPLIFY_ENV=production npm run build
               fi
+            # Ensure amplify_outputs.json is in the final build
+            - "echo 'Ensuring amplify_outputs.json is in dist...'"
+            - "mkdir -p dist"
+            - "cp amplify_outputs.json dist/amplify_outputs.json || echo 'Failed to copy to dist'"
+            - "cp public/amplify_outputs.json dist/amplify_outputs.json || echo 'Failed to copy from public to dist'"
+            - "ls -la dist/amplify_outputs.json || echo 'amplify_outputs.json not in dist'"
+            - "cat dist/amplify_outputs.json || echo 'Could not read dist/amplify_outputs.json'"
       artifacts:
         baseDirectory: dist
         files:
