@@ -160,6 +160,24 @@ const PROMPT_CONFIGS = {
 // Get the OpenAI model from environment variables
 const OPENAI_MODEL = import.meta.env.VITE_OPENAI_MODEL || "gpt-4";
 
+// Valid OpenAI models that are known to work
+const VALID_MODELS = [
+	"gpt-4",
+	"gpt-4-turbo",
+	"gpt-4-turbo-preview", 
+	"gpt-3.5-turbo",
+	"gpt-3.5-turbo-16k",
+	"o1-preview",
+	"o1-mini"
+];
+
+// Validate the model
+function validateModel(model: string): void {
+	if (!VALID_MODELS.includes(model)) {
+		console.warn(`Warning: Model "${model}" may not be available. Recommended models: ${VALID_MODELS.join(", ")}`);
+	}
+}
+
 // Models that use max_completion_tokens instead of max_tokens
 const COMPLETION_TOKEN_MODELS = ["o1-preview", "o1-mini", "o1", "o4", "o4-mini"];
 
@@ -179,6 +197,9 @@ export const aiService = {
 
 	getClient() {
 		if (!this.openai) {
+			// Validate the model early
+			validateModel(OPENAI_MODEL);
+			
 			// Try to get API key from environment variables
 			const apiKey =
 				import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.OPENAI_API_KEY;
@@ -197,6 +218,8 @@ export const aiService = {
 					);
 				}
 			}
+
+			console.log(`🤖 Initializing OpenAI client with model: ${OPENAI_MODEL}`);
 
 			this.openai = new OpenAI({
 				apiKey,
@@ -259,16 +282,58 @@ export const aiService = {
 				completionParams.max_tokens = 2000;
 			}
 
-			const completion = await this.getClient().chat.completions.create(completionParams);
+			console.log(`🚀 Making OpenAI request with model: ${OPENAI_MODEL}`, {
+				type,
+				temperature: completionParams.temperature,
+				maxTokens: completionParams.max_tokens || completionParams.max_completion_tokens
+			});
+
+			let completion;
+			try {
+				completion = await this.getClient().chat.completions.create(completionParams);
+			} catch (modelError: any) {
+				// If the model fails, try with gpt-3.5-turbo as fallback
+				if (modelError.message?.includes('model') && OPENAI_MODEL !== 'gpt-3.5-turbo') {
+					console.warn(`Model ${OPENAI_MODEL} failed, trying gpt-3.5-turbo fallback:`, modelError.message);
+					const fallbackParams = {
+						...completionParams,
+						model: 'gpt-3.5-turbo',
+						max_tokens: 2000, // gpt-3.5-turbo uses max_tokens
+						temperature: 0.7
+					};
+					delete fallbackParams.max_completion_tokens; // Remove o1/o4 specific params
+					completion = await this.getClient().chat.completions.create(fallbackParams);
+				} else {
+					throw modelError;
+				}
+			}
 
 			const duration = Date.now() - startTime;
 			const cost = calculateCost(completion.usage);
 
+			// Debug logging for empty responses
+			console.log("OpenAI completion response:", {
+				choices: completion.choices?.length || 0,
+				content: completion.choices?.[0]?.message?.content || "EMPTY",
+				finishReason: completion.choices?.[0]?.finish_reason,
+				model: completion.model,
+				usage: completion.usage
+			});
+
+			// Check if we have a valid response
+			const content = completion.choices?.[0]?.message?.content;
+			if (!content || content.trim() === "") {
+				console.error("OpenAI returned empty content:", {
+					choices: completion.choices,
+					model: completion.model,
+					finishReason: completion.choices?.[0]?.finish_reason
+				});
+				throw new Error(`OpenAI returned empty response. Finish reason: ${completion.choices?.[0]?.finish_reason || 'unknown'}`);
+			}
+
 			let responseData: T;
 			try {
-				responseData = JSON.parse(
-					completion.choices[0]?.message?.content || "{}"
-				) as T;
+				responseData = JSON.parse(content) as T;
 				// Validate required fields
 				if (type === "challenge") {
 					const challenge = responseData as unknown as ChallengeResponse;
@@ -281,11 +346,13 @@ export const aiService = {
 					}
 				}
 			} catch (parseError) {
-				console.error(
-					"Failed to parse AI response:",
-					completion.choices[0]?.message?.content
-				);
-				throw new Error("Invalid response format from AI service");
+				console.error("Failed to parse AI response:", {
+					content: content,
+					parseError: parseError instanceof Error ? parseError.message : parseError,
+					model: completion.model,
+					type: type
+				});
+				throw new Error(`Invalid JSON response from AI service: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
 			}
 
 			return {

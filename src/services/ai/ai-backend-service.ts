@@ -42,7 +42,16 @@ class AIBackendService {
     }
   }
 
+  private isLocalDevelopment(): boolean {
+    return import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  }
+
   private async callLambdaFunction(functionName: string, payload: any): Promise<any> {
+    // In local development, Lambda functions aren't available
+    if (this.isLocalDevelopment()) {
+      throw new Error('Lambda functions not available in local development');
+    }
+
     try {
       // Get auth session for authenticated requests
       const session = await fetchAuthSession();
@@ -67,6 +76,11 @@ class AIBackendService {
   }
 
   async generateChallenge(params: GenerateChallengeParams): Promise<AIResponse> {
+    // In local development, immediately throw error to use frontend fallback
+    if (this.isLocalDevelopment()) {
+      throw new Error('Backend AI service not available in local development - using frontend fallback');
+    }
+
     try {
       const userId = await this.getUserId();
       
