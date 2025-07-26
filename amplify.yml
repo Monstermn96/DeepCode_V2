@@ -4,13 +4,28 @@ applications:
       phases:
         preBuild:
           commands:
-            - echo "Installing dependencies for $AWS_BRANCH environment..."
-            - export NODE_OPTIONS=--max_old_space_size=4096
-            - nvm install 20
-            - nvm use 20
-            - node -v
-            - npm ci
-            - npm install -g @aws-amplify/cli@latest @aws-amplify/backend-cli typescript vite
+            - "echo 'Installing dependencies for $AWS_BRANCH environment...'"
+            - "export NODE_OPTIONS=--max_old_space_size=4096"
+            - "nvm install 20"
+            - "nvm use 20"
+            - "node -v"
+            - "npm ci"
+            - "npm install -g @aws-amplify/cli@latest @aws-amplify/backend-cli typescript vite"
+            # Install backend dependencies
+            - "echo 'Installing backend dependencies...'"
+            - "cd amplify && npm install && cd .."
+            # Deploy backend resources first
+            - "echo 'Deploying backend resources...'"
+            - "echo 'AWS_APP_ID: $AWS_APP_ID'"
+            - "echo 'AWS_BRANCH: $AWS_BRANCH'"
+            - |
+              if [ -n "$AWS_APP_ID" ]; then
+                echo "Deploying backend with app ID: $AWS_APP_ID"
+                npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+              else
+                echo "AWS_APP_ID not set, trying alternative backend deployment..."
+                npx ampx generate outputs --branch $AWS_BRANCH
+              fi
         build:
           commands:
             - |
@@ -37,6 +52,7 @@ applications:
           - node_modules/**/*
           - .npm/**/*
           - .cache/**/*
+          - amplify/node_modules/**/*
     appRoot: .
     customHeaders:
       - pattern: '**/*'
@@ -53,8 +69,8 @@ applications:
       phases:
         preTest:
           commands:
-            - npm ci
-            - npm install -g typescript
+            - "npm ci"
+            - "npm install -g typescript"
         test:
           commands:
             - |
