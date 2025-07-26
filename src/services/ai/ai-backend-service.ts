@@ -1,6 +1,6 @@
 import { generateClient } from 'aws-amplify/data';
 import { Schema } from '../../../amplify/data/resource';
-import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from 'aws-amplify/auth';
 import { post } from 'aws-amplify/api';
 
 const client = generateClient<Schema>();
@@ -56,9 +56,6 @@ class AIBackendService {
     }
 
     try {
-      // Get auth session for authenticated requests
-      const session = await fetchAuthSession();
-      
       // Call the Lambda function through API Gateway
       const response = await post({
         apiName: 'myRestApi',
@@ -71,7 +68,7 @@ class AIBackendService {
         }
       });
 
-      return response.body;
+      return response;
     } catch (error) {
       console.error(`Error calling ${functionName}:`, error);
       throw error;
@@ -99,8 +96,8 @@ class AIBackendService {
         throw new Error('Failed to create AI request');
       }
 
-      // Call Lambda function
-      const response = await this.callLambdaFunction('generate-challenge', {
+      // Call Lambda function  
+      await this.callLambdaFunction('generate-challenge', {
         requestId: aiRequest.id,
         ...params
       });
@@ -143,8 +140,10 @@ class AIBackendService {
 
   async evaluateCode(params: EvaluateCodeParams): Promise<AIResponse> {
     try {
-      // Create AI request record
+      // Create AI request record  
+      const userId = await this.getUserId();
       const { data: aiRequest } = await client.models.AIRequest.create({
+        userId,
         type: 'evaluation',
         status: 'pending',
         input: params
@@ -155,7 +154,7 @@ class AIBackendService {
       }
 
       // Call Lambda function
-      const response = await this.callLambdaFunction('evaluate-code', {
+      await this.callLambdaFunction('evaluate-code', {
         requestId: aiRequest.id,
         ...params
       });
@@ -185,7 +184,9 @@ class AIBackendService {
   async getCodeFeedback(code: string, language: string): Promise<AIResponse> {
     try {
       // Create AI request record
+      const userId = await this.getUserId();
       const { data: aiRequest } = await client.models.AIRequest.create({
+        userId,
         type: 'feedback',
         status: 'pending',
         input: { code, language }
@@ -196,7 +197,7 @@ class AIBackendService {
       }
 
       // Call Lambda function
-      const response = await this.callLambdaFunction('get-feedback', {
+      await this.callLambdaFunction('get-feedback', {
         requestId: aiRequest.id,
         code,
         language
@@ -254,7 +255,9 @@ class AIBackendService {
   // Conversation methods for interactive help
   async startConversation(topic: string): Promise<string> {
     try {
+      const userId = await this.getUserId();
       const { data: conversation } = await client.models.ConversationHistory.create({
+        userId,
         conversationId: crypto.randomUUID(),
         messages: [{
           role: 'system',

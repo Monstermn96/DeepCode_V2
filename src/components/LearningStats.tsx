@@ -33,7 +33,7 @@ export const LearningStats: React.FC<LearningStatsProps> = ({ userId }) => {
       const assessments = await skillAssessmentService.getUserSkillAssessments(userId);
       
       // Get learning paths
-      const learningPaths = await learningPathService.getUserLearningPaths(userId);
+      await learningPathService.getUserLearningPaths(userId);
       
       // Get recent progress tracking
       const { data: recentProgress } = await client.models.ProgressTracking.list({
@@ -103,7 +103,7 @@ export const LearningStats: React.FC<LearningStatsProps> = ({ userId }) => {
       mostImprovedSkill: ''
     };
 
-    const languageCounts: Record<string, number> = {};
+    // Language counts would be used for displaying language statistics
     const skillImprovements: Record<string, number> = {};
     const activeDays = new Set<string>();
 

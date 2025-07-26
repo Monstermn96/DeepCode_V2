@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { aiBackendService } from '../services/ai/ai-backend-service';
-import { UserStatsService } from '../services/stats/userStats';
 import { log } from '../utils/logger';
 
 // Import the old service as fallback

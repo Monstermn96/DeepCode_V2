@@ -2,8 +2,7 @@ import { generateClient } from 'aws-amplify/data';
 import { Schema } from '../../../amplify/data/resource';
 import { 
   LearningPath, 
-  Milestone,
-  SkillAssessment 
+  Milestone
 } from '../../types/learning';
 import { skillAssessmentService } from './skillAssessmentService';
 

@@ -37,7 +37,7 @@ export class SkillAssessmentService {
   async analyzeChallengeCompletion(
     userId: string,
     challengeId: string,
-    code: string,
+    _code: string,
     success: boolean,
     timeSpent: number,
     attempts: number
@@ -80,7 +80,7 @@ export class SkillAssessmentService {
     const combinedText = `${title} ${description}`;
 
     // Check for skill keywords
-    Object.entries(SKILL_CATEGORIES).forEach(([category, categorySkills]) => {
+    Object.entries(SKILL_CATEGORIES).forEach(([_category, categorySkills]) => {
       categorySkills.forEach(skill => {
         const skillKeywords = this.getSkillKeywords(skill);
         if (skillKeywords.some(keyword => combinedText.includes(keyword))) {
@@ -119,7 +119,7 @@ export class SkillAssessmentService {
   private calculateSkillImprovements(
     skills: string[],
     success: boolean,
-    timeSpent: number,
+    _timeSpent: number,
     attempts: number,
     difficulty: 'Easy' | 'Medium' | 'Hard'
   ): Record<string, number> {

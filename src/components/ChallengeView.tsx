@@ -38,7 +38,7 @@ export function ChallengeView() {
 	>([]);
 	const [isGenerating, setIsGenerating] = React.useState(false);
 	const [hintsVisible, setHintsVisible] = React.useState(false);
-	const [startTime, setStartTime] = React.useState<number>(Date.now());
+	const [startTime] = React.useState<number>(Date.now());
 	const [attempts, setAttempts] = React.useState(0);
 	const [challengeCompleted, setChallengeCompleted] = React.useState(false);
 

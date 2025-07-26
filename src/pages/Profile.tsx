@@ -40,7 +40,7 @@ export default function Profile() {
   const [overviewTab, setOverviewTab] = useState<'stats' | 'skills' | 'paths'>('stats');
   const [showTipMessage, setShowTipMessage] = useState(false);
   const [userStats, setUserStats] = useState<UserStatsWithPoints | null>(null);
-  const [monthlyUsage, setMonthlyUsage] = useState<{
+  	const [_monthlyUsage, setMonthlyUsage] = useState<{
     totalTokens: number;
     totalCost: number;
     challengesGenerated: number;
