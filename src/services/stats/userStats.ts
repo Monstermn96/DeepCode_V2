@@ -6,7 +6,8 @@ import type { Schema } from '../../../amplify/data/resource';
 async function initializeAmplify() {
 	try {
 		const outputs = await import('../../../amplify_outputs.json');
-		Amplify.configure(outputs.default);
+		// Use type assertion to avoid type checking issues
+		Amplify.configure(outputs.default as any);
 		return generateClient<Schema>();
 	} catch (error) {
 		console.error('Failed to load Amplify outputs:', error);
