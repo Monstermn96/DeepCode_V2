@@ -36,14 +36,14 @@ export function WelcomeScreen() {
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      console.log('User is authenticated, redirecting to dashboard');
+      // Redirecting authenticated user
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
   const handleGetStarted = async () => {
     if (!isAuthenticated) {
-      console.log('User not authenticated, redirecting to login');
+      // Redirecting to login
       navigate('/login');
       return;
     }

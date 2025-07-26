@@ -19,32 +19,47 @@ class Logger {
   private logLevel: LogLevel;
 
   constructor() {
-    // Determine environment - browser-only checks
+    // More robust environment detection
     this.isDevelopment = import.meta.env?.DEV === true ||
                         import.meta.env?.VITE_APP_ENV === 'development' ||
-                        import.meta.env?.MODE === 'development';
+                        import.meta.env?.MODE === 'development' ||
+                        import.meta.env?.NODE_ENV === 'development';
     
     this.isLocalhost = typeof window !== 'undefined' && 
                       (window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1' ||
-                       window.location.hostname.includes('localhost'));
+                       window.location.hostname.includes('localhost') ||
+                       window.location.hostname.includes('192.168.') ||
+                       window.location.hostname.includes('10.0.') ||
+                       window.location.port !== '');
 
-    // Set log level based on environment - browser-only
-    const envLogLevel = import.meta.env?.VITE_LOG_LEVEL || 'info';
+    // Set log level - be more restrictive by default
+    const envLogLevel = import.meta.env?.VITE_LOG_LEVEL || 'warn';
     this.logLevel = this.isProduction() ? 'error' : envLogLevel as LogLevel;
   }
 
   private isProduction(): boolean {
-    return !this.isDevelopment && !this.isLocalhost;
+    // More aggressive production detection
+    const isAmplifyDeploy = typeof window !== 'undefined' && 
+                           (window.location.hostname.includes('amplifyapp.com') ||
+                            window.location.hostname.includes('.amazonaws.com') ||
+                            window.location.hostname.includes('cloudfront.net'));
+    
+    return (!this.isDevelopment && !this.isLocalhost) || isAmplifyDeploy;
   }
 
   private shouldLog(level: LogLevel): boolean {
+    // Emergency override - completely disable all logging if set
+    if (import.meta.env?.VITE_DISABLE_ALL_LOGS === 'true') {
+      return false;
+    }
+    
     if (this.isProduction()) {
-      // In production, only log errors by default
+      // In production, only log critical errors by default
       return level === 'error';
     }
     
-    // In development, log everything by default
+    // In development, respect log level setting
     const levels: Record<LogLevel, number> = {
       debug: 0,
       info: 1,
@@ -122,16 +137,27 @@ class Logger {
     this.info(`AI operation: ${operation}`, { component: 'ai', ...context });
   }
 
-  // Development-only logging
+  // Development-only logging - completely silent in production
   devOnly(message: string, data?: any): void {
     if (!this.isProduction()) {
       console.log(`🚧 DEV: ${message}`, data);
     }
+    // Complete silence in production - no output whatsoever
   }
 
   // Production-safe user info (no sensitive data)
   userInfo(message: string, safeContext?: Record<string, string | number | boolean>): void {
     this.info(message, { component: 'user', ...safeContext });
+  }
+
+  // Debug method to check environment detection
+  getEnvironmentInfo(): { isDevelopment: boolean; isLocalhost: boolean; isProduction: boolean; logLevel: string } {
+    return {
+      isDevelopment: this.isDevelopment,
+      isLocalhost: this.isLocalhost,
+      isProduction: this.isProduction(),
+      logLevel: this.logLevel
+    };
   }
 }
 

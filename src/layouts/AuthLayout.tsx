@@ -2,15 +2,10 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export function AuthLayout() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  console.log('🛡️ AuthLayout check:', { 
-    isAuthenticated, 
-    isLoading, 
-    hasUser: !!user,
-    currentPath: location.pathname 
-  });
+  // Auth check performed (details hidden for security)
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -46,11 +41,11 @@ export function AuthLayout() {
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    console.log('❌ Not authenticated, redirecting to login');
+    // Redirecting to login
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  console.log('✅ Authenticated, rendering protected content');
+  // Rendering protected content
   // Render the protected route content if authenticated
   return <Outlet />;
 } 

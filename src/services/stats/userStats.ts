@@ -11,12 +11,12 @@ async function initializeAmplify() {
 			const response = await fetch('/amplify_outputs.json');
 			if (response.ok) {
 				outputs = await response.json();
-				console.log('✅ UserStats: Loaded amplify_outputs.json');
+				    // Configuration loaded successfully
 			} else {
 				throw new Error('amplify_outputs.json not found');
 			}
 		} catch (error) {
-			console.log('⚠️ UserStats: amplify_outputs.json not found, using fallback configuration');
+			    // Using fallback configuration
 			// Fallback configuration
 			outputs = {
 				version: "1.3",
