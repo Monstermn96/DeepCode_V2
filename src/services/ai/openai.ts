@@ -163,8 +163,15 @@ const OPENAI_MODEL = import.meta.env.VITE_OPENAI_MODEL || "gpt-4";
 // Models that use max_completion_tokens instead of max_tokens
 const COMPLETION_TOKEN_MODELS = ["o1-preview", "o1-mini", "o1", "o4", "o4-mini"];
 
+// Models that only support temperature = 1
+const FIXED_TEMPERATURE_MODELS = ["o1-preview", "o1-mini", "o1", "o4", "o4-mini"];
+
 function isCompletionTokenModel(model: string): boolean {
 	return COMPLETION_TOKEN_MODELS.some(m => model.includes(m));
+}
+
+function isFixedTemperatureModel(model: string): boolean {
+	return FIXED_TEMPERATURE_MODELS.some(m => model.includes(m));
 }
 
 export const aiService = {
@@ -237,8 +244,13 @@ export const aiService = {
 						content: JSON.stringify(inputData),
 					},
 				],
-				temperature: 0.7,
 			};
+
+			// Handle temperature based on model limitations
+			if (!isFixedTemperatureModel(OPENAI_MODEL)) {
+				completionParams.temperature = 0.7;
+			}
+			// o1 and o4 series models only support temperature = 1 (default)
 
 			// Use correct token parameter based on model
 			if (isCompletionTokenModel(OPENAI_MODEL)) {
